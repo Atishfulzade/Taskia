@@ -9,6 +9,7 @@ import { IoIosArrowDown } from "react-icons/io";
 import ProjectDetail from "./ProjectDetail";
 import ProjectList from "./ProjectList";
 import ProjectOverview from "./ProjectOverview";
+import { TbFlag3Filled } from "react-icons/tb";
 
 const dashboardTop1 = [
   { id: 1, icon: <RiAppsLine size={18} />, label: "Overview" },
@@ -37,7 +38,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full dark:bg-slate-700">
       {/* Top Bar */}
       <div className="flex h-10 border-b border-slate-300 px-2 justify-between items-center">
         {/* Left Side Navigation */}
@@ -46,7 +47,7 @@ const Dashboard = () => {
             <div
               key={item.id}
               onClick={() => setSelectedSubBoard(item.id)}
-              className={`flex items-center cursor-pointer justify-center gap-1 px-3 py-1 rounded transition-all ${
+              className={`flex items-center dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-slate-300 cursor-pointer justify-center gap-1 px-3 py-1 rounded transition-all ${
                 item.id === selectedSubBoard
                   ? "bg-violet-800 text-white"
                   : "hover:text-slate-600"
@@ -63,7 +64,7 @@ const Dashboard = () => {
           {dashboardTop2.map((item) => (
             <div
               key={item.id}
-              className="flex items-center cursor-pointer gap-1 hover:text-slate-600"
+              className="flex items-center cursor-pointer dark:hover:text-slate-400 dark:hover:bg-slate-700 gap-1 dark:text-slate-200 "
             >
               {item.icon}
               <span>{item.label}</span>
@@ -74,7 +75,7 @@ const Dashboard = () => {
           <span className="bg-slate-200 h-5 w-0.5"></span>
 
           {/* Add Task Button */}
-          <button className="text-white bg-violet-700 cursor-pointer text-sm px-3 py-1 rounded flex gap-2 items-center transition hover:bg-violet-600">
+          <button className="text-white bg-violet-700 cursor-pointer text-sm px-3 py-1.5 rounded flex gap-2 items-center transition hover:bg-violet-600">
             Add task
             <span className="bg-violet-500 h-4 w-[1px]"></span>
             <IoIosArrowDown />

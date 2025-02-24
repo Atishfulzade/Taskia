@@ -195,7 +195,7 @@ const ProjectDetail = () => {
   ];
 
   return (
-    <div className="h-full w-full relative ">
+    <div className="h-full dark:text-slate-50 dark:bg-slate-700 w-full relative ">
       <div className="flex gap-2 w-full items-center mb-2 justify-between">
         <div className="flex text-slate-600 font-inter gap-1">
           <div className="flex border cursor-pointer border-slate-300 rounded-full px-3 py-1  justify-center items-center gap-1 text-sm">

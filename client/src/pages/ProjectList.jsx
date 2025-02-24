@@ -7,79 +7,96 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { MdArrowRight } from "react-icons/md";
-import { TbFlag3 } from "react-icons/tb";
-import { PiDotsThreeBold } from "react-icons/pi";
-import { IoAdd } from "react-icons/io5";
-import Task from "../component/Task";
+import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 
-const PrioritySection = ({
-  priority,
-  tasks = [],
-  toggleDropdown,
-  openDropdowns,
-}) => {
-  const filteredTasks =
-    tasks?.filter((task) => task.priority === priority) || [];
-  console.log("filtered tasks: " + filteredTasks);
+import PrioritySection from "../component/PrioritySection";
+import { TbStack2 } from "react-icons/tb";
+import { PiGitMergeDuotone } from "react-icons/pi";
+import { RiExpandUpDownLine } from "react-icons/ri";
+import { IoFilter } from "react-icons/io5";
+import { GoPeople, GoPerson } from "react-icons/go";
 
-  return (
-    <div
-      className={`flex gap-2 w-full transition-all text-slate-600 items-start justify-start ${
-        openDropdowns[priority] ? "h-fit" : "h-8"
-      }`}
-    >
-      <MdArrowRight
-        size={22}
-        onClick={() => toggleDropdown(priority)}
-        className={`cursor-pointer transition-all h-8 w-8 ${
-          openDropdowns[priority] ? "rotate-90" : "rotate-0"
-        }`}
-      />
-      <div className="flex flex-col w-full transition-all">
-        <div className="flex justify-start items-center gap-2 text-lg bg-lime-400 p-2 rounded-md">
-          <TbFlag3 className={priority === "High" ? "text-red-500" : ""} />
-          <h5 className="font-inter font-medium">{priority} Priority</h5>
-          <PiDotsThreeBold
-            size={22}
-            className="hover:bg-slate-200 cursor-pointer p-0.5 rounded"
-          />
-          <p className="flex gap-0.5 text-sm cursor-pointer hover:bg-slate-200 p-0.5 px-2 rounded items-center justify-center">
-            <IoAdd size={18} />
-            Add task
-          </p>
-        </div>
+const ProjectList = ({}) => {
+  const [tasks, setTasks] = useState([
+    {
+      _id: "1",
+      name: "Set up project structure",
+      status: "Pending",
+      priority: "No",
+      primaryColor: "bg-gray-500",
+    },
+    {
+      _id: "2",
+      name: "Design homepage UI",
+      status: "In Progress",
+      priority: "High",
+      primaryColor: "bg-violet-500",
+    },
+    {
+      _id: "3",
+      name: "Implement authentication system",
+      status: "Completed",
+      priority: "Medium",
+      primaryColor: "bg-yellow-500",
+    },
+    {
+      _id: "4",
+      name: "Create reusable components",
+      status: "Todo",
+      priority: "Medium",
+      primaryColor: "bg-yellow-500",
+    },
+    {
+      _id: "5",
+      name: "Optimize images and assets",
+      status: "In Progress",
+      priority: "High",
+      primaryColor: "bg-red-500",
+    },
+    {
+      _id: "6",
+      name: "Connect frontend with backend API",
+      status: "Completed",
+      priority: "Medium",
+      primaryColor: "bg-yellow-500",
+    },
+    {
+      _id: "7",
+      name: "Set up database schema",
+      status: "Pending",
+      priority: "Low",
+      primaryColor: "bg-green-500",
+    },
+    {
+      _id: "8",
+      name: "Implement role-based access control",
+      status: "In Progress",
+      priority: "Medium",
+      primaryColor: "bg-yellow-500",
+    },
+    {
+      _id: "9",
+      name: "Write unit tests for components",
+      status: "Todo",
+      priority: "No",
+      primaryColor: "bg-yellow-500",
+    },
+    {
+      _id: "10",
+      name: "Deploy project on cloud server",
+      status: "Completed",
+      priority: "Medium",
+      primaryColor: "bg-yellow-500",
+    },
+    {
+      _id: "11",
+      name: "Improve website performance",
+      status: "Completed",
+      priority: "Low",
+      primaryColor: "bg-green-500",
+    },
+  ]);
 
-        {/* Drag-and-Drop List */}
-        {openDropdowns[priority] && filteredTasks.length > 0 && (
-          <div className="flex flex-col w-full p-2 bg-gray-100 rounded-lg">
-            <div className="flex w-full font-semibold">
-              <p className="w-1/3">Name</p>
-              <p className="w-1/3">Status</p>
-              <p className="w-1/3">Priority</p>
-            </div>
-            <SortableContext
-              items={filteredTasks.map((task) => task?._id || "")} // ✅ Ensure valid IDs
-              strategy={verticalListSortingStrategy}
-            >
-              {filteredTasks?.map((task) =>
-                task?._id ? <Task key={task._id} task={task} /> : null
-              )}
-            </SortableContext>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const ProjectList = ({ tasks = [], setTasks }) => {
   const [openDropdowns, setOpenDropdowns] = useState({
     No: true,
     Low: true,
@@ -103,38 +120,76 @@ const ProjectList = ({ tasks = [], setTasks }) => {
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
-    if (!active || !over) return;
 
-    if (active.id !== over.id) {
-      setTasks((prevTasks) => {
-        const oldIndex = prevTasks.findIndex((task) => task._id === active.id);
-        const newIndex = prevTasks.findIndex((task) => task._id === over.id);
+    if (!over) return; // Exit if dropped outside
 
-        if (oldIndex === -1 || newIndex === -1) return prevTasks; // ✅ Prevents errors
+    const taskId = active.id;
+    const newPriority = over.data.current?.priority; // Get the new priority from drop target
 
-        return arrayMove(prevTasks, oldIndex, newIndex);
-      });
-    }
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task._id === taskId ? { ...task, priority: newPriority } : task
+      )
+    );
   };
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="w-full flex flex-col gap-4">
-        {["No", "Low", "Medium", "High"].map((priority) => (
-          <PrioritySection
-            key={priority}
-            priority={priority}
-            tasks={tasks}
-            toggleDropdown={toggleDropdown}
-            openDropdowns={openDropdowns}
+    <div className="flex flex-col ">
+      <div className="flex gap-2 w-full items-center mb-2 justify-between">
+        <div className="flex text-slate-600 font-inter gap-1">
+          <div className="flex border cursor-pointer dark:text-slate-200 border-slate-300 rounded-full px-3 py-1 justify-center items-center gap-1 text-sm">
+            <TbStack2 size={18} />
+            Group: Status
+          </div>
+          <div className="flex border cursor-pointer dark:text-slate-200 border-slate-300 rounded-full px-3 py-1 justify-center items-center gap-1 text-sm">
+            <PiGitMergeDuotone size={18} />
+            SubTask: Collapse all
+          </div>
+        </div>
+        <div className="flex text-slate-600 font-inter gap-1 items-center">
+          <div className="flex border cursor-pointer dark:text-slate-200 border-slate-300 rounded-full px-3 py-1 justify-center items-center gap-1 text-sm">
+            <RiExpandUpDownLine size={18} />
+            Filter
+          </div>
+          <div className="flex border cursor-pointer dark:text-slate-200 border-slate-300 rounded-full px-3 py-1 justify-center items-center gap-1 text-sm">
+            <IoFilter size={18} />
+            Sort
+          </div>
+          <div className="flex border cursor-pointer dark:text-slate-200 border-slate-300 rounded-full px-3 py-1 justify-center items-center gap-1 text-sm">
+            <GoPerson size={18} />
+            Me mode
+          </div>
+          <div className="flex border cursor-pointer dark:text-slate-200 border-slate-300 rounded-full px-3 py-1 justify-center items-center gap-1 text-sm">
+            <GoPeople size={18} />
+            Assignee
+          </div>
+          <span className="h-6 w-[1px] bg-slate-300 mx-2"></span>
+          <input
+            type="text"
+            placeholder="Search..."
+            className="border border-slate-300 dark:text-slate-200 dark:placeholder:text-slate-400 focus:outline-1 outline-violet-300 w-48 px-2 text-sm py-[3px] rounded "
           />
-        ))}
+        </div>
       </div>
-    </DndContext>
+
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="w-full flex  flex-col gap-4 overflow-y-auto  h-[calc(100vh-150px)]">
+          {["No", "Low", "Medium", "High"].map((priority) => (
+            <PrioritySection
+              key={priority}
+              priority={priority}
+              tasks={tasks}
+              toggleDropdown={toggleDropdown}
+              openDropdowns={openDropdowns}
+            />
+          ))}
+        </div>
+      </DndContext>
+    </div>
   );
 };
 

@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
 .loader {
   width: 60px;
   aspect-ratio: 2;
