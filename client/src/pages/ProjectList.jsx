@@ -17,11 +17,11 @@ import { MdArrowRight } from "react-icons/md";
 import { TbFlag3 } from "react-icons/tb";
 import { PiDotsThreeBold } from "react-icons/pi";
 import { IoAdd } from "react-icons/io5";
-import Task from "../component/Task"; // Ensure this component is correct
+import Task from "../component/Task";
 
 const PrioritySection = ({
   priority,
-  tasks = [], // ✅ Ensure `tasks` is always an array
+  tasks = [],
   toggleDropdown,
   openDropdowns,
 }) => {
