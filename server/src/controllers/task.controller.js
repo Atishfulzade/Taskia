@@ -5,27 +5,36 @@ const msg = require("../utils/message-constant.json");
 // Add a new Task
 const addTask = async (req, res) => {
   try {
-    const { name, projectId, status } = req.body;
+    const { title, projectId, status, ...others } = req.body;
 
-    if (!name && !projectId && !status)
+    // Check if the required fields are missing
+    if (!title || !projectId || !status)
       return res.status(400).json({ message: msg.allFieldsRequired });
 
-    const isAlreadyExist = await Task.findOne({ name });
+    // Check if the task already exists by title
+    const isAlreadyExist = await Task.findOne({ title });
 
     if (isAlreadyExist) {
       return res.status(400).json({ message: msg.titleAlreadyExists });
     }
 
-    const newTask = new Task({ name, projectId, status });
+    // Create a new task instance with the provided data
+    const newTask = new Task({ title, projectId, status, ...others });
+
+    // Save the task to the database
     await newTask.save();
 
-    res
-      .status(200)
-      .json({ message: msg.taskCreatedSuccessfully, data: newTask });
+    // Send a response indicating success
+    res.status(200).json({
+      message: msg.taskCreatedSuccessfully,
+      data: newTask,
+    });
   } catch (error) {
+    // Handle errors that might occur during task creation
     handleError(res, msg.errorCreatingTask, error);
   }
 };
+
 const updateTask = async (req, res) => {
   try {
     const TaskId = req.params.id;

@@ -4,10 +4,9 @@ const msg = require("../utils/message-constant.json");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-//Register a new user
-const registerUser = async (req, res) => {
-  console.log(req.body);
 
+// Register a new user
+const registerUser = async (req, res) => {
   try {
     const { email, name, password } = req.body;
     if (!email || !name || !password)
@@ -15,7 +14,8 @@ const registerUser = async (req, res) => {
     const isExist = await User.findOne({ email: email });
     if (isExist)
       return res.status(400).json({ message: msg.userAlreadyExists });
-    if (password.length < 2)
+    if (password.length < 6)
+      // Updated password length validation
       return res.status(401).json({ message: msg.passwordTooShort });
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({ email, name, password: hashedPassword });
@@ -41,11 +41,8 @@ const registerUser = async (req, res) => {
   }
 };
 
-//login user
-
+// Login user
 const loginUser = async (req, res) => {
-  console.log(req.body);
-
   try {
     const { email, password } = req.body;
     if (!email || !password)
@@ -61,8 +58,7 @@ const loginUser = async (req, res) => {
       { expiresIn: "1h" }
     );
     res.status(200).json({
-      message: msg.loginSuccess,
-      message: "Logged in successfully",
+      message: msg.loginSuccess, // Fixed duplicate message key
       data: user.toObject({
         versionKey: false,
         transform: (_, ret) => {
@@ -77,8 +73,7 @@ const loginUser = async (req, res) => {
   }
 };
 
-// logout user
-
+// Logout user
 const logOutUser = (req, res) => {
   req.session.destroy((err) => {
     if (err)
@@ -88,4 +83,5 @@ const logOutUser = (req, res) => {
     res.status(200).json({ message: msg.logoutSuccess });
   });
 };
+
 module.exports = { registerUser, loginUser, logOutUser };

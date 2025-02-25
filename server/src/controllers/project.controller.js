@@ -5,7 +5,7 @@ const handleError = require("../utils/common-functions").handleError;
 // Add a new project
 const addProject = async (req, res) => {
   try {
-    const { title, description } = req.body;
+    const { title, description, isPrivate } = req.body;
 
     if (!title) return res.status(400).json({ message: msg.titleIsRequired });
 
@@ -15,7 +15,7 @@ const addProject = async (req, res) => {
       return res.status(400).json({ message: msg.titleAlreadyExists });
     }
 
-    const project = new Project({ title, description });
+    const project = new Project({ title, description, isPrivate });
     await project.save();
 
     res
@@ -30,9 +30,6 @@ const addProject = async (req, res) => {
 const updateProject = async (req, res) => {
   try {
     const projectId = req.params.id;
-    const { title } = req.body;
-
-    if (!title) return res.status(400).json({ message: msg.titleIsRequired });
 
     const newProject = await Project.findOneAndUpdate(
       { _id: projectId },
@@ -87,11 +84,21 @@ const getAllProjects = async (req, res) => {
 const deleteProject = async (req, res) => {
   try {
     const projectId = req.params.id;
-    const project = await Project.findByIdAndDelete(projectId);
 
+    // Find the project first
+    const project = await Project.findById(projectId);
     if (!project) {
       return res.status(404).json({ message: msg.projectNotFound });
     }
+
+    // Delete all tasks associated with statuses under this project
+    await Task.deleteMany({ project: projectId });
+
+    // Delete all statuses related to this project
+    await Status.deleteMany({ project: projectId });
+
+    // Now delete the project
+    await Project.findByIdAndDelete(projectId);
 
     res.status(200).json({ message: msg.projectDeletedSuccessfully });
   } catch (error) {

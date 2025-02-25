@@ -29,11 +29,11 @@ const Navbar = () => {
         <img src={logo} alt="Logo" className="w-8" />
       </Link>
       <div className="relative flex w-98 backdrop-blur-lg ps-8 items-center bg-white/10 h-8 border border-violet-500 rounded-lg">
-        <FiSearch className="absolute top-1.5 left-2 text-white" />
+        <FiSearch size={20} className="absolute top-1.5 left-2 text-white" />
         <input
           type="text"
           placeholder="Search..."
-          className="h-full w-full outline-none text-slate-100 placeholder-slate-100 font-light text-sm"
+          className="h-full w-full outline-none text-slate-100 placeholder-slate-300 placeholder:font-inter font-light text-md"
         />
       </div>
 
@@ -50,7 +50,7 @@ const Navbar = () => {
               />
               <div
                 className={`block h-6 w-12 rounded-full transition ${
-                  isDarkMode ? "bg-violet-600" : "bg-gray-300"
+                  isDarkMode ? "bg-violet-600" : "bg-violet-500"
                 }`}
               ></div>
               <div
@@ -60,20 +60,24 @@ const Navbar = () => {
               ></div>
             </div>
           </label>
-          {isDarkMode ? <MdOutlineLightMode /> : <MdOutlineNightlight />}
+          {isDarkMode ? (
+            <MdOutlineLightMode size={18} />
+          ) : (
+            <MdOutlineNightlight size={18} />
+          )}
         </div>
 
         {/* Other Navbar Items */}
-        <button className="flex px-3 gap-1 py-1 hover:bg-violet-700 font-inter font-normal items-center justify-center text-white">
-          <FiBell size={18} />
+        <button className="flex px-3 gap-1 py-1 hover:bg-violet-700 font-inter font-normal rounded-lg items-center justify-center text-white">
+          <FiBell size={20} />
           Notification
         </button>
-        <button className="flex px-3 gap-1 py-1 hover:bg-violet-700 font-inter font-normal items-center justify-center text-white">
-          <IoAddCircleOutline size={18} />
+        <button className="flex px-3 gap-1 py-1 hover:bg-violet-700 font-inter font-normal items-center rounded-lg justify-center text-white">
+          <IoAddCircleOutline size={20} />
           New
         </button>
-        <button className="flex px-3 gap-1 py-1 hover:bg-violet-700 font-inter font-normal items-center justify-center text-white">
-          <IoApps size={18} />
+        <button className="flex px-3 gap-1 py-1 hover:bg-violet-700 font-inter font-normal items-center rounded-lg justify-center text-white">
+          <IoApps size={20} />
         </button>
 
         {/* Profile */}

@@ -32,28 +32,31 @@ const PrioritySection = ({
   return (
     <div
       ref={setNodeRef}
-      className={`flex gap-2 w-full transition-all rounded dark:bg-slate-700 text-slate-600 items-start justify-start ${
+      className={`flex  w-full transition-all  dark:bg-slate-700 text-slate-600 items-start justify-start ${
         openDropdowns[priority] ? "h-fit" : "h-10"
       } ${isOver ? "bg-gray-200" : ""}`}
     >
       <MdArrowRight
-        size={18}
+        size={14}
         onClick={() => toggleDropdown(priority)}
-        className={`cursor-pointer transition-all dark:bg-slate-700 p-1 dark:text-slate-300 text-slate-400 h-10 w-10 ${
+        className={`cursor-pointer transition-all dark:bg-slate-700 p-1 dark:text-slate-300 text-slate-400 h-8 w-8 ${
           openDropdowns[priority] ? "rotate-90" : "rotate-0"
         }`}
       />
       <div className="flex flex-col w-full transition-all dark:bg-slate-700">
-        <div className="flex justify-start items-center gap-2 text-lg p-2  rounded-md">
-          <TbFlag3 className="dark:text-slate-100" />
-          <h5 className="font-inter font-medium  dark:text-slate-100">
+        <div className="flex justify-start items-center gap-2  p-1  rounded-md">
+          <TbFlag3 className="dark:text-slate-100" size={16} />
+          <h5 className="font-inter font-medium text-sm  dark:text-slate-100">
             {priority} Priority
           </h5>
+          <p className="text-xs font-inter text-slate-500">
+            {filteredTasks.filter((item) => item.priority === priority).length}
+          </p>
           <PiDotsThreeBold
             size={22}
-            className="hover:bg-slate-200 dark:text-slate-100 dark:hover:bg-slate-800 cursor-pointer p-0.5 rounded"
+            className="hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800 cursor-pointer p-0.5 rounded"
           />
-          <p className="flex gap-0.5 dark:text-slate-100 text-sm cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 p-0.5 px-2 rounded items-center justify-center">
+          <p className="flex gap-0.5 dark:text-slate-100 text-[13px] cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 p-0.5 px-2 rounded items-center justify-center">
             <IoAdd size={18} />
             Add task
           </p>
@@ -61,16 +64,25 @@ const PrioritySection = ({
 
         {/* Drag-and-Drop List */}
         {openDropdowns[priority] && (
-          <div className="flex flex-col w-full p-2 rounded-lg">
-            <div className="flex w-full mb-1 ">
-              <p className="w-1/3 text-sm font-inter ml-10 font-medium dark:text-slate-100 text-slate-400">
+          <div className="flex flex-col w-full p-1 rounded-lg">
+            <div className="flex w-full ">
+              <p className="w-full text-[12px] font-inter ml-8 font-regular dark:text-slate-100 text-slate-400">
                 Name
               </p>
-              <p className="w-1/3 text-sm font-inter ml-32 font-medium dark:text-slate-100 text-slate-400">
+              <p className="w-1/3  text-[12px] font-inter ml-0 font-regular dark:text-slate-100 text-slate-400">
                 Status
               </p>
-              <p className="w-1/3 text-sm font-inter ml-32 font-medium dark:text-slate-100 text-slate-400">
+              <p className="w-1/3 text-[12px] font-inter ml-28 font-regular dark:text-slate-100 text-slate-400">
+                Created at
+              </p>
+              <p className="w-1/4  text-[12px] font-inter  font-regular dark:text-slate-100 text-slate-400">
+                Assigned
+              </p>
+              <p className="w-[20%] text-[12px] font-inter  font-regular dark:text-slate-100 text-slate-400">
                 Priority
+              </p>
+              <p className="w-1/3 text-[12px] font-inter ml-6 font-regular dark:text-slate-100 text-slate-400">
+                Due date
               </p>
             </div>
 

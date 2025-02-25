@@ -85,11 +85,11 @@ const Sidebar = () => {
             <div
               key={project._id}
               onClick={() => navigate(`/dashboard/${project._id}`)}
-              className={`py-2 px-2 flex items-center justify-between cursor-pointer border-slate-200 
+              className={`py-2 px-5 flex items-center justify-between cursor-pointer border-slate-200 
         ${
           isActive
             ? "bg-violet-700 text-white dark:bg-slate-900"
-            : "bg-white text-slate-800 dark:text-slate-300"
+            : "bg-white text-slate-900 dark:text-slate-300"
         } 
         dark:bg-slate-700 hover:${
           isActive
@@ -98,12 +98,12 @@ const Sidebar = () => {
         }`}
             >
               <div className="flex gap-2 items-center">
-                <IoIosList size={20} />
-                <h4 className="font-inter text-sm">{project.title}</h4>
-                <MdLockOutline />
+                <IoIosList size={20} className="text-slate-500" />
+                <h4 className="font-inter text-[15px]">{project.title}</h4>
+                <MdLockOutline size={12} className="text-slate-500" />
               </div>
               <p
-                className={`text-sm text-slate-600 dark:text-slate-50 ${
+                className={`text-xs text-slate-500 font-inter dark:text-slate-50 ${
                   isActive ? "text-white" : ""
                 }`}
               >

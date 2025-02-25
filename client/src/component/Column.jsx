@@ -25,15 +25,15 @@ export default function Column({
           <div
             className={`flex justify-start items-center rounded-md gap-1 p-0.5 px-2 ${bgColor.primaryColor}`}
           >
-            <FaRegCircle className=" text-violet-600" />
+            <FaRegCircle className=" text-violet-600" size={14} />
             <h3
               title={status?.title}
-              className={` text-md font-inter w-fit line-clamp-1 ${bgColor.tertiaryColor} `}
+              className={` text-[12px] py-0.5 font-inter w-fit line-clamp-1 ${bgColor.tertiaryColor} `}
             >
               {status?.title.toUpperCase()}
             </h3>
           </div>
-          <span className="text-slate-500">5</span>
+          <span className="text-slate-500 text-sm font-inter ">5</span>
         </div>
 
         <div className="flex gap-0.5 text-slate-600">

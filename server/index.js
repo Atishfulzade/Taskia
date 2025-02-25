@@ -5,6 +5,7 @@ const cors = require("cors");
 require("dotenv").config();
 const { connect } = require("./src/db/conn.js");
 const routes = require("./src/routes/index.js");
+const session = require("express-session");
 
 app.use(
   cors({
@@ -16,7 +17,14 @@ app.use(
 );
 
 connect();
-
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET, // A secret key for signing the session ID cookie
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: process.env.NODE_ENV === "production" }, // Ensure cookie is only sent over HTTPS in production
+  })
+);
 app.use(express.json());
 
 app.use((req, res, next) => {

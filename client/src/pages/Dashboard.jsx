@@ -9,12 +9,12 @@ import { IoIosArrowDown } from "react-icons/io";
 import ProjectDetail from "./ProjectDetail";
 import ProjectList from "./ProjectList";
 import ProjectOverview from "./ProjectOverview";
-import { TbFlag3Filled } from "react-icons/tb";
+import { TbLayoutDashboard } from "react-icons/tb";
 
 const dashboardTop1 = [
-  { id: 1, icon: <RiAppsLine size={18} />, label: "Overview" },
-  { id: 2, icon: <IoIosList size={18} />, label: "List" },
-  { id: 3, icon: <HiOutlineViewBoards size={18} />, label: "Board" },
+  // { id: 1, icon: <RiAppsLine size={18} />, label: "Overview" },
+  { id: 1, icon: <IoIosList size={18} />, label: "List" },
+  { id: 2, icon: <TbLayoutDashboard size={18} />, label: "Board" },
 ];
 
 const dashboardTop2 = [
@@ -28,9 +28,9 @@ const Dashboard = () => {
 
   const renderComponent = () => {
     switch (selectedSubBoard) {
+      // case 1:
+      //   return <ProjectOverview />;
       case 1:
-        return <ProjectOverview />;
-      case 2:
         return <ProjectList />;
       default:
         return <ProjectDetail />;
@@ -47,14 +47,14 @@ const Dashboard = () => {
             <div
               key={item.id}
               onClick={() => setSelectedSubBoard(item.id)}
-              className={`flex items-center dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-slate-300 cursor-pointer justify-center gap-1 px-3 py-1 rounded transition-all ${
+              className={`flex items-center text-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-slate-300 cursor-pointer justify-center gap-1 px-3 py-1.5 rounded transition-all ${
                 item.id === selectedSubBoard
                   ? "bg-violet-800 text-white"
-                  : "hover:text-slate-600"
+                  : "hover:text-slate-600 hover:bg-slate-100"
               }`}
             >
               {item.icon}
-              <span>{item.label}</span>
+              <span className="text-sm font-inter">{item.label}</span>
             </div>
           ))}
         </div>
@@ -64,10 +64,10 @@ const Dashboard = () => {
           {dashboardTop2.map((item) => (
             <div
               key={item.id}
-              className="flex items-center cursor-pointer dark:hover:text-slate-400 dark:hover:bg-slate-700 gap-1 dark:text-slate-200 "
+              className="flex text-slate-700 items-center hover:bg-slate-100 px-2 rounded-md py-1.5 cursor-pointer dark:hover:text-slate-400 dark:hover:bg-slate-700 gap-1 dark:text-slate-200 "
             >
               {item.icon}
-              <span>{item.label}</span>
+              <span className="font-inter text-sm">{item.label}</span>
             </div>
           ))}
 
@@ -75,10 +75,10 @@ const Dashboard = () => {
           <span className="bg-slate-200 h-5 w-0.5"></span>
 
           {/* Add Task Button */}
-          <button className="text-white bg-violet-700 cursor-pointer text-sm px-3 py-1.5 rounded flex gap-2 items-center transition hover:bg-violet-600">
+          <button className="text-white bg-violet-700 cursor-pointer text-sm px-3 py-1.5 rounded flex gap-2 items-center justify-center transition hover:bg-violet-600">
             Add task
             <span className="bg-violet-500 h-4 w-[1px]"></span>
-            <IoIosArrowDown />
+            <IoIosArrowDown size={10} />
           </button>
         </div>
       </div>
