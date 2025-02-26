@@ -1,14 +1,63 @@
+import { useFormik } from "formik";
 import React, { useEffect, useRef, useState } from "react";
 import { IoIosClose } from "react-icons/io";
+import requestServer from "../utils/requestServer";
+import { showToast } from "../utils/showToast";
+import { useDispatch, useSelector } from "react-redux";
+import { setCurrentProject, setProjects } from "../store/projectSlice";
+import * as Yup from "yup";
+import { useNavigate } from "react-router-dom";
 
-const AddProjectPopup = ({ title, setTitle, close, addProject }) => {
+const AddProjectPopup = ({ close }) => {
   const dialogRef = useRef(null);
-  const [description, setDescription] = useState(""); // Separate state for description
+  const dispatch = useDispatch();
   const [isChecked, setIsChecked] = useState(false);
+  const userId = useSelector((state) => state.user?.user?.data?._id);
+  const navigate = useNavigate();
+  console.log(localStorage.getItem("userState"));
 
-  const handleCheckboxChange = () => {
-    setIsChecked(!isChecked);
-  };
+  const formik = useFormik({
+    initialValues: {
+      title: "",
+      description: "",
+      isPrivate: true,
+    },
+    validationSchema: Yup.object({
+      title: Yup.string().required("Title is required"),
+      description: Yup.string(), // Optional field
+    }),
+    onSubmit: async (values, { resetForm }) => {
+      try {
+        const res = await requestServer("project/add", { ...values, userId });
+        dispatch(setCurrentProject(res.newProject));
+        dispatch(setProjects(res.projects));
+        showToast(res.message, "success");
+        resetForm();
+        close(false);
+      } catch (error) {
+        console.error("error", error);
+
+        if (error.response?.data?.message === "Token not found") {
+          showToast("Invalid token! Please login again.", "error");
+          localStorage.removeItem("token");
+          localStorage.removeItem("userState");
+          dispatch(setCurrentProject(null));
+          dispatch(setProjects([]));
+          navigate("/authenticate");
+        } else {
+          showToast(
+            error.response?.data?.message || "Something went wrong",
+            "error"
+          );
+        }
+      }
+    },
+  });
+
+  useEffect(() => {
+    formik.setFieldValue("isPrivate", isChecked);
+  }, [isChecked]);
+
   const handleClickOutside = (event) => {
     if (dialogRef.current && !dialogRef.current.contains(event.target)) {
       close(false);
@@ -21,6 +70,7 @@ const AddProjectPopup = ({ title, setTitle, close, addProject }) => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
   return (
     <div className="absolute h-screen w-screen bg-slate-900/80 z-50 top-0 bottom-0 left-0 right-0 flex justify-center items-center">
       <div
@@ -34,14 +84,17 @@ const AddProjectPopup = ({ title, setTitle, close, addProject }) => {
           className="absolute top-3 right-3 h-6 w-6 hover:bg-slate-50 cursor-pointer rounded-full"
           size={22}
           onClick={() => close(false)}
-          tabIndex={0} // Improves accessibility
+          tabIndex={0}
         />
         <p className="text-slate-500 text-sm">
           A project refers to a planned effort to achieve a specific goal within
           a set timeline.
         </p>
 
-        <div className="flex flex-col gap-4 mt-5">
+        <form
+          className="flex flex-col gap-4 mt-5"
+          onSubmit={formik.handleSubmit}
+        >
           {/* Project Title */}
           <div className="flex flex-col gap-1">
             <label className="text-slate-600 text-sm font-semibold">
@@ -50,10 +103,15 @@ const AddProjectPopup = ({ title, setTitle, close, addProject }) => {
             <input
               className="border border-slate-300 py-2 text-sm rounded-lg px-2 focus:outline-violet-600 focus:outline-2"
               type="text"
-              value={title}
+              name="title"
+              value={formik.values.title}
               placeholder="Enter Project Title"
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
             />
+            {formik.touched.title && formik.errors.title && (
+              <p className="text-red-500 text-xs">{formik.errors.title}</p>
+            )}
           </div>
 
           {/* Project Description */}
@@ -64,10 +122,17 @@ const AddProjectPopup = ({ title, setTitle, close, addProject }) => {
             <input
               className="border border-slate-300 py-2 text-sm rounded-lg px-2 focus:outline-violet-600 focus:outline-2"
               type="text"
-              value={description} // Separate state for description
+              name="description"
+              value={formik.values.description}
               placeholder="Enter Project Description"
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
             />
+            {formik.touched.description && formik.errors.description && (
+              <p className="text-red-500 text-xs">
+                {formik.errors.description}
+              </p>
+            )}
           </div>
 
           {/* Private Project Toggle */}
@@ -83,7 +148,7 @@ const AddProjectPopup = ({ title, setTitle, close, addProject }) => {
                 <input
                   type="checkbox"
                   checked={isChecked}
-                  onChange={handleCheckboxChange}
+                  onChange={() => setIsChecked(!isChecked)}
                   className="sr-only"
                 />
                 <div
@@ -103,11 +168,12 @@ const AddProjectPopup = ({ title, setTitle, close, addProject }) => {
           {/* Add Project Button */}
           <button
             className="bg-violet-700 py-2 cursor-pointer text-sm rounded-lg text-white hover:bg-violet-800 transition"
-            onClick={addProject}
+            type="submit"
+            disabled={formik.isSubmitting}
           >
-            Add Project
+            {formik.isSubmitting ? "Adding..." : "Add Project"}
           </button>
-        </div>
+        </form>
       </div>
     </div>
   );

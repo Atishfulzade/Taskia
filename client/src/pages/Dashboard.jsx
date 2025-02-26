@@ -10,7 +10,7 @@ import ProjectDetail from "./ProjectDetail";
 import ProjectList from "./ProjectList";
 import ProjectOverview from "./ProjectOverview";
 import { TbLayoutDashboard } from "react-icons/tb";
-
+import AddStatusPopup from "../component/AddStatusPopup";
 const dashboardTop1 = [
   // { id: 1, icon: <RiAppsLine size={18} />, label: "Overview" },
   { id: 1, icon: <IoIosList size={18} />, label: "List" },
@@ -25,7 +25,7 @@ const dashboardTop2 = [
 
 const Dashboard = () => {
   const [selectedSubBoard, setSelectedSubBoard] = useState(1);
-
+  const [openStatusPopup, setOpenStatusPopup] = useState(false);
   const renderComponent = () => {
     switch (selectedSubBoard) {
       // case 1:
@@ -39,6 +39,9 @@ const Dashboard = () => {
 
   return (
     <div className="w-full h-full dark:bg-slate-700">
+      {openStatusPopup && (
+        <AddStatusPopup setOpenStatusPopup={setOpenStatusPopup} />
+      )}
       {/* Top Bar */}
       <div className="flex h-10 border-b border-slate-300 px-2 justify-between items-center">
         {/* Left Side Navigation */}
@@ -75,8 +78,11 @@ const Dashboard = () => {
           <span className="bg-slate-200 h-5 w-0.5"></span>
 
           {/* Add Task Button */}
-          <button className="text-white bg-violet-700 cursor-pointer text-sm px-3 py-1.5 rounded flex gap-2 items-center justify-center transition hover:bg-violet-600">
-            Add task
+          <button
+            onClick={() => setOpenStatusPopup(!openStatusPopup)}
+            className="text-white font-inter bg-violet-700 cursor-pointer text-sm px-3 py-1.5 rounded flex gap-2 items-center justify-center transition hover:bg-violet-600"
+          >
+            Add Status
             <span className="bg-violet-500 h-4 w-[1px]"></span>
             <IoIosArrowDown size={10} />
           </button>

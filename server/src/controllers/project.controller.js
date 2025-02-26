@@ -6,6 +6,7 @@ const handleError = require("../utils/common-functions").handleError;
 const addProject = async (req, res) => {
   try {
     const { title, description, isPrivate } = req.body;
+    const userId = req.user.id; // Assuming userId is set by authentication middleware
 
     if (!title) return res.status(400).json({ message: msg.titleIsRequired });
 
@@ -15,12 +16,18 @@ const addProject = async (req, res) => {
       return res.status(400).json({ message: msg.titleAlreadyExists });
     }
 
-    const project = new Project({ title, description, isPrivate });
-    await project.save();
+    // Create new project with userId
+    const newProject = new Project({ title, description, isPrivate, userId });
+    await newProject.save();
 
-    res
-      .status(200)
-      .json({ message: msg.projectCreatedSuccessfully, project: project });
+    // Fetch updated list of projects associated with the user
+    const projects = await Project.find({ userId });
+
+    res.status(200).json({
+      message: msg.projectCreatedSuccessfully,
+      newProject,
+      projects,
+    });
   } catch (error) {
     handleError(res, msg.errorCreatingProject, error);
   }

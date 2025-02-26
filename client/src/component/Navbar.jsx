@@ -5,12 +5,16 @@ import { IoAddCircleOutline, IoApps } from "react-icons/io5";
 import { MdOutlineLightMode, MdOutlineNightlight } from "react-icons/md";
 import { Link } from "react-router-dom";
 import logo from "../assets/logo-white.png";
+import UserProfile from "./UserProfile";
+import { useSelector } from "react-redux";
 
 const Navbar = () => {
   // Load dark mode preference from localStorage
   const [isDarkMode, setIsDarkMode] = useState(
     localStorage.getItem("theme") === "dark"
   );
+  const [showProfile, setShowProfile] = useState(false);
+  const userInfo = useSelector((state) => state.user.user);
 
   useEffect(() => {
     let html = document.querySelector("#root");
@@ -81,12 +85,18 @@ const Navbar = () => {
         </button>
 
         {/* Profile */}
-        <div className="flex select-none cursor-pointer px-1 gap-1 items-center bg-violet-600 rounded-full">
+        <div
+          onClick={() => setShowProfile(!showProfile)}
+          className="flex select-none cursor-pointer px-1 gap-1 items-center bg-violet-600 rounded-full"
+        >
           <div className="h-6 w-6 flex bg-violet-700 cursor-pointer border items-center justify-center border-violet-500 text-white text-xs rounded-full">
-            M
+            {userInfo?.name?.trim()[0] || "?"}
           </div>
           <IoIosArrowDown className="text-violet-800" />
         </div>
+        {showProfile && (
+          <UserProfile setShowProfile={setShowProfile} userInfo={userInfo} />
+        )}
       </div>
     </div>
   );

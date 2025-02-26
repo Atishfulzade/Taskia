@@ -1,10 +1,12 @@
 import { configureStore } from "@reduxjs/toolkit";
 import userReducer from "./userSlice";
-
+import projectReducer from "./projectSlice";
+import statusReducer from "./statusSlice";
+import taskReducer from "./taskSlice";
 // Load state from localStorage
 const loadState = () => {
   try {
-    const serializedState = localStorage.getItem("userState");
+    const serializedState = localStorage.getItem("user");
     return serializedState ? JSON.parse(serializedState) : undefined;
   } catch (err) {
     return undefined;
@@ -14,7 +16,7 @@ const loadState = () => {
 // Save state to localStorage
 const saveState = (state) => {
   try {
-    localStorage.setItem("userState", JSON.stringify(state));
+    localStorage.setItem("user", JSON.stringify(state));
   } catch (err) {
     console.error("Error saving state", err);
   }
@@ -23,6 +25,9 @@ const saveState = (state) => {
 const store = configureStore({
   reducer: {
     user: userReducer,
+    project: projectReducer,
+    status: statusReducer,
+    task: taskReducer,
   },
   preloadedState: { user: loadState() },
 });

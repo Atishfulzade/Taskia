@@ -12,98 +12,66 @@ import { RiExpandUpDownLine } from "react-icons/ri";
 import { GoPeople } from "react-icons/go";
 import { GoPerson } from "react-icons/go";
 import bgColors from "../utils/constant";
+import requestServer from "../utils/requestServer";
+import { useDispatch, useSelector } from "react-redux";
+import { showToast } from "../utils/showToast";
+import { addTask, setTasks } from "../store/taskSlice";
+import { setStatuses } from "../store/statusSlice";
+
 const ProjectDetail = () => {
-  const { id: projectId } = useParams();
-  // const [statuses, setStatuses] = useState([]);
-  const [tasks, setTasks] = useState([]);
   const [taskOpen, setTaskOpen] = useState(false);
   const [editStatus, setEditStatus] = useState(false);
-  const [taskName, setTaskName] = useState("");
-  const [projectPopUp, setProjectPopUp] = useState(false);
-  const [title, setTitle] = useState("");
-  const [loader, setLoader] = useState(false);
+  const [loading, setLoading] = useState(false);
   const scrollContainerRef = useRef(null);
+  const dispatch = useDispatch();
+  const projectId = useSelector((state) => state.project.currentProject?._id);
 
-  // Save project ID in local storage
-  useEffect(() => {
-    localStorage.setItem("projectId", projectId);
-  }, [projectId]);
+  const fetchStatuses = async () => {
+    try {
+      const res = await requestServer(`status/all/${projectId}`);
+      dispatch(setStatuses(res.data));
+      console.log(res.data);
+    } catch (error) {
+      // if (error.response?.data?.message === "Token not found") {
+      //   showToast("Invalid token! Please login again.", "error");
+      //   localStorage.removeItem("token");
+      //   localStorage.removeItem("userState");
+      //   dispatch(setCurrentProject(null));
+      //   dispatch(setProjects([]));
+      //   navigate("/authenticate");
+      // } else {
+      showToast(
+        error.response?.data?.message || "Something went wrong",
+        "error"
+      );
+      // }
+    }
+  };
 
   // Fetch Statuses
-  useEffect(() => {
-    const fetchStatuses = async () => {
-      try {
-        const res = await axios.post(
-          `http://localhost:3000/api/v1/status/all/${projectId}`
-        );
-        // setStatuses(res.data.data);
-      } catch (error) {
-        console.error("Error fetching statuses", error);
-      }
-    };
+  const statuses = useSelector((state) => state.status?.statuses);
 
-    fetchStatuses();
-  }, [projectId]);
+  // Fetch Tasks
   const fetchTasks = async () => {
     try {
-      const res = await axios.post(
-        `http://localhost:3000/api/v1/task/all/${projectId}`
-      );
-      setTasks(res.data.data);
+      const res = await requestServer(`task/all/${projectId}`);
+
+      dispatch(setTasks(res.data));
     } catch (error) {
       console.error("Error fetching tasks", error);
     }
   };
-  // Fetch Tasks
-  // useEffect(() => {
-  //   fetchTasks();
-  // }, [statuses]);
-  //Add new status
-  const addStatus = async () => {
-    try {
-      const response = await axios.post(
-        `http://localhost:3000/api/v1/status/add`,
-        {
-          projectId,
-          title,
-        }
-      );
-      setStatuses((prev) => [...prev, response.data.data]);
-      setEditStatus(false);
-      setTitle("");
-
-      // Wait for state update before scrolling & focusing
-      setTimeout(() => {
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollLeft =
-            scrollContainerRef.current.scrollWidth;
-        }
-
-        // Auto-focus on the newly added column's input field
-        const newColumnInput = document.getElementById("new-status-input");
-        if (newColumnInput) {
-          newColumnInput.focus();
-        }
-      }, 300);
-    } catch (error) {
-      console.error("Error adding status", error);
-    }
-  };
-
+  const tasks = useSelector((state) => state.task.tasks);
   // Add a New Task
-  const addTask = async () => {
+  const addTaskComponent = async () => {
     if (!taskName.trim()) return;
-
     try {
-      const response = await axios.post(
-        `http://localhost:3000/api/v1/task/add`,
-        {
-          projectId,
-          status: statuses[0]?._id, // Assign first status as default
-          name: taskName,
-        }
-      );
-
+      const response = await requestServer("task/add", {
+        projectId,
+        status: statuses[0]?._id,
+        name: taskName,
+      });
+      dispatch(addTask((prev) => [...prev, response.data.data]));
       setTasks((prev) => [...prev, response.data.data]);
       setTaskOpen(false);
       setTaskName("");
@@ -116,10 +84,7 @@ const ProjectDetail = () => {
   const updateTask = async (task) => {
     try {
       setLoader(true);
-      const response = await axios.post(
-        `http://localhost:3000/api/v1/task/update/${task._id}`,
-        { ...task }
-      );
+      await requestServer(`task/update/${task._id}`, { ...task });
 
       fetchTasks();
       setLoader(false);
@@ -154,48 +119,14 @@ const ProjectDetail = () => {
       })
     );
   };
-
-  const statuses = [
-    {
-      projectId: "67b5f43887171f04439781ad",
-      title: "Todo",
-      __v: 0,
-      _id: "67b5f43887171f04439781af",
-    },
-    {
-      projectId: "67b5f43887171f04439781ad",
-      title: "done",
-      __v: 0,
-      _id: "67b5f4a687171f04439781bd",
-    },
-    {
-      projectId: "67b5f43887171f04439781ad",
-      title: "Done by dev",
-      __v: 0,
-      _id: "67b629ad87171f044397825f",
-    },
-    {
-      projectId: "67b5f43887171f04439781ad",
-      title: "In review",
-      __v: 0,
-      _id: "67b629ec87171f0443978263",
-    },
-    {
-      projectId: "67b5f43887171f04439781ad",
-      title: "In review",
-      __v: 0,
-      _id: "67b629ec87171f0443978263",
-    },
-    {
-      projectId: "67b5f43887171f04439781ad",
-      title: "In review",
-      __v: 0,
-      _id: "67b629ec87171f0443978263",
-    },
-  ];
+  useEffect(() => {
+    fetchStatuses();
+    fetchTasks();
+  }, [projectId]);
+  console.log(tasks);
 
   return (
-    <div className="h-full dark:text-slate-50 dark:bg-slate-700 w-full relative ">
+    <div className="h-full dark:text-slate-50 dark:bg-slate-700 w-full  ">
       <div className="flex gap-2 w-full items-center mb-2 justify-between">
         <div className="flex text-slate-600 font-inter gap-1">
           <div className="flex border cursor-pointer border-slate-300 rounded-full px-3 py-1  justify-center items-center gap-1 text-sm">
@@ -237,7 +168,7 @@ const ProjectDetail = () => {
           ref={scrollContainerRef}
           className="px-10 py-10 overflow-x-auto h-[calc(100vh-120px)] w-[calc(100vw-280px)] overflow-y-auto flex gap-3.5"
         >
-          {statuses.map((status, i) => (
+          {statuses?.map((status, i) => (
             <div key={status._id} className="flex gap-5 ">
               <Column
                 key={status._id}
@@ -245,7 +176,7 @@ const ProjectDetail = () => {
                 status={status}
                 taskOpen={taskOpen}
                 setTaskOpen={setTaskOpen}
-                tasks={tasks.filter((task) => task.status === status._id)}
+                tasks={tasks?.filter((task) => task.status === status._id)}
               />
             </div>
           ))}
@@ -253,15 +184,7 @@ const ProjectDetail = () => {
       </DndContext>
 
       {/* Task Popup */}
-      {taskOpen && (
-        <AddTaskPopup
-          status={statuses}
-          name={taskName}
-          setName={setTaskName}
-          setTaskOpen={setTaskOpen}
-          addTask={addTask}
-        />
-      )}
+      {taskOpen && <AddTaskPopup status={statuses} setTaskOpen={setTaskOpen} />}
     </div>
   );
 };

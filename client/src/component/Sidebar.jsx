@@ -7,52 +7,18 @@ import { useNavigate, useParams } from "react-router-dom";
 import { MdLockOutline } from "react-icons/md";
 import { useLocation } from "react-router-dom";
 import AddProjectPopup from "./AddProjectPopup";
+import { useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import { setCurrentProject } from "../store/projectSlice";
+import { MdLockOpen } from "react-icons/md";
 
-const data = [
-  {
-    _id: "67b5f15e99b036084e37f8c0",
-    title: "Project 1",
-    __v: 0,
-  },
-  {
-    _id: "67b5f43887171f04439781ad",
-    title: "Project 2",
-    __v: 0,
-  },
-  {
-    _id: "67b65a66ab64aa9022250ad5",
-    title: "Project 3",
-    createdAt: "2025-02-19T22:25:42.627Z",
-    updatedAt: "2025-02-19T22:25:42.627Z",
-    __v: 0,
-  },
-  {
-    _id: "67b65a9eab64aa9022250ae8",
-    title: "Project 4",
-    createdAt: "2025-02-19T22:26:38.186Z",
-    updatedAt: "2025-02-19T22:26:38.186Z",
-    __v: 0,
-  },
-  {
-    _id: "67b66de2fbc652491304cb25",
-    title: "uyg",
-    createdAt: "2025-02-19T23:48:50.733Z",
-    updatedAt: "2025-02-19T23:48:50.733Z",
-    __v: 0,
-  },
-  {
-    _id: "67b6b7a9fbc652491304cbb6",
-    title: "project",
-    createdAt: "2025-02-20T05:03:37.837Z",
-    updatedAt: "2025-02-20T05:03:37.837Z",
-    __v: 0,
-  },
-];
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
   const [addProject, setAddProject] = useState(false);
-
+  const projects = useSelector((state) => state.project.projects);
+  const selectedProject = useSelector((state) => state.project.currentProject);
   return (
     <div className="w-72 h-screen bg-white border-l border dark:bg-slate-700 border-slate-200">
       {addProject && <AddProjectPopup close={setAddProject} />}
@@ -78,13 +44,16 @@ const Sidebar = () => {
         </div>
       </div>
       <div className="flex flex-col">
-        {data.map((project) => {
-          const isActive = location.pathname.includes(project._id);
+        {projects?.map((project) => {
+          const isActive = selectedProject?._id === project._id;
 
           return (
             <div
               key={project._id}
-              onClick={() => navigate(`/dashboard/${project._id}`)}
+              onClick={() => {
+                dispatch(setCurrentProject(project));
+                navigate(`/dashboard/${project._id}`);
+              }}
               className={`py-2 px-5 flex items-center justify-between cursor-pointer border-slate-200 
         ${
           isActive
@@ -98,9 +67,23 @@ const Sidebar = () => {
         }`}
             >
               <div className="flex gap-2 items-center">
-                <IoIosList size={20} className="text-slate-500" />
+                <IoIosList
+                  size={20}
+                  className={`${
+                    isActive ? "text-slate-200" : "text-slate-500 "
+                  }`}
+                />
                 <h4 className="font-inter text-[15px]">{project.title}</h4>
-                <MdLockOutline size={12} className="text-slate-500" />
+                {project.isPrivate ? (
+                  <MdLockOpen
+                    size={12}
+                    className={`${
+                      isActive ? "text-slate-300" : "text-slate-500 "
+                    }`}
+                  />
+                ) : (
+                  ""
+                )}
               </div>
               <p
                 className={`text-xs text-slate-500 font-inter dark:text-slate-50 ${

@@ -1,17 +1,24 @@
 import axios from "axios";
 
-axios.defaults.baseURL = import.meta.env.VITE_SERVER_URL;
-axios.defaults.headers.common["Authorization"] = `Bearer ${localStorage.getItem(
-  "token"
-)}`;
-
-const requestServer = async (path, data) => {
+const requestServer = async (path, data = {}) => {
   try {
-    const res = await axios.post(path, data);
-    return res.data; // Return only the data
+    const token = localStorage.getItem("token");
+    const baseurl = import.meta.env.VITE_SERVER_URL;
+
+    const res = await axios({
+      url: `${baseurl}${path}`,
+      method: "POST",
+      data: Object.keys(data).length ? data : undefined,
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    });
+
+    return res.data;
   } catch (error) {
     console.error("Request error:", error);
-    throw error; // Re-throw error for handling in the calling function
+    throw error;
   }
 };
 

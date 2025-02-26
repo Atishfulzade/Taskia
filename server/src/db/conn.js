@@ -4,10 +4,7 @@ const database = process.env.DATABASE;
 const url = `${mongoUri}${database}`;
 function connect() {
   mongoose
-    .connect(url, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    })
+    .connect(url)
     .then(() => {
       console.log("connection successful");
     })
