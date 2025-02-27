@@ -96,15 +96,24 @@ const getUserById = async (req, res) => {
 };
 
 const getUserBySearch = async (req, res) => {
-  const search = req.query.search;
   try {
-    const users = await User.find({ email: search }); // Corrected search query
-    if (users.length === 0) {
-      return res.status(404).json({ message: msg.userNotFound });
+    const { term } = req.params;
+
+    if (!term) {
+      return res.status(400).json({ message: "Search query is required" });
+      // Added return statement
     }
+
+    const users = await User.find({ name: { $regex: term, $options: "i" } });
+
+    if (!users.length) {
+      return res.status(404).json({ message: "No users found" });
+      // Added return statement
+    }
+
     res.status(200).json(users);
   } catch (error) {
-    handleError(res, msg.errorFetchingUser, error);
+    handleError(res, "Error fetching user!", error);
   }
 };
 

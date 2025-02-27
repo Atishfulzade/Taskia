@@ -6,14 +6,19 @@ import { IoIosAttach } from "react-icons/io";
 import requestServer from "../utils/requestServer";
 import { useDispatch, useSelector } from "react-redux";
 import { addTask } from "../store/taskSlice";
+import SearchableSelect from "./SearchableSelect";
 
 const AddTaskPopup = ({ setTaskOpen, currentStatus }) => {
   const boxRef = useRef(null);
   const [addSubTask, setAddSubTask] = useState(false);
   const [loading, setLoading] = useState(false);
   const projectId = useSelector((state) => state.project.currentProject?._id);
+  const [selectedUserId, setSelectedUserId] = useState();
   const dispatch = useDispatch();
-
+  const handleUserSelect = (user) => {
+    setSelectedUserId(user._id);
+  };
+  const userId = useSelector((state) => state.user.user._id);
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (boxRef.current && !boxRef.current.contains(event.target)) {
@@ -40,6 +45,7 @@ const AddTaskPopup = ({ setTaskOpen, currentStatus }) => {
     title: Yup.string().required("Title is required"),
     description: Yup.string(),
     priority: Yup.string(),
+    assignedBy: Yup.string(),
     assignedTo: Yup.string(),
     dueDate: Yup.date(),
     status: Yup.string().required("Status is required"),
@@ -78,8 +84,9 @@ const AddTaskPopup = ({ setTaskOpen, currentStatus }) => {
             priority: "No",
             projectId: projectId || "",
             status: currentStatus?._id || "",
-            assignedTo: "",
+            assignedTo: selectedUserId || "",
             dueDate: "",
+            assignedBy: userId || "",
             subTask: [],
             attachedFile: [],
           }}
@@ -101,8 +108,9 @@ const AddTaskPopup = ({ setTaskOpen, currentStatus }) => {
           {({ values, setFieldValue, isSubmitting }) => {
             useEffect(() => {
               setFieldValue("projectId", projectId);
+              setFieldValue("assignedTo", selectedUserId);
               setFieldValue("status", currentStatus?._id);
-            }, [projectId, currentStatus, setFieldValue]);
+            }, [projectId, currentStatus, setFieldValue, selectedUserId]);
 
             return (
               <Form className="flex flex-col gap-3">
@@ -153,17 +161,7 @@ const AddTaskPopup = ({ setTaskOpen, currentStatus }) => {
                     <label className="text-sm font-medium text-slate-700">
                       Assign
                     </label>
-                    <Field
-                      as="select"
-                      className="border p-1 rounded-md border-slate-300 text-xs focus:outline-violet-600"
-                      name="assignedTo"
-                    >
-                      <option value="Atish Fulzade">Atish Fulzade</option>
-                      <option value="67c05b78b21ba37989ace8a7">
-                        Vilas Rao
-                      </option>
-                      <option value="Deepak Varma">Deepak Varma</option>
-                    </Field>
+                    <SearchableSelect onSelectUser={handleUserSelect} />
                   </div>
                 </div>
 

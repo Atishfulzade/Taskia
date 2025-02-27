@@ -1,13 +1,12 @@
 const handleError = require("../utils/common-functions.js")?.handleError;
 const Task = require("../models/task.model.js");
 const msg = require("../utils/message-constant.json");
-
-// Add a new Task
+const io = require("socket.io");
 const addTask = async (req, res) => {
   console.log(req.body);
 
   try {
-    const { title, projectId, status, ...others } = req.body;
+    const { title, projectId, status, assignedTo, ...others } = req.body;
 
     // Check if the required fields are missing
     if (!title || !projectId || !status)
@@ -26,6 +25,15 @@ const addTask = async (req, res) => {
     // Save the task to the database
     await newTask.save();
 
+    // Emit a Socket.IO event if the task is assigned to someone
+    if (assignedTo) {
+      const io = req.app.get("io"); // Get the io instance
+      io.to(assignedTo.toString()).emit("newTaskAssigned", {
+        message: `A new task "${title}" has been assigned to you.`,
+        task: newTask,
+      });
+    }
+
     // Send a response indicating success
     res.status(200).json({
       message: msg.taskCreatedSuccessfully,
@@ -37,13 +45,25 @@ const addTask = async (req, res) => {
   }
 };
 
+// Update a Task
 const updateTask = async (req, res) => {
   try {
     const TaskId = req.params.id;
+    const { assignedTo } = req.body;
 
     const newTask = await Task.findOneAndUpdate({ _id: TaskId }, req.body, {
       new: true,
     });
+
+    // Emit a Socket.IO event if the task is assigned to someone
+    if (assignedTo) {
+      const io = req.app.get("io"); // Get the io instance
+      io.to(assignedTo.toString()).emit("newTaskAssigned", {
+        message: `You have been assigned a new task: "${newTask.title}"`,
+        newTask,
+      });
+    }
+
     res
       .status(200)
       .json({ message: msg.taskUpdatedSuccessfully, Task: newTask });
@@ -86,9 +106,44 @@ const deleteTask = async (req, res) => {
   }
 };
 
+const getTasksForUser = async (req, res) => {
+  try {
+    const tasks = await Task.find({ assignedTo: req.user.id }).populate(
+      "assignedBy",
+      "name email"
+    );
+    res.status(200).json(tasks);
+  } catch (error) {
+    handleError(res, msg.fetchTasksFailed, error);
+  }
+};
+
+const updateTaskStatus = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { status } = req.body;
+
+    const task = await Task.findById(taskId);
+    if (!task) return res.status(404).json({ message: msg.taskNotFound });
+
+    if (task.assignedTo.toString() !== req.user.id) {
+      return res.status(403).json({ message: msg.unauthorized });
+    }
+
+    task.status = status;
+    await task.save();
+
+    res.status(200).json({ message: msg.taskUpdated, task });
+  } catch (error) {
+    handleError(res, msg.taskUpdateFailed, error);
+  }
+};
+
 module.exports = {
   addTask,
   deleteTask,
   updateTask,
   getAllTask,
+  getTasksForUser,
+  updateTaskStatus,
 };

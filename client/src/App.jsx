@@ -1,10 +1,14 @@
-import { Route, BrowserRouter, Routes } from "react-router-dom";
+import { Route, Routes, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { Bounce, ToastContainer } from "react-toastify";
-import { useEffect, Suspense, lazy } from "react";
+import { useEffect, Suspense, lazy, useState } from "react";
+import { io } from "socket.io-client";
+
 import { setCurrentProject, setProjects } from "./store/projectSlice.js";
 import requestServer from "./utils/requestServer.js";
 import Loader from "./component/Loader.jsx";
+import { login, logout } from "./store/userSlice.js";
+
 // Lazy load the pages
 const Welcome = lazy(() => import("./pages/Welcome.jsx"));
 const Authentication = lazy(() => import("./pages/Authentication"));
@@ -15,30 +19,57 @@ const Error = lazy(() => import("./pages/Error.jsx"));
 function App() {
   const dispatch = useDispatch();
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
+  const userId = useSelector((state) => state.user.user?._id); // Get userId from Redux
+  const [socket, setSocket] = useState(null);
+  const navigate = useNavigate();
 
-  const loadProject = async () => {
-    console.log(" started loading project");
-
-    if (isAuthenticated) {
-      const projects = await requestServer("project/all");
-      console.log("projects loading", projects);
-
-      if (projects && projects.data?.length > 0) {
-        dispatch(setProjects(projects?.data));
-        dispatch(setCurrentProject(projects?.data[0]));
-        console.log("Projects loaded", projects);
-      }
-    }
-  };
-
+  // Validate User on App Load
   useEffect(() => {
-    if (isAuthenticated) {
-      loadProject();
+    const validateUser = async () => {
+      try {
+        const res = await requestServer("user/validate");
+        dispatch(login(res));
+        console.log(res);
+
+        localStorage.setItem("user", JSON.stringify(res.data));
+      } catch (error) {
+        dispatch(logout());
+        console.log("Token invalid, redirecting to login...");
+        localStorage.removeItem("token");
+        navigate("/authenticate"); // 👈 Use navigate instead
+      }
+    };
+
+    validateUser();
+  }, [dispatch]);
+
+  // Connect to the Socket.IO server
+  useEffect(() => {
+    if (isAuthenticated && userId) {
+      const newSocket = io(import.meta.env.VITE_SERVER_URL, {
+        transports: ["websocket"], // Ensures better performance
+        reconnection: true, // Reconnect on disconnect
+      });
+
+      newSocket.emit("joinUserRoom", userId);
+      console.log("Socket connected for user:", userId);
+
+      newSocket.on("newTaskAssigned", (data) => {
+        console.log("New task assigned:", data);
+        // Show notification (You can dispatch Redux action or use toast)
+      });
+
+      setSocket(newSocket);
+
+      return () => {
+        newSocket.disconnect();
+        console.log("Socket disconnected");
+      };
     }
-  }, [isAuthenticated]); // Dependency on isAuthenticated
+  }, [isAuthenticated, userId]);
 
   return (
-    <BrowserRouter>
+    <>
       <ToastContainer
         position="bottom-right"
         autoClose={3000}
@@ -72,8 +103,8 @@ function App() {
 
           <Route path="*" element={<Error />} />
         </Routes>
-      </Suspense>
-    </BrowserRouter>
+      </Suspense>{" "}
+    </>
   );
 }
 
