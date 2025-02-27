@@ -14,11 +14,13 @@ import { MdLockOpen } from "react-icons/md";
 
 const Sidebar = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const dispatch = useDispatch();
   const [addProject, setAddProject] = useState(false);
   const projects = useSelector((state) => state.project.projects);
   const selectedProject = useSelector((state) => state.project.currentProject);
+  const statuses = useSelector((state) => state.status?.statuses);
+  console.log(statuses);
+
   return (
     <div className="w-72 h-screen bg-white border-l border dark:bg-slate-700 border-slate-200">
       {addProject && <AddProjectPopup close={setAddProject} />}
@@ -90,7 +92,16 @@ const Sidebar = () => {
                   isActive ? "text-white" : ""
                 }`}
               >
-                8
+                {statuses.filter((status) => status.projectId === project._id)
+                  .length > 0 && (
+                  <div>
+                    {
+                      statuses.filter(
+                        (status) => status.projectId === project._id
+                      ).length
+                    }
+                  </div>
+                )}
               </p>
             </div>
           );

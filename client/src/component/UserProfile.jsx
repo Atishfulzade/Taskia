@@ -1,8 +1,14 @@
 import React, { useEffect, useRef } from "react";
+import { useDispatch } from "react-redux";
+import { logout } from "../store/userSlice";
+import requestServer from "../utils/requestServer";
+import { showToast } from "../utils/showToast";
+import { useNavigate } from "react-router-dom";
 
 const UserProfile = ({ setShowProfile, userInfo }) => {
   const boxRef = useRef(null);
-
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (boxRef.current && !boxRef.current.contains(event.target)) {
@@ -16,18 +22,26 @@ const UserProfile = ({ setShowProfile, userInfo }) => {
     };
   }, [setShowProfile]);
   if (!userInfo) return null;
-  const logoutUser = () => {};
+  const logoutUser = async () => {
+    await requestServer("user/logout");
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    dispatch(logout());
+    navigate("/");
+    showToast("Logged out successfully", "success");
+  };
   return (
     <div
       ref={boxRef}
-      className="h-fit flex-col z-10 w-72 p-3 absolute top-3 bg-white border-2 rounded-md border-slate-300 right-20 shadow"
+      className="h-fit flex-col z-10 w-fit px-3 py-1 absolute top-3 bg-white border-2 rounded-md border-slate-300 right-20 shadow"
     >
-      <div className="flex justify-center items-center cursor-default w-full">
-        <div className="flex border-2 shadow font-inter border-slate-300 w-12 h-12 text-2xl text-white justify-center items-center bg-violet-500 rounded-full">
+      <div className="flex items-center cursor-default w-full">
+        <div className="flex border-2 shadow font-inter border-slate-300 w-7 h-7 text-xl text-white justify-center items-center bg-violet-500 rounded-full">
           {userInfo?.name?.trim()[0] || "?"}
         </div>
         <div className="ml-4 flex justify-center flex-col">
-          <h1 className="text-xl text-start mt-3 line-clamp-1 font-inter text-slate-600 font-medium">
+          <h1 className="text-sm text-start mt-3 line-clamp-1 font-inter text-slate-600 font-medium">
             {userInfo?.name || "Guest"}
           </h1>
           <p className="text-gray-600 text-[12px] text-start">

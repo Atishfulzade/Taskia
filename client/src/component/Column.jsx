@@ -1,5 +1,4 @@
 import { useDroppable } from "@dnd-kit/core";
-import { useEffect } from "react";
 import { IoIosAdd } from "react-icons/io";
 import TaskItem from "./TaskItem";
 import { FaRegCircle } from "react-icons/fa6";
@@ -38,7 +37,7 @@ export default function Column({ status, tasks, setTaskOpen }) {
             <PiDotsThreeBold size={22} />
           </div>
           <div
-            onClick={() => setTaskOpen(true)}
+            onClick={() => setTaskOpen({ isOpen: true, status: status })}
             className=" flex rounded cursor-pointer hover:bg-slate-200  "
           >
             <IoIosAdd size={22} />
@@ -52,7 +51,7 @@ export default function Column({ status, tasks, setTaskOpen }) {
         ))}
       </div>
       <button
-        onClick={() => setTaskOpen(true)}
+        onClick={() => setTaskOpen({ isOpen: true, status: status })}
         className="flex justify-center cursor-pointer items-center my-2 font-inter gap-0.5 text-slate-600 text-sm  rounded "
       >
         <IoIosAdd size={22} />

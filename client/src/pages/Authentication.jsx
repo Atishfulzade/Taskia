@@ -118,42 +118,40 @@ const Authentication = () => {
                 name="name"
                 placeholder="Full name"
                 {...formik.getFieldProps("name")}
-                className="w-full p-4 border pl-10 border-slate-300 rounded-full mt-3 focus:ring-2 focus:ring-blue-400"
+                className="w-full indent-2 p-4 border pl-10 border-slate-300 rounded-full mt-3 focus:ring-2 focus:ring-blue-400"
               />
               <CiUser
                 className="absolute bottom-4 left-4 text-slate-400"
                 size={24}
               />
-              {formik.touched.name && formik.errors.name && (
-                <p className="text-red-500 text-sm">{formik.errors.name}</p>
-              )}
             </div>
           )}
-
+          {formik.touched.name && formik.errors.name && (
+            <p className="text-red-500 text-sm">{formik.errors.name}</p>
+          )}
           <div className="relative">
             <input
               type="email"
               name="email"
               placeholder="Email Address"
               {...formik.getFieldProps("email")}
-              className="w-full p-4 border pl-10 border-slate-300 rounded-full mt-3 focus:ring-2 focus:ring-blue-400"
+              className="w-full p-4 border pl-10 indent-2 border-slate-300 rounded-full mt-3 focus:ring-2 focus:ring-blue-400"
             />
             <CiMail
               className="absolute bottom-4 left-4 text-slate-400"
               size={24}
             />
-            {formik.touched.email && formik.errors.email && (
-              <p className="text-red-500 text-sm">{formik.errors.email}</p>
-            )}
           </div>
-
+          {formik.touched.email && formik.errors.email && (
+            <p className="text-red-500 text-sm">{formik.errors.email}</p>
+          )}
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
               name="password"
               placeholder="Password"
               {...formik.getFieldProps("password")}
-              className="w-full p-4 border pl-10 border-slate-300 rounded-full mt-3 focus:ring-2 focus:ring-blue-400"
+              className="w-full p-4 border indent-2 pl-10 border-slate-300 rounded-full mt-3 focus:ring-2 focus:ring-blue-400"
             />
             {showPassword ? (
               <CiUnlock
@@ -168,11 +166,10 @@ const Authentication = () => {
                 className="absolute bottom-4 cursor-pointer left-4 text-slate-400"
               />
             )}
-            {formik.touched.password && formik.errors.password && (
-              <p className="text-red-500 text-sm">{formik.errors.password}</p>
-            )}
           </div>
-
+          {formik.touched.password && formik.errors.password && (
+            <p className="text-red-500 text-sm">{formik.errors.password}</p>
+          )}
           <button
             type="submit"
             disabled={loading}

@@ -14,7 +14,7 @@ const Navbar = () => {
 
         <button
           onClick={() => navigate("/authenticate")}
-          className="bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700"
+          className="bg-blue-600 text-white px-6 cursor-pointer py-3 rounded-full hover:bg-blue-700"
         >
           Get Started
         </button>
@@ -33,7 +33,7 @@ const HeroSection = () => {
         <p className="mt-4 text-gray-600">
           Boost your productivity with Taskia - the best task management tool.
         </p>
-        <button className="bg-blue-600 mt-20 text-white px-6 py-3 rounded-full hover:bg-blue-700">
+        <button className="bg-blue-600 mt-20 cursor-pointer text-white px-6 py-3 rounded-full hover:bg-blue-700">
           Explore now
         </button>
       </div>

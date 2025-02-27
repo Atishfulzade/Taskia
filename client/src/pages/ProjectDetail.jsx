@@ -19,7 +19,10 @@ import { addTask, setTasks } from "../store/taskSlice";
 import { setStatuses } from "../store/statusSlice";
 
 const ProjectDetail = () => {
-  const [taskOpen, setTaskOpen] = useState(false);
+  const [taskOpen, setTaskOpen] = useState({
+    isOpen: false,
+    task: {},
+  });
   const [editStatus, setEditStatus] = useState(false);
   const [loading, setLoading] = useState(false);
   const scrollContainerRef = useRef(null);
