@@ -11,5 +11,7 @@ const {
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/logout", verifyUser, logOutUser);
+router.post("/:id", verifyUser, logOutUser);
+router.post("/:search", verifyUser, logOutUser);
 
 module.exports = router;

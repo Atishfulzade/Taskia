@@ -47,6 +47,7 @@
   "emailNotValid":"Email is not valid!",
   "registrationSuccess":"Registration successful!",
   "errorFetchingUser":"Error fetching user!",
+  "userNotFound":"User not found!",
   "errorUpdatingUser":"Error updating user!",
   "errorDeletingUser":"Error deleting user!",
   "errorCreatingUser":"Error creating user!",

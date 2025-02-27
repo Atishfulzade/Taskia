@@ -4,6 +4,8 @@ const msg = require("../utils/message-constant.json");
 
 // Add a new Task
 const addTask = async (req, res) => {
+  console.log(req.body);
+
   try {
     const { title, projectId, status, ...others } = req.body;
 

@@ -11,16 +11,15 @@ import { useNavigate } from "react-router-dom";
 const AddProjectPopup = ({ close }) => {
   const dialogRef = useRef(null);
   const dispatch = useDispatch();
-  const [isChecked, setIsChecked] = useState(false);
+  // const [isChecked, setIsChecked] = useState(false);
   const userId = useSelector((state) => state.user?.user?.data?._id);
   const navigate = useNavigate();
-  console.log(localStorage.getItem("userState"));
 
   const formik = useFormik({
     initialValues: {
       title: "",
       description: "",
-      isPrivate: true,
+      // isPrivate: true,
     },
     validationSchema: Yup.object({
       title: Yup.string().required("Title is required"),
@@ -54,9 +53,9 @@ const AddProjectPopup = ({ close }) => {
     },
   });
 
-  useEffect(() => {
-    formik.setFieldValue("isPrivate", isChecked);
-  }, [isChecked]);
+  // useEffect(() => {
+  //   formik.setFieldValue("isPrivate", isChecked);
+  // }, [isChecked]);
 
   const handleClickOutside = (event) => {
     if (dialogRef.current && !dialogRef.current.contains(event.target)) {
@@ -135,7 +134,7 @@ const AddProjectPopup = ({ close }) => {
             )}
           </div>
 
-          {/* Private Project Toggle */}
+          {/* Private Project Toggle
           <div className="flex justify-between items-center">
             <div className="flex flex-col">
               <h4 className="text-sm font-semibold">Make Private</h4>
@@ -163,7 +162,7 @@ const AddProjectPopup = ({ close }) => {
                 ></div>
               </div>
             </label>
-          </div>
+          </div> */}
 
           {/* Add Project Button */}
           <button

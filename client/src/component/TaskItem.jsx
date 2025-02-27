@@ -4,8 +4,9 @@ import { FaRegCalendar } from "react-icons/fa";
 import { TbFlag3 } from "react-icons/tb";
 import { TbFlag3Filled } from "react-icons/tb";
 import { PiGitMergeDuotone } from "react-icons/pi";
+import { formatDate } from "../utils/formatDate";
 
-export default function TaskItem({ task }) {
+export default function TaskItem({ task, status }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: task._id,
   });
@@ -50,13 +51,15 @@ export default function TaskItem({ task }) {
             <FaRegCircleUser className="border text-slate-700 border-slate-200 p-1 w-6 h-6 rounded" />
           )}
         </div>
-        <div className="flex border cursor-pointer border-slate-200 gap-0.5 p-1 h-fit justify-center items-center  rounded">
+        <div className="flex border cursor-pointer border-slate-200 gap-0.5 p-1 h-6 justify-center items-center  rounded">
           <FaRegCalendar size={14} className="text-slate-500" />
           {task.dueDate && (
-            <p className="text-red-600 text-[12px] font-inter">Jan 24</p>
+            <p className="text-red-500 text-[12px] font-inter">
+              {formatDate(task.dueDate)}
+            </p>
           )}
         </div>
-        <div className="flex border cursor-pointer border-slate-200 gap-0.5 px-1 py-0.5 h-fit justify-center items-center  rounded">
+        <div className="flex border cursor-pointer border-slate-200 gap-0.5 px-1 py-0.5 h-6 justify-center items-center  rounded">
           <TbFlag3 size={14} className="text-slate-500" />
           {task.priority !== "No" && (
             <p
@@ -72,7 +75,9 @@ export default function TaskItem({ task }) {
       {task.subTask.length > 0 && (
         <div className="flex cursor-pointer mt-3 gap-1.5 justify-start text-sm items-center">
           <PiGitMergeDuotone className="text-slate-500" />{" "}
-          <p className="text-slate-600 text-[12px]">7 subtask</p>
+          <p className="text-slate-600 text-[12px]">
+            {task.subTask.length} subtask
+          </p>
         </div>
       )}
     </div>

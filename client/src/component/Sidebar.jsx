@@ -11,6 +11,7 @@ import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
 import { setCurrentProject } from "../store/projectSlice";
 import { MdLockOpen } from "react-icons/md";
+import { PiDotsThreeVerticalBold } from "react-icons/pi";
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -56,7 +57,7 @@ const Sidebar = () => {
                 dispatch(setCurrentProject(project));
                 navigate(`/dashboard/${project._id}`);
               }}
-              className={`py-2 px-5 flex items-center justify-between cursor-pointer border-slate-200 
+              className={`py-2 relative px-5 flex items-center justify-between cursor-pointer border-slate-200 
         ${
           isActive
             ? "bg-violet-700 text-white dark:bg-slate-900"
@@ -68,7 +69,7 @@ const Sidebar = () => {
             : "bg-slate-100 dark:text-slate-800 dark:bg-slate-500"
         }`}
             >
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-2 items-center relative">
                 <IoIosList
                   size={20}
                   className={`${
@@ -76,33 +77,11 @@ const Sidebar = () => {
                   }`}
                 />
                 <h4 className="font-inter text-[15px]">{project.title}</h4>
-                {project.isPrivate ? (
-                  <MdLockOpen
-                    size={12}
-                    className={`${
-                      isActive ? "text-slate-300" : "text-slate-500 "
-                    }`}
-                  />
-                ) : (
-                  ""
-                )}
               </div>
-              <p
-                className={`text-xs text-slate-500 font-inter dark:text-slate-50 ${
-                  isActive ? "text-white" : ""
-                }`}
-              >
-                {statuses.filter((status) => status.projectId === project._id)
-                  .length > 0 && (
-                  <div>
-                    {
-                      statuses.filter(
-                        (status) => status.projectId === project._id
-                      ).length
-                    }
-                  </div>
-                )}
-              </p>
+
+              <PiDotsThreeVerticalBold
+                className={`${isActive ? "text-slate-200" : "text-slate-500 "}`}
+              />
             </div>
           );
         })}

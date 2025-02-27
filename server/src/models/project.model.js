@@ -13,7 +13,7 @@ const projectSchema = new mongoose.Schema(
     description: {
       type: String,
     },
-    isPrivate: { type: Boolean },
+    // isPrivate: { type: Boolean },
   },
   {
     timestamps: true,

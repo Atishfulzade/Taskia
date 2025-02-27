@@ -4,10 +4,15 @@ import * as Yup from "yup";
 import { IoClose } from "react-icons/io5";
 import { IoIosAttach } from "react-icons/io";
 import requestServer from "../utils/requestServer";
+import { useDispatch, useSelector } from "react-redux";
+import { addTask } from "../store/taskSlice";
 
-const AddTaskPopup = ({ addTask, setTaskOpen }) => {
+const AddTaskPopup = ({ setTaskOpen, currentStatus }) => {
   const boxRef = useRef(null);
   const [addSubTask, setAddSubTask] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const projectId = useSelector((state) => state.project.currentProject?._id);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -15,6 +20,7 @@ const AddTaskPopup = ({ addTask, setTaskOpen }) => {
         setTaskOpen(false);
       }
     };
+
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
         setTaskOpen(false);
@@ -34,13 +40,19 @@ const AddTaskPopup = ({ addTask, setTaskOpen }) => {
     title: Yup.string().required("Title is required"),
     description: Yup.string(),
     priority: Yup.string(),
-    assignee: Yup.string(),
+    assignedTo: Yup.string(),
     dueDate: Yup.date(),
     status: Yup.string().required("Status is required"),
-    subtask: Yup.array().of(
+    subTask: Yup.array().of(
       Yup.object().shape({
         title: Yup.string().required("Subtask title is required"),
         description: Yup.string(),
+      })
+    ),
+    attachedFile: Yup.array().of(
+      Yup.object().shape({
+        fileName: Yup.string(),
+        link: Yup.string(),
       })
     ),
   });
@@ -64,193 +76,188 @@ const AddTaskPopup = ({ addTask, setTaskOpen }) => {
             title: "",
             description: "",
             priority: "No",
-            projectId: "",
-            status: "",
-            assignee: "",
+            projectId: projectId || "",
+            status: currentStatus?._id || "",
+            assignedTo: "",
             dueDate: "",
-            status: "",
-            subtask: [],
+            subTask: [],
+            attachedFile: [],
           }}
           validationSchema={validationSchema}
-          onSubmit={async (values) => {
-            console.log(values);
-            const res = await requestServer("task/add", { values });
-            console.log(res);
-
-            setTaskOpen(false);
+          onSubmit={async (values, { setSubmitting }) => {
+            setLoading(true);
+            try {
+              const res = await requestServer("task/add", values);
+              dispatch(addTask(res.data));
+              setTaskOpen(false);
+            } catch (error) {
+              console.error("Error adding task:", error);
+            } finally {
+              setLoading(false);
+              setSubmitting(false);
+            }
           }}
         >
-          {({ values, setFieldValue }) => (
-            <Form className="flex flex-col gap-3">
-              {/* Title */}
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-slate-700">
-                  Title<sup className="text-red-500">*</sup>
-                </label>
-                <Field
-                  className="border border-slate-300 py-1.5 rounded-md px-2 outline-none text-sm focus:border-purple-500"
-                  name="title"
-                  placeholder="Enter task title"
-                />
-                <ErrorMessage
-                  name="title"
-                  component="div"
-                  className="text-red-500 text-xs"
-                />
-              </div>
+          {({ values, setFieldValue, isSubmitting }) => {
+            useEffect(() => {
+              setFieldValue("projectId", projectId);
+              setFieldValue("status", currentStatus?._id);
+            }, [projectId, currentStatus, setFieldValue]);
 
-              {/* Description */}
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-slate-700">
-                  Description{" "}
-                  <span className="text-xs text-slate-500">(optional)</span>
-                </label>
-                <Field
-                  className="border border-slate-300 py-1.5 rounded-md px-2 outline-none text-sm focus:border-purple-500"
-                  name="description"
-                  placeholder="Enter description"
-                />
-              </div>
-
-              {/* Priority & Assignee */}
-              <div className="flex justify-between">
-                <div className="flex gap-2 items-center">
+            return (
+              <Form className="flex flex-col gap-3">
+                <div className="flex flex-col">
                   <label className="text-sm font-medium text-slate-700">
-                    Priority
+                    Title<sup className="text-red-500">*</sup>
                   </label>
                   <Field
-                    as="select"
-                    className="border p-1 rounded-md text-xs border-slate-300 focus:outline-violet-600"
-                    name="priority"
-                  >
-                    <option value="No">No</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                  </Field>
-                </div>
-                <div className="flex gap-2 items-center">
-                  <label className="text-sm font-medium text-slate-700">
-                    Assign
-                  </label>
-                  <Field
-                    as="select"
-                    className="border p-1 rounded-md border-slate-300 text-xs focus:outline-violet-600"
-                    name="assignee"
-                  >
-                    <option value="Atish Fulzade">Atish Fulzade</option>
-                    <option value="Vilas Rao">Vilas Rao</option>
-                    <option value="Deepak Varma">Deepak Varma</option>
-                  </Field>
-                </div>
-              </div>
-
-              {/* Attach file & Due date */}
-              <div className="flex justify-between">
-                <button
-                  type="button"
-                  className="flex gap-1 border text-slate-700 border-slate-300 rounded-md px-2 py-1 items-center text-sm font-medium"
-                >
-                  Attach file <IoIosAttach />
-                </button>
-                <div className="flex gap-2 items-center">
-                  <label className="text-sm font-medium text-slate-700">
-                    Due date
-                  </label>
-                  <Field
-                    className="border text-xs px-2 py-1.5 border-slate-300 rounded-md"
-                    type="date"
-                    name="dueDate"
+                    className="border border-slate-300 py-1.5 rounded-md px-2 outline-none text-sm focus:border-purple-500"
+                    name="title"
+                    placeholder="Enter task title"
                   />
                   <ErrorMessage
-                    name="dueDate"
+                    name="title"
                     component="div"
                     className="text-red-500 text-xs"
                   />
                 </div>
-              </div>
+                {/* Description */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium text-slate-700">
+                    Description (optional)
+                  </label>
+                  <Field
+                    className="border border-slate-300 py-1.5 rounded-md px-2 outline-none text-sm focus:border-purple-500"
+                    name="description"
+                    placeholder="Enter description"
+                  />
+                </div>
 
-              {/* Subtask toggle & Status */}
-              <div className="flex justify-between">
+                {/* Priority & Assignee */}
+                <div className="flex justify-between">
+                  <div className="flex gap-2 items-center">
+                    <label className="text-sm font-medium text-slate-700">
+                      Priority
+                    </label>
+                    <Field
+                      as="select"
+                      className="border p-1 rounded-md text-xs border-slate-300 focus:outline-violet-600"
+                      name="priority"
+                    >
+                      <option value="No">No</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                    </Field>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <label className="text-sm font-medium text-slate-700">
+                      Assign
+                    </label>
+                    <Field
+                      as="select"
+                      className="border p-1 rounded-md border-slate-300 text-xs focus:outline-violet-600"
+                      name="assignedTo"
+                    >
+                      <option value="Atish Fulzade">Atish Fulzade</option>
+                      <option value="67c05b78b21ba37989ace8a7">
+                        Vilas Rao
+                      </option>
+                      <option value="Deepak Varma">Deepak Varma</option>
+                    </Field>
+                  </div>
+                </div>
+
+                {/* Attach file & Due date */}
+                <div className="flex justify-between">
+                  <label className="flex gap-1 border text-slate-700 border-slate-300 rounded-md px-2 py-1 items-center text-sm font-medium cursor-pointer">
+                    Attach file <IoIosAttach />
+                    <input type="file" className="hidden" />
+                  </label>
+                  <div className="flex gap-2 items-center">
+                    <label className="text-sm font-medium text-slate-700">
+                      Due date
+                    </label>
+                    <Field
+                      className="border text-xs px-2 py-1.5 border-slate-300 rounded-md"
+                      type="date"
+                      name="dueDate"
+                    />
+                    <ErrorMessage
+                      name="dueDate"
+                      component="div"
+                      className="text-red-500 text-xs"
+                    />
+                  </div>
+                </div>
                 <button
                   type="button"
-                  className="border border-slate-300 text-slate-700 rounded-md text-sm px-2 py-1 cursor-pointer"
                   onClick={() => setAddSubTask(!addSubTask)}
+                  className="text-slate-700 w-fit px-2 py-1 text-sm border rounded border-slate-300"
                 >
                   {addSubTask ? "Remove" : "Add"} subtask
                 </button>
-                <div className="flex gap-2 items-center">
-                  <label className="text-sm font-medium text-slate-700">
-                    Status
-                  </label>
-                  <Field
-                    as="select"
-                    className="border p-1 rounded-md border-slate-300 text-xs focus:outline-violet-600"
-                    name="status"
-                  >
-                    <option value="Todo">Todo</option>
-                    <option value="in progress">In progress</option>
-                    <option value="done">Done</option>
-                  </Field>
-                </div>
-              </div>
-
-              {/* Subtasks */}
-              {addSubTask && (
-                <div className="flex flex-col gap-3">
-                  {values.subtask.map((_, index) => (
-                    <div
-                      key={index}
-                      className="border p-2 border-slate-300 rounded-md"
+                {/* Subtasks */}
+                {addSubTask && (
+                  <div className="flex flex-col gap-3">
+                    {values.subTask.map((_, index) => (
+                      <div
+                        key={index}
+                        className="border p-2 flex flex-col gap-2 border-slate-300 rounded-md"
+                      >
+                        <div className="w-full ">
+                          <Field
+                            className="border border-slate-300 w-full py-1.5 rounded-md px-2 text-sm focus:border-purple-500"
+                            name={`subTask[${index}].title`}
+                            placeholder="Subtask title"
+                          />
+                          <ErrorMessage
+                            name={`subTask[${index}].title`}
+                            component="div"
+                            className="text-red-500 text-xs"
+                          />
+                        </div>
+                        <div className="w-full">
+                          <Field
+                            className="border border-slate-300 py-1.5 w-full rounded-md px-2 text-sm focus:border-purple-500"
+                            name={`subtask[${index}].description`}
+                            placeholder="Subtask Description"
+                          />
+                          <ErrorMessage
+                            name={`subtask[${index}].description`}
+                            component="div"
+                            className="text-red-500 text-xs"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFieldValue("subTask", [
+                          ...values.subTask,
+                          { title: "", description: "" },
+                        ])
+                      }
+                      className="text-xs text-blue-500 cursor-pointer"
                     >
-                      <div className="flex flex-col">
-                        <label className="text-sm font-medium text-slate-700">
-                          Subtask Title<sup className="text-red-500">*</sup>
-                        </label>
-                        <Field
-                          className="border border-slate-300 py-1.5 rounded-md px-2 text-sm focus:border-purple-500"
-                          name={`subtask[${index}].title`}
-                        />
-                        <ErrorMessage
-                          name={`subtask[${index}].title`}
-                          component="div"
-                          className="text-red-500 text-xs"
-                        />
-                      </div>
-                      <div className="flex flex-col">
-                        <label className="text-sm font-medium text-slate-700">
-                          Subtask Description (optional)
-                        </label>
-                        <Field
-                          className="border border-slate-300 py-1.5 rounded-md px-2 text-sm focus:border-purple-500"
-                          name={`subtask[${index}].description`}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setFieldValue("subtask", [
-                        ...values.subtask,
-                        { title: "", description: "" },
-                      ])
-                    }
-                    className="text-xs text-blue-500 cursor-pointer"
-                  >
-                    + Add Subtask
-                  </button>
-                </div>
-              )}
+                      + Add Subtask
+                    </button>
+                  </div>
+                )}
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                className="bg-violet-600 py-2 rounded font-inter text-white hover:bg-purple-700 text-sm"
-              >
-                Add Task
-              </button>
-            </Form>
-          )}
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  className={`bg-violet-600 py-2 rounded font-inter text-white hover:bg-purple-700 text-sm flex justify-center items-center ${
+                    loading ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  disabled={isSubmitting || loading}
+                >
+                  {loading ? "Adding..." : "Add Task"}
+                </button>
+              </Form>
+            );
+          }}
         </Formik>
       </div>
     </div>

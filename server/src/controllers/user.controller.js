@@ -84,4 +84,34 @@ const logOutUser = (req, res) => {
   });
 };
 
-module.exports = { registerUser, loginUser, logOutUser };
+const getUserById = async (req, res) => {
+  const id = req.params.id;
+  try {
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ message: msg.userNotFound });
+    res.status(200).json(user);
+  } catch (error) {
+    handleError(res, msg.errorFetchingUser, error);
+  }
+};
+
+const getUserBySearch = async (req, res) => {
+  const search = req.query.search;
+  try {
+    const users = await User.find({ email: search }); // Corrected search query
+    if (users.length === 0) {
+      return res.status(404).json({ message: msg.userNotFound });
+    }
+    res.status(200).json(users);
+  } catch (error) {
+    handleError(res, msg.errorFetchingUser, error);
+  }
+};
+
+module.exports = {
+  registerUser,
+  loginUser,
+  logOutUser,
+  getUserBySearch,
+  getUserById,
+};

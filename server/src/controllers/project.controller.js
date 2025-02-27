@@ -5,7 +5,7 @@ const handleError = require("../utils/common-functions").handleError;
 // Add a new project
 const addProject = async (req, res) => {
   try {
-    const { title, description, isPrivate } = req.body;
+    const { title, description } = req.body;
     const userId = req.user.id; // Assuming userId is set by authentication middleware
 
     if (!title) return res.status(400).json({ message: msg.titleIsRequired });
@@ -17,7 +17,7 @@ const addProject = async (req, res) => {
     }
 
     // Create new project with userId
-    const newProject = new Project({ title, description, isPrivate, userId });
+    const newProject = new Project({ title, description, userId });
     await newProject.save();
 
     // Fetch updated list of projects associated with the user
@@ -71,10 +71,12 @@ const getProjectById = async (req, res) => {
 
 // Get all projects
 const getAllProjects = async (req, res) => {
+  const id = req.user.id;
   try {
-    const project = await Project.find({});
+    const project = await Project.find({ userId: id });
 
-    if (!project) {
+    if (project.length === 0) {
+      // Check for an empty array
       return res.status(404).json({ message: msg.projectNotFound });
     }
 
