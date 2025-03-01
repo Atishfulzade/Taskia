@@ -6,6 +6,7 @@ const {
   loginUser,
   logOutUser,
   getUserBySearch,
+  getUserById,
 } = require("../controllers/user.controller.js");
 const validateUser = require("../middlewares/validateUser.middleware.js");
 
@@ -13,8 +14,8 @@ const validateUser = require("../middlewares/validateUser.middleware.js");
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/logout", verifyUser, logOutUser);
-router.post("/:id", verifyUser, logOutUser);
 router.post("/search/:term", verifyUser, getUserBySearch);
 router.post("/validate", validateUser);
+router.post("/u/:id", verifyUser, getUserById);
 
 module.exports = router;

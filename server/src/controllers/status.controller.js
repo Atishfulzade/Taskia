@@ -74,8 +74,8 @@ const deleteStatus = async (req, res) => {
 
 const updateStatus = async (req, res) => {
   try {
-    const projectId = req.params.id;
-    const status = await Status.findByIdAndUpdate(projectId, req.body, {
+    const statusId = req.params.id; // Corrected the variable name
+    const status = await Status.findByIdAndUpdate(statusId, req.body, {
       new: true,
     });
 

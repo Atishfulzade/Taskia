@@ -83,8 +83,8 @@ const Dashboard = () => {
             className="text-white font-inter bg-violet-700 cursor-pointer text-sm px-3 py-1.5 rounded flex gap-2 items-center justify-center transition hover:bg-violet-600"
           >
             Add Status
-            <span className="bg-violet-500 h-4 w-[1px]"></span>
-            <IoIosArrowDown size={10} />
+            {/* <span className="bg-violet-500 h-4 w-[1px]"></span>
+            <IoIosArrowDown size={10} /> */}
           </button>
         </div>
       </div>

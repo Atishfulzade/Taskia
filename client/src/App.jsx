@@ -8,7 +8,7 @@ import { setCurrentProject, setProjects } from "./store/projectSlice.js";
 import requestServer from "./utils/requestServer.js";
 import Loader from "./component/Loader.jsx";
 import { login, logout } from "./store/userSlice.js";
-
+import { addAssignTask } from "./store/assignTaskSlice.js";
 // Lazy load the pages
 const Welcome = lazy(() => import("./pages/Welcome.jsx"));
 const Authentication = lazy(() => import("./pages/Authentication"));
@@ -28,15 +28,20 @@ function App() {
     const validateUser = async () => {
       try {
         const res = await requestServer("user/validate");
-        dispatch(login(res));
-        console.log(res);
-
+        dispatch(login(res.data));
         localStorage.setItem("user", JSON.stringify(res.data));
+        const projects = await requestServer("project/all");
+        const assignTask = await requestServer("task/assign");
+        console.log("assignTask", assignTask);
+
+        dispatch(addAssignTask(assignTask));
+        dispatch(setProjects(projects.data));
+        dispatch(setCurrentProject(projects.data[0]));
       } catch (error) {
         dispatch(logout());
         console.log("Token invalid, redirecting to login...");
         localStorage.removeItem("token");
-        navigate("/authenticate"); // 👈 Use navigate instead
+        navigate("/authenticate");
       }
     };
 

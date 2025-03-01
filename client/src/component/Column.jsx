@@ -18,7 +18,7 @@ export default function Column({ status, tasks, setTaskOpen, selectedStatus }) {
   return (
     <div
       ref={setNodeRef}
-      className={`h-fit w-[17rem] ${status.color.secondaryColor} rounded-lg p-2`}
+      className={`h-fit w-[17rem] ${status.color.secondaryColor} rounded-lg p-2 `}
     >
       <div className="flex justify-between items-center">
         <div className="flex gap-2 justify-start items-center text-md text-slate-800 font-medium font-inter">
@@ -41,13 +41,15 @@ export default function Column({ status, tasks, setTaskOpen, selectedStatus }) {
         </div>
 
         <div className="flex gap-0.5 text-slate-600">
-          <div className="flex rounded cursor-pointer hover:bg-slate-200">
-            <PiDotsThreeBold size={22} onClick={() => setShowMore(!showMore)} />
-            {showMore && <TaskMoreDropdown />}
+          <div className="flex rounded cursor-pointer  relative">
+            <PiDotsThreeBold size={22} onClick={() => setShowMore(true)} />
+            {showMore && (
+              <TaskMoreDropdown setShowMore={setShowMore} status={status} />
+            )}
           </div>
           <div
             onClick={handleTaskOpen}
-            className="flex rounded cursor-pointer hover:bg-slate-200"
+            className="flex rounded cursor-pointer "
           >
             <IoIosAdd size={22} />
           </div>

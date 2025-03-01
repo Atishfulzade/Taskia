@@ -23,7 +23,7 @@ const ProjectDetail = () => {
   const [currentStatus, setCurrentStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const scrollContainerRef = useRef(null);
-
+  const userId = useSelector((state) => state.user.user?._id);
   const dispatch = useDispatch();
   const projectId = useSelector((state) => state.project.currentProject?._id);
   const statuses = useSelector((state) => state.status?.statuses);
@@ -48,10 +48,20 @@ const ProjectDetail = () => {
 
   // Fetch Tasks
   const fetchTasks = async () => {
-    if (!projectId) return;
+    if (!projectId || !userId) return;
     try {
       const res = await requestServer(`task/all/${projectId}`);
-      dispatch(setTasks(res.data));
+      const allTasks = res.data;
+
+      // Filter tasks for the current user
+      const filteredTasks = allTasks.filter(
+        (task) =>
+          task.assignedBy === userId || // Task assigned by user
+          task.assignedTo === userId || // Task assigned to user
+          (!task.assignedTo && task.projectId === projectId) // Unassigned task in the same project
+      );
+
+      dispatch(setTasks(filteredTasks));
     } catch (error) {
       console.error("Error fetching tasks", error);
     }
@@ -62,6 +72,8 @@ const ProjectDetail = () => {
     try {
       dispatch(updateTask(task._id));
       await requestServer(`task/update/${task._id}`, { ...task });
+
+      // Refresh tasks to ensure correct visibility
       fetchTasks();
       setTaskOpen(false);
     } catch (error) {
@@ -152,7 +164,13 @@ const ProjectDetail = () => {
                   status={status}
                   taskOpen={taskOpen}
                   setTaskOpen={setTaskOpen}
-                  tasks={tasks?.filter((task) => task.status === status._id)}
+                  tasks={tasks.filter(
+                    (task) =>
+                      task.status === status._id &&
+                      (task.assignedBy === userId ||
+                        task.assignedTo === userId ||
+                        !task.assignedTo)
+                  )}
                   selectedStatus={setCurrentStatus}
                 />
               ))

@@ -1,0 +1,9 @@
+{
+    "rewrites": [
+      { "source": "/api/(.*)", "destination": "https://taskia.onrender.com/api/$1" }
+    ],
+    "routes": [
+      { "src": "/(.*)", "dest": "/index.html" }
+    ]
+  }
+  

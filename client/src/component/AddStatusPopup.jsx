@@ -6,11 +6,11 @@ import { showToast } from "../utils/showToast";
 import * as Yup from "yup";
 import requestServer from "../utils/requestServer";
 import { useDispatch, useSelector } from "react-redux";
-import { addStatus } from "../store/statusSlice";
+import { addStatus, updateStatus } from "../store/statusSlice";
 import { setCurrentProject, setProjects } from "../store/projectSlice";
 import { useNavigate } from "react-router-dom";
 
-const AddStatusPopup = ({ setOpenStatusPopup }) => {
+const AddStatusPopup = ({ setOpenStatusPopup, status }) => {
   const [loading, setLoading] = useState(false);
   const [selectedColor, setSelectedColor] = useState({
     primaryColor: "bg-gray-200",
@@ -24,33 +24,66 @@ const AddStatusPopup = ({ setOpenStatusPopup }) => {
   );
 
   const formik = useFormik({
-    initialValues: { title: "", projectId: "", color: selectedColor },
+    initialValues: {
+      title: "" || status?.title,
+      projectId: "",
+      color: selectedColor || state?.primaryColor,
+    },
     validationSchema: Yup.object({
       title: Yup.string().required("Enter status title"),
     }),
     onSubmit: async (values) => {
-      try {
-        setLoading(true);
-        const res = await requestServer("status/add", values);
-        dispatch(addStatus(res.data));
-        showToast(res.message, "success");
-        setOpenStatusPopup(false);
-      } catch (error) {
-        if (error.response?.data?.message === "Token not found") {
-          showToast("Invalid token! Please login again.", "error");
-          localStorage.removeItem("token");
-          localStorage.removeItem("userState");
-          dispatch(setCurrentProject(null));
-          dispatch(setProjects([]));
-          navigate("/authenticate");
-        } else {
-          showToast(
-            error.response?.data?.message || "Something went wrong",
-            "error"
+      if (status) {
+        try {
+          setLoading(true);
+          const res = await requestServer(
+            `status/update/${status._id}`,
+            values
           );
+          dispatch(updateStatus(status));
+          showToast(res.message, "success");
+          setOpenStatusPopup(false);
+        } catch (error) {
+          if (error.response?.data?.message === "Token not found") {
+            showToast("Invalid token! Please login again.", "error");
+            localStorage.removeItem("token");
+            localStorage.removeItem("userState");
+            dispatch(setCurrentProject(null));
+            dispatch(setProjects([]));
+            navigate("/authenticate");
+          } else {
+            showToast(
+              error.response?.data?.message || "Something went wrong",
+              "error"
+            );
+          }
+        } finally {
+          setLoading(false);
         }
-      } finally {
-        setLoading(false);
+      } else {
+        try {
+          setLoading(true);
+          const res = await requestServer("status/add", values);
+          dispatch(addStatus(res.data));
+          showToast(res.message, "success");
+          setOpenStatusPopup(false);
+        } catch (error) {
+          if (error.response?.data?.message === "Token not found") {
+            showToast("Invalid token! Please login again.", "error");
+            localStorage.removeItem("token");
+            localStorage.removeItem("userState");
+            dispatch(setCurrentProject(null));
+            dispatch(setProjects([]));
+            navigate("/authenticate");
+          } else {
+            showToast(
+              error.response?.data?.message || "Something went wrong",
+              "error"
+            );
+          }
+        } finally {
+          setLoading(false);
+        }
       }
     },
   });
@@ -66,7 +99,13 @@ const AddStatusPopup = ({ setOpenStatusPopup }) => {
   }, [selectedColor]);
 
   return (
-    <div className="absolute h-screen w-screen bg-slate-900/80 z-50 top-0 left-0 flex justify-center items-center">
+    <div
+      className={`absolute ${
+        status
+          ? "h-fit w-fit bg-neutral-50"
+          : "h-screen w-screen bg-slate-900/80"
+      } right-0  z-50 top-0 left-0 flex justify-center items-center`}
+    >
       <div className="border-slate-500 border relative bg-white h-fit w-96 p-5 rounded-lg">
         <h4 className="mb-2 text-sm font-inter font-medium text-slate-600">
           Status

@@ -20,7 +20,13 @@ const addTask = async (req, res) => {
     }
 
     // Create a new task instance with the provided data
-    const newTask = new Task({ title, projectId, status, ...others });
+    const newTask = new Task({
+      title,
+      projectId,
+      assignedTo,
+      status,
+      ...others,
+    });
 
     // Save the task to the database
     await newTask.save();
@@ -108,13 +114,22 @@ const deleteTask = async (req, res) => {
 
 const getTasksForUser = async (req, res) => {
   try {
-    const tasks = await Task.find({ assignedTo: req.user.id }).populate(
-      "assignedBy",
-      "name email"
-    );
-    res.status(200).json(tasks);
+    console.log("User ID:", req.user?.id); // Debugging Step 1: Check User ID
+
+    if (!req.user || !req.user.id) {
+      return res
+        .status(400)
+        .json({ message: "User ID is missing in request." });
+    }
+
+    const tasks = await Task.find({ assignedTo: req.user.id });
+
+    console.log("Tasks Found:", tasks); // Debugging Step 2: Log Retrieved Tasks
+
+    return res.status(200).json({ success: true, tasks });
   } catch (error) {
-    handleError(res, msg.fetchTasksFailed, error);
+    console.error("Error fetching tasks:", error); // Debugging Step 3: Log Errors
+    return res.status(500).json({ message: "Failed to fetch tasks", error });
   }
 };
 

@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  statuses: [], // Changed 'status' to 'statuses' for better clarity
+  statuses: [],
 };
 
 const statusSlice = createSlice({
@@ -9,7 +9,7 @@ const statusSlice = createSlice({
   initialState,
   reducers: {
     setStatuses: (state, action) => {
-      state.statuses = action.payload; // Store fetched statuses
+      state.statuses = action.payload;
     },
     addStatus: (state, action) => {
       state.statuses.push(action.payload);
@@ -20,12 +20,11 @@ const statusSlice = createSlice({
       );
     },
     updateStatus: (state, action) => {
-      const updatedStatus = state.statuses.find(
-        (status) => status._id === action.payload._id
+      state.statuses = state.statuses.map((status) =>
+        status._id === action.payload._id
+          ? { ...status, ...action.payload }
+          : status
       );
-      if (updatedStatus) {
-        updatedStatus.name = action.payload.name;
-      }
     },
   },
 });

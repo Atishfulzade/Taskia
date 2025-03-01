@@ -217,11 +217,11 @@ const AddTaskPopup = ({ setTaskOpen, currentStatus }) => {
                         <div className="w-full">
                           <Field
                             className="border border-slate-300 py-1.5 w-full rounded-md px-2 text-sm focus:border-purple-500"
-                            name={`subtask[${index}].description`}
+                            name={`subTask[${index}].description`}
                             placeholder="Subtask Description"
                           />
                           <ErrorMessage
-                            name={`subtask[${index}].description`}
+                            name={`subTask[${index}].description`}
                             component="div"
                             className="text-red-500 text-xs"
                           />

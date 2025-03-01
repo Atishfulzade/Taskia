@@ -3,6 +3,7 @@ import userReducer from "./userSlice";
 import projectReducer from "./projectSlice";
 import statusReducer from "./statusSlice";
 import taskReducer from "./taskSlice";
+import assignTaskSlice from "./assignTaskSlice";
 // Load state from localStorage
 const loadState = () => {
   try {
@@ -28,6 +29,7 @@ const store = configureStore({
     project: projectReducer,
     status: statusReducer,
     task: taskReducer,
+    assignTask: assignTaskSlice,
   },
   preloadedState: { user: loadState() },
 });

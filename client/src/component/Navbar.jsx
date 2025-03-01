@@ -87,7 +87,7 @@ const Navbar = () => {
         {/* Profile */}
         <div
           onClick={() => setShowProfile(!showProfile)}
-          className="flex select-none cursor-pointer px-1 gap-1 items-center bg-violet-600 rounded-full"
+          className="flex select-none cursor-pointer px-1 gap-1 items-center bg-violet-500 rounded-full"
         >
           <div className="h-6 w-6 flex bg-violet-700 cursor-pointer border items-center justify-center border-violet-500 text-white text-xs rounded-full">
             {userInfo?.name?.trim()[0] || "?"}
