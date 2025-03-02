@@ -12,7 +12,7 @@ import requestServer from "../utils/requestServer";
 import { showToast } from "../utils/showToast";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo-white.png";
-
+import addAssignTask from "../store/assignTaskSlice";
 const Authentication = () => {
   const [isRegistration, setIsRegistration] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -72,7 +72,9 @@ const Authentication = () => {
         // Fetch and store additional data only on successful login
         if (!isRegistration) {
           const projects = await requestServer("project/all");
+          const assignTask = await requestServer("task/assign");
 
+          dispatch(addAssignTask(assignTask));
           dispatch(setProjects(projects.data));
           dispatch(setCurrentProject(projects.data[0]));
         }

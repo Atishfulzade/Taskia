@@ -32,9 +32,11 @@ const addTask = async (req, res) => {
     await newTask.save();
 
     // Emit a Socket.IO event if the task is assigned to someone
-    if (assignedTo) {
-      const io = req.app.get("io"); // Get the io instance
-      io.to(assignedTo.toString()).emit("newTaskAssigned", {
+    if (assignedTo && typeof assignedTo === "string") {
+      const io = req.app.get("io");
+      console.log("Socket.IO instance:", io); // Debugging
+
+      io.to(assignedTo).emit("newTaskAssigned", {
         message: `A new task "${title}" has been assigned to you.`,
         task: newTask,
       });
@@ -53,20 +55,28 @@ const addTask = async (req, res) => {
 
 // Update a Task
 const updateTask = async (req, res) => {
-  try {
-    const TaskId = req.params.id;
-    const { assignedTo } = req.body;
+  const { assignedTo, title } = req.body;
 
-    const newTask = await Task.findOneAndUpdate({ _id: TaskId }, req.body, {
+  try {
+    const { taskId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(taskId)) {
+      return res.status(400).json({ message: "Invalid task ID" });
+    }
+
+    const newTask = await Task.findOneAndUpdate({ _id: taskId }, req.body, {
       new: true,
     });
 
+    if (!newTask) {
+      return res.status(404).json({ message: msg.taskNotFound });
+    }
+
     // Emit a Socket.IO event if the task is assigned to someone
-    if (assignedTo) {
-      const io = req.app.get("io"); // Get the io instance
-      io.to(assignedTo.toString()).emit("newTaskAssigned", {
-        message: `You have been assigned a new task: "${newTask.title}"`,
-        newTask,
+    if (assignedTo && typeof assignedTo === "string") {
+      const io = req.app.get("io");
+      io.to(assignedTo).emit("newTaskAssigned", {
+        message: `A new task "${title}" has been assigned to you.`,
+        task: newTask,
       });
     }
 

@@ -7,8 +7,23 @@ import { LiaPenSolid } from "react-icons/lia";
 import { MdOutlineDeleteOutline } from "react-icons/md";
 import CircularProgress from "./CircularProgress";
 import { FaRegCalendar, FaRegCircleUser } from "react-icons/fa6";
-
+import { formatDate } from "../utils/formatDate";
+import { useEffect, useState } from "react";
+import requestServer from "../utils/requestServer";
 const Task = ({ task, priority }) => {
+  const [assignedUser, setAssignedUser] = useState("");
+
+  useEffect(() => {
+    if (task?.assignedTo) {
+      requestServer(`user/u/${task.assignedTo}`)
+        .then((user) => {
+          setAssignedUser(user?.name ?? "Unknown");
+        })
+        .catch((error) => {
+          console.error("Error fetching user:", error);
+        });
+    }
+  }, [task?.assignedTo]);
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: task?._id, data: { priority } });
 
@@ -23,8 +38,7 @@ const Task = ({ task, priority }) => {
         return "text-red-500";
       case "Medium":
         return "text-yellow-500";
-      case "Low":
-        return "text-green-500";
+
       default:
         return "text-gray-500";
     }
@@ -46,7 +60,7 @@ const Task = ({ task, priority }) => {
       {/* Task Name */}
       <p className="w-full text-sm font-inter text-slate-900 dark:text-slate-100 flex font-medium gap-1 items-center">
         <RiCheckboxBlankCircleLine size={16} className="text-violet-600" />
-        {task?.name}
+        {task?.title}
       </p>
 
       {/* Task Status & Progress */}
@@ -60,7 +74,7 @@ const Task = ({ task, priority }) => {
             percentage={60}
             size={20}
             strokeWidth={2}
-            color="#5D0EC0"
+            color={task?.secondaryColor}
           />
           {task?.status}
         </p>
@@ -74,11 +88,25 @@ const Task = ({ task, priority }) => {
       </div>
 
       {/* Due Date */}
-      <p className="w-1/3 text-xs text-slate-600 font-inter">20 May 2025</p>
+      <p className="w-1/3 text-xs text-slate-600 font-inter">
+        {formatDate(task.createdAt)}
+      </p>
 
       {/* User Avatar */}
       <div className="w-1/5 text-xs flex dark:text-white text-slate-500">
-        <FaRegCircleUser size={20} className="text-slate-500 " />
+        {task?.assignedTo ? (
+          <span
+            title={assignedUser}
+            className="border text-white flex items-center justify-center pt-[2px] bg-violet-600 rounded-full border-slate-300 w-6 h-6 text-[11px]"
+          >
+            {assignedUser
+              ?.split(" ")
+              .map((name) => name[0])
+              .join("")}
+          </span>
+        ) : (
+          <FaRegCircleUser className="border text-slate-700 border-slate-200 p-1 w-6 h-6 rounded" />
+        )}{" "}
       </div>
 
       {/* Priority Flag */}
@@ -89,6 +117,7 @@ const Task = ({ task, priority }) => {
       {/* Task Deadline */}
       <div className="w-1/3 ml-5 text-xs flex gap-1 dark:text-white text-slate-500">
         <FaRegCalendar size={16} className="text-slate-500 " />
+        {formatDate(task.dueDate)}
       </div>
     </div>
   );

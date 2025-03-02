@@ -4,9 +4,9 @@ const requestServer = async (path, data = {}) => {
   try {
     const token = localStorage.getItem("token");
     const baseurl = import.meta.env.VITE_SERVER_URL;
-
+    const base_url = import.meta.env.VITE_BASE_ROUTE;
     const res = await axios({
-      url: `${baseurl}${path}`,
+      url: `${baseurl}${base_url}${path}`,
       method: "POST",
       data: Object.keys(data).length ? data : undefined,
       headers: {

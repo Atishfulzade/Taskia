@@ -1,6 +1,6 @@
 import { Route, Routes, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { Bounce, ToastContainer } from "react-toastify";
+import { Bounce, toast, ToastContainer } from "react-toastify";
 import { useEffect, Suspense, lazy, useState } from "react";
 import { io } from "socket.io-client";
 
@@ -30,9 +30,9 @@ function App() {
         const res = await requestServer("user/validate");
         dispatch(login(res.data));
         localStorage.setItem("user", JSON.stringify(res.data));
+
         const projects = await requestServer("project/all");
         const assignTask = await requestServer("task/assign");
-        console.log("assignTask", assignTask);
 
         dispatch(addAssignTask(assignTask));
         dispatch(setProjects(projects.data));
@@ -46,22 +46,36 @@ function App() {
     };
 
     validateUser();
-  }, [dispatch]);
+  }, [dispatch, navigate]); // Added dispatch and navigate as dependencies
 
   // Connect to the Socket.IO server
   useEffect(() => {
     if (isAuthenticated && userId) {
       const newSocket = io(import.meta.env.VITE_SERVER_URL, {
-        transports: ["websocket"], // Ensures better performance
-        reconnection: true, // Reconnect on disconnect
+        transports: ["websocket"],
+        reconnection: true,
       });
 
       newSocket.emit("joinUserRoom", userId);
       console.log("Socket connected for user:", userId);
 
+      // Handle new task assignment notification
       newSocket.on("newTaskAssigned", (data) => {
         console.log("New task assigned:", data);
-        // Show notification (You can dispatch Redux action or use toast)
+
+        // Show toast notification
+        toast.success(`New Task Assigned: ${data.title}`, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: "light",
+        });
+
+        // You can also dispatch an action to update Redux store if needed
+        dispatch(addAssignTask(data));
       });
 
       setSocket(newSocket);
@@ -71,7 +85,7 @@ function App() {
         console.log("Socket disconnected");
       };
     }
-  }, [isAuthenticated, userId]);
+  }, [isAuthenticated, userId, dispatch]);
 
   return (
     <>
@@ -99,16 +113,18 @@ function App() {
           <Route path="/" element={<Welcome />} />
           <Route path="authenticate" element={<Authentication />} />
 
-          {isAuthenticated && (
+          {isAuthenticated ? (
             <Route path="dashboard" element={<Layout />}>
               <Route index element={<Dashboard />} />
               <Route path=":id" element={<Dashboard />} />
             </Route>
+          ) : (
+            <Route path="*" element={<Error />} />
           )}
 
           <Route path="*" element={<Error />} />
         </Routes>
-      </Suspense>{" "}
+      </Suspense>
     </>
   );
 }

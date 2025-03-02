@@ -37,10 +37,7 @@ const ProjectDetail = () => {
       const res = await requestServer(`status/all/${projectId}`);
       dispatch(setStatuses(res.data));
     } catch (error) {
-      showToast(
-        error.response?.data?.message || "Something went wrong",
-        "error"
-      );
+      console.log(error);
     } finally {
       setLoading(false);
     }
@@ -58,7 +55,7 @@ const ProjectDetail = () => {
         (task) =>
           task.assignedBy === userId || // Task assigned by user
           task.assignedTo === userId || // Task assigned to user
-          (!task.assignedTo && task.projectId === projectId) // Unassigned task in the same project
+          (task.assignedTo && task.projectId === projectId) // Unassigned task in the same project
       );
 
       dispatch(setTasks(filteredTasks));
