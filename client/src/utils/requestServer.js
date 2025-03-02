@@ -5,6 +5,8 @@ const requestServer = async (path, data = {}) => {
     const token = localStorage.getItem("token");
     const baseurl = import.meta.env.VITE_SERVER_URL;
     const base_url = import.meta.env.VITE_BASE_ROUTE;
+    console.log(`${baseurl}${base_url}${path}`);
+
     const res = await axios({
       url: `${baseurl}${base_url}${path}`,
       method: "POST",
