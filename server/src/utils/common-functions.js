@@ -5,4 +5,11 @@ const handleError = (res, message, error = null, status = 500) => {
     .json({ message, error: error ? error.message : undefined });
 };
 
-module.exports = { handleError };
+const handleResponse = (res, statusCode, message, data = null) => {
+  return res.status(statusCode).json({
+    message,
+    data,
+  });
+};
+
+module.exports = { handleError, handleResponse };

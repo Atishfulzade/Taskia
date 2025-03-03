@@ -12,7 +12,8 @@ import requestServer from "../utils/requestServer";
 import { showToast } from "../utils/showToast";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo-white.png";
-import addAssignTask from "../store/assignTaskSlice";
+import addAssignTask, { setAssignTasks } from "../store/assignTaskSlice";
+
 const Authentication = () => {
   const [isRegistration, setIsRegistration] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -50,41 +51,44 @@ const Authentication = () => {
       setLoading(true);
       try {
         let res;
-        if (isRegistration) {
-          res = await requestServer("user/register", values);
-          showToast(res.data.message, "success");
-        } else {
-          res = await requestServer("user/login", {
-            email: values.email,
-            password: values.password,
-          });
+        const endpoint = isRegistration ? "user/register" : "user/login";
+        const payload = isRegistration
+          ? values
+          : { email: values.email, password: values.password };
 
-          showToast(res.data.message, "success");
-        }
+        // Send request to the backend
+        res = await requestServer(endpoint, payload);
 
-        localStorage.setItem("token", res.token);
-        localStorage.setItem("user", JSON.stringify(res.data));
+        // Show success message
+        showToast(res.data.message, "success");
 
-        dispatch(login(res.data));
+        // Store token and user data in localStorage
+        localStorage.setItem("token", res.data.token);
+        localStorage.setItem("user", JSON.stringify(res.data.user));
 
-        navigate(isRegistration ? "/dashboard" : "/dashboard");
+        // Update Redux store with user login state
+        dispatch(login(res.data.user));
+
+        // Redirect to dashboard after successful login/registration
+        navigate("/dashboard");
 
         // Fetch and store additional data only on successful login
         if (!isRegistration) {
           const projects = await requestServer("project/all");
           const assignTask = await requestServer("task/assign");
 
-          dispatch(addAssignTask(assignTask));
           dispatch(setProjects(projects.data));
+          console.log(projects.message);
+
+          dispatch(setAssignTasks(assignTask?.data));
           dispatch(setCurrentProject(projects.data[0]));
         }
 
+        // Reset form after successful submission
         resetForm();
       } catch (error) {
-        showToast(
-          error.response?.data?.message || "Something went wrong",
-          "error"
-        );
+        // Show error message
+        console.log(error);
       } finally {
         setLoading(false);
       }

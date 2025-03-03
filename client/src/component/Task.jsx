@@ -10,20 +10,27 @@ import { FaRegCalendar, FaRegCircleUser } from "react-icons/fa6";
 import { formatDate } from "../utils/formatDate";
 import { useEffect, useState } from "react";
 import requestServer from "../utils/requestServer";
+
 const Task = ({ task, priority }) => {
   const [assignedUser, setAssignedUser] = useState("");
-
+  const handleStatus = async () => {
+    await requestServer(`status/get/${task.status}`);
+  };
+  // Fetch assigned user details
   useEffect(() => {
     if (task?.assignedTo) {
       requestServer(`user/u/${task.assignedTo}`)
         .then((user) => {
-          setAssignedUser(user?.name ?? "Unknown");
+          setAssignedUser(user?.data.name ?? "Unknown");
         })
         .catch((error) => {
           console.error("Error fetching user:", error);
         });
     }
   }, [task?.assignedTo]);
+  console.log(assignedUser);
+
+  // Drag-and-drop functionality
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: task?._id, data: { priority } });
 
@@ -32,13 +39,13 @@ const Task = ({ task, priority }) => {
     transition,
   };
 
+  // Determine flag color based on task priority
   const flagColor = (task) => {
     switch (task?.priority) {
       case "High":
         return "text-red-500";
       case "Medium":
         return "text-yellow-500";
-
       default:
         return "text-gray-500";
     }
@@ -106,7 +113,7 @@ const Task = ({ task, priority }) => {
           </span>
         ) : (
           <FaRegCircleUser className="border text-slate-700 border-slate-200 p-1 w-6 h-6 rounded" />
-        )}{" "}
+        )}
       </div>
 
       {/* Priority Flag */}

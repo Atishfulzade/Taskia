@@ -16,8 +16,9 @@ const Navbar = () => {
   const [showProfile, setShowProfile] = useState(false);
   const userInfo = useSelector((state) => state.user.user);
 
+  // Toggle dark mode and update localStorage
   useEffect(() => {
-    let html = document.querySelector("#root");
+    const html = document.querySelector("html");
     if (isDarkMode) {
       html.classList.add("dark");
       localStorage.setItem("theme", "dark");
@@ -29,9 +30,12 @@ const Navbar = () => {
 
   return (
     <div className="flex bg-violet-800 px-5 py-1 justify-between dark:bg-violet-900 items-center">
+      {/* Logo */}
       <Link to="/">
         <img src={logo} alt="Logo" className="w-8" />
       </Link>
+
+      {/* Search Bar */}
       <div className="relative flex w-98 backdrop-blur-lg ps-8 items-center bg-white/10 h-8 border border-violet-500 rounded-lg">
         <FiSearch size={20} className="absolute top-1.5 left-2 text-white" />
         <input
@@ -41,6 +45,7 @@ const Navbar = () => {
         />
       </div>
 
+      {/* Navbar Actions */}
       <div className="flex gap-1">
         {/* Dark Mode Toggle */}
         <div className="flex px-3 gap-1 py-1 cursor-pointer items-center justify-center text-white">
@@ -71,20 +76,24 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* Other Navbar Items */}
+        {/* Notification Button */}
         <button className="flex px-3 gap-1 py-1 hover:bg-violet-700 font-inter font-normal rounded-lg items-center justify-center text-white">
           <FiBell size={20} />
           Notification
         </button>
+
+        {/* New Button */}
         <button className="flex px-3 gap-1 py-1 hover:bg-violet-700 font-inter font-normal items-center rounded-lg justify-center text-white">
           <IoAddCircleOutline size={20} />
           New
         </button>
+
+        {/* Apps Button */}
         <button className="flex px-3 gap-1 py-1 hover:bg-violet-700 font-inter font-normal items-center rounded-lg justify-center text-white">
           <IoApps size={20} />
         </button>
 
-        {/* Profile */}
+        {/* Profile Section */}
         <div
           onClick={() => setShowProfile(!showProfile)}
           className="flex select-none cursor-pointer px-1 gap-1 items-center bg-violet-500 rounded-full"

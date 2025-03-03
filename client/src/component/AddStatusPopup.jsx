@@ -12,10 +12,12 @@ import { useNavigate } from "react-router-dom";
 
 const AddStatusPopup = ({ setOpenStatusPopup, status }) => {
   const [loading, setLoading] = useState(false);
-  const [selectedColor, setSelectedColor] = useState({
-    primaryColor: "bg-gray-200",
-    secondaryColor: "bg-gray-50",
-  });
+  const [selectedColor, setSelectedColor] = useState(
+    status?.color || {
+      primaryColor: "bg-gray-200",
+      secondaryColor: "bg-gray-50",
+    }
+  );
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -23,77 +25,68 @@ const AddStatusPopup = ({ setOpenStatusPopup, status }) => {
     (state) => state.project.currentProject?._id
   );
 
+  // Formik setup for form handling and validation
   const formik = useFormik({
     initialValues: {
-      title: "" || status?.title,
-      projectId: "",
-      color: selectedColor || state?.primaryColor,
+      title: status?.title || "",
+      projectId: CurrentProjectId || "",
+      color: selectedColor,
     },
     validationSchema: Yup.object({
       title: Yup.string().required("Enter status title"),
     }),
     onSubmit: async (values) => {
-      if (status) {
-        try {
-          setLoading(true);
-          const res = await requestServer(
-            `status/update/${status._id}`,
-            values
-          );
-          dispatch(updateStatus(status));
-          showToast(res.message, "success");
-          setOpenStatusPopup(false);
-        } catch (error) {
-          if (error.response?.data?.message === "Token not found") {
-            showToast("Invalid token! Please login again.", "error");
-            localStorage.removeItem("token");
-            localStorage.removeItem("userState");
-            dispatch(setCurrentProject(null));
-            dispatch(setProjects([]));
-            navigate("/authenticate");
-          } else {
-            showToast(
-              error.response?.data?.message || "Something went wrong",
-              "error"
-            );
-          }
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        try {
-          setLoading(true);
-          const res = await requestServer("status/add", values);
+      try {
+        setLoading(true);
+
+        let res;
+        if (status) {
+          // Update existing status
+          res = await requestServer(`status/update/${status._id}`, values);
+          dispatch(updateStatus(res.data));
+        } else {
+          // Add new status
+          res = await requestServer("status/add", values);
           dispatch(addStatus(res.data));
-          showToast(res.message, "success");
-          setOpenStatusPopup(false);
-        } catch (error) {
-          if (error.response?.data?.message === "Token not found") {
-            showToast("Invalid token! Please login again.", "error");
-            localStorage.removeItem("token");
-            localStorage.removeItem("userState");
-            dispatch(setCurrentProject(null));
-            dispatch(setProjects([]));
-            navigate("/authenticate");
-          } else {
-            showToast(
-              error.response?.data?.message || "Something went wrong",
-              "error"
-            );
-          }
-        } finally {
-          setLoading(false);
         }
+
+        // Show success toast notification
+        showToast(res.data.message, "success");
+
+        // Close the popup
+        setOpenStatusPopup(false);
+      } catch (error) {
+        console.error("Error:", error);
+
+        // Handle token expiration or invalidation
+        if (error.response?.data?.message === "Token not found") {
+          showToast("Invalid token! Please login again.", "error");
+          localStorage.removeItem("token");
+          localStorage.removeItem("userState");
+          dispatch(setCurrentProject(null));
+          dispatch(setProjects([]));
+          navigate("/authenticate");
+        } else {
+          // Show error toast notification
+          showToast(
+            error.response?.data?.message || "Something went wrong",
+            "error"
+          );
+        }
+      } finally {
+        setLoading(false);
       }
     },
   });
 
+  // Set projectId in form values when CurrentProjectId changes
   useEffect(() => {
     if (CurrentProjectId) {
       formik.setFieldValue("projectId", CurrentProjectId);
     }
   }, [CurrentProjectId]);
 
+  // Set selected color in form values when it changes
   useEffect(() => {
     formik.setFieldValue("color", selectedColor);
   }, [selectedColor]);
@@ -116,6 +109,7 @@ const AddStatusPopup = ({ setOpenStatusPopup, status }) => {
           onClick={() => setOpenStatusPopup(false)}
         />
         <form className="flex flex-col gap-4" onSubmit={formik.handleSubmit}>
+          {/* Status Title Input */}
           <input
             className="border border-slate-300 py-1.5 rounded-md px-2 text-sm"
             type="text"
@@ -129,6 +123,7 @@ const AddStatusPopup = ({ setOpenStatusPopup, status }) => {
             <p className="text-red-500 text-sm">{formik.errors.title}</p>
           )}
 
+          {/* Color Selection */}
           <div className="flex flex-col">
             <p className="text-sm text-slate-600 mb-2">Select color</p>
             <div className="flex w-full gap-1 flex-wrap">
@@ -148,12 +143,19 @@ const AddStatusPopup = ({ setOpenStatusPopup, status }) => {
             </div>
           </div>
 
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
             className="bg-purple-600 py-2 cursor-pointer rounded text-white disabled:bg-gray-400"
           >
-            {loading ? "Adding..." : "Add Status"}
+            {loading
+              ? status
+                ? "Updating..."
+                : "Adding..."
+              : status
+              ? "Update Status"
+              : "Add Status"}
           </button>
         </form>
       </div>

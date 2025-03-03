@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { IoIosAdd } from "react-icons/io";
-import { useParams } from "react-router-dom";
 import { DndContext, closestCorners } from "@dnd-kit/core";
 import { TbStack2 } from "react-icons/tb";
 import { PiGitMergeDuotone } from "react-icons/pi";
@@ -8,14 +6,12 @@ import { IoFilter } from "react-icons/io5";
 import { RiExpandUpDownLine } from "react-icons/ri";
 import { GoPeople, GoPerson } from "react-icons/go";
 import { useDispatch, useSelector } from "react-redux";
-
 import Loader from "../component/Loader";
 import AddTaskPopup from "../component/AddTaskPopup";
 import Column from "../component/Column";
 import bgColors from "../utils/constant";
 import requestServer from "../utils/requestServer";
-import { showToast } from "../utils/showToast";
-import { addTask, setTasks, updateTask } from "../store/taskSlice";
+import { setTasks, updateTask } from "../store/taskSlice";
 import { setStatuses } from "../store/statusSlice";
 
 const ProjectDetail = () => {
@@ -27,7 +23,11 @@ const ProjectDetail = () => {
   const dispatch = useDispatch();
   const projectId = useSelector((state) => state.project.currentProject?._id);
   const statuses = useSelector((state) => state.status?.statuses);
-  const tasks = useSelector((state) => state.task.tasks);
+  const tasks = useSelector((state) => state.task?.tasks);
+  const [editTaskOpen, setEditTaskOpen] = useState({
+    isOpen: false,
+    task: null,
+  });
 
   // Fetch Statuses
   const fetchStatuses = async () => {
@@ -106,35 +106,52 @@ const ProjectDetail = () => {
 
   return (
     <div className="h-full dark:text-slate-50 dark:bg-slate-700 w-full">
+      {/* Header Section */}
       <div className="flex gap-2 w-full items-center mb-2 justify-between">
         <div className="flex text-slate-600 font-inter gap-1">
+          {/* Group by Status */}
           <div className="flex border cursor-pointer border-slate-300 rounded-full px-3 py-1 justify-center items-center gap-1 text-sm">
             <TbStack2 size={18} />
             Group: Status
           </div>
+
+          {/* Collapse Subtasks */}
           <div className="flex border cursor-pointer border-slate-300 rounded-full px-3 py-1 justify-center items-center gap-1 text-sm">
             <PiGitMergeDuotone size={18} />
             SubTask: Collapse all
           </div>
         </div>
+
+        {/* Filter, Sort, and Search Section */}
         <div className="flex text-slate-600 font-inter gap-1 items-center">
+          {/* Filter */}
           <div className="flex border cursor-pointer border-slate-300 rounded-full px-3 py-1 justify-center items-center gap-1 text-sm">
             <RiExpandUpDownLine size={18} />
             Filter
           </div>
+
+          {/* Sort */}
           <div className="flex border cursor-pointer border-slate-300 rounded-full px-3 py-1 justify-center items-center gap-1 text-sm">
             <IoFilter size={18} />
             Sort
           </div>
+
+          {/* Me Mode */}
           <div className="flex border cursor-pointer border-slate-300 rounded-full px-3 py-1 justify-center items-center gap-1 text-sm">
             <GoPerson size={18} />
             Me mode
           </div>
+
+          {/* Assignee */}
           <div className="flex border cursor-pointer border-slate-300 rounded-full px-3 py-1 justify-center items-center gap-1 text-sm">
             <GoPeople size={18} />
             Assignee
           </div>
+
+          {/* Divider */}
           <span className="h-6 w-[1px] bg-slate-300 mx-2"></span>
+
+          {/* Search Bar */}
           <input
             type="text"
             placeholder="Search..."
@@ -160,6 +177,7 @@ const ProjectDetail = () => {
                   bgColor={bgColors[i]}
                   status={status}
                   taskOpen={taskOpen}
+                  setEditTaskOpen={setEditTaskOpen}
                   setTaskOpen={setTaskOpen}
                   tasks={tasks.filter(
                     (task) =>
@@ -174,7 +192,14 @@ const ProjectDetail = () => {
           )}
         </div>
       </DndContext>
-
+      {editTaskOpen.isOpen && (
+        <AddTaskPopup
+          setTaskOpen={() => setEditTaskOpen({ isOpen: false, task: {} })}
+          currentStatus={currentStatus}
+          taskData={editTaskOpen.task}
+          isEdit={true}
+        />
+      )}
       {/* Task Popup */}
       {taskOpen && (
         <AddTaskPopup

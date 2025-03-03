@@ -1,5 +1,5 @@
 const User = require("../models/user.model.js");
-const { handleError } = require("../utils/common-functions.js");
+const { handleError, handleResponse } = require("../utils/common-functions.js");
 const msg = require("../utils/message-constant.json");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
@@ -9,35 +9,47 @@ const bcrypt = require("bcryptjs");
 const registerUser = async (req, res) => {
   try {
     const { email, name, password } = req.body;
-    if (!email || !name || !password)
-      return res.status(400).json({ message: msg.allFieldsRequired });
-    const isExist = await User.findOne({ email: email });
-    if (isExist)
-      return res.status(400).json({ message: msg.userAlreadyExists });
-    if (password.length < 6)
-      // Updated password length validation
-      return res.status(401).json({ message: msg.passwordTooShort });
+
+    // Check if required fields are provided
+    if (!email || !name || !password) {
+      return handleResponse(res, 400, msg.user.allFieldsRequired);
+    }
+
+    // Check if the user already exists
+    const isExist = await User.findOne({ email });
+    if (isExist) {
+      return handleResponse(res, 400, msg.user.userAlreadyExists);
+    }
+
+    // Check if the password is too short
+    if (password.length < 6) {
+      return handleResponse(res, 401, msg.user.passwordTooShort);
+    }
+
+    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create a new user
     const newUser = new User({ email, name, password: hashedPassword });
+
+    // Generate a JWT token
     const token = jwt.sign(
       { id: newUser._id, email: newUser.email },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
+
+    // Save the new user to the database
     await newUser.save();
-    res.status(200).json({
-      message: msg.registrationSuccess,
-      data: newUser.toObject({
-        versionKey: false,
-        transform: (_, ret) => {
-          delete ret.password;
-          return ret;
-        },
-      }),
+
+    // Return success response with the new user and token
+    return handleResponse(res, 200, msg.authentication.registerationsSuccess, {
+      user: { ...newUser.toObject(), password: undefined },
       token,
     });
   } catch (error) {
-    handleError(res, msg.errorCreatingUser, error);
+    // Handle error and return error response
+    handleError(res, msg.authentication.registerationsFailure, error);
   }
 };
 
@@ -45,75 +57,93 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ message: msg.allFieldsRequired });
-    const user = await User.findOne({ email: email });
-    if (!user) return res.status(401).json({ message: msg.userNotExists });
+
+    // Check if required fields are provided
+    if (!email || !password) {
+      return handleResponse(res, 400, msg.allFieldsRequired);
+    }
+
+    // Find the user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return handleResponse(res, 401, msg.user.userNotExists);
+    }
+
+    // Compare the provided password with the hashed password
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(401).json({ message: msg.invalidCredentials });
+    if (!isMatch) {
+      return handleResponse(res, 401, msg.authentication.invalidCredentials);
+    }
+
+    // Generate a JWT token
     const token = jwt.sign(
       { id: user._id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
-    res.status(200).json({
-      message: msg.loginSuccess, // Fixed duplicate message key
-      data: user.toObject({
-        versionKey: false,
-        transform: (_, ret) => {
-          delete ret.password;
-          return ret;
-        },
-      }),
+
+    // Return success response with the user and token
+    return handleResponse(res, 200, msg.authentication.loginSuccess, {
+      user: { ...user.toObject(), password: undefined },
       token,
     });
   } catch (error) {
-    handleError(res, msg.loginFailure, error);
+    // Handle error and return error response
+    handleError(res, msg.authentication.loginFailure, error);
   }
 };
 
 // Logout user
 const logOutUser = (req, res) => {
   req.session.destroy((err) => {
-    if (err)
-      return res.status(500).json({ message: msg.logoutFailure, error: err });
-
+    if (err) {
+      return handleError(res, msg.authentication.logoutFailure, err);
+    }
     res.clearCookie("connect.sid");
-    res.status(200).json({ message: msg.logoutSuccess });
+    return handleResponse(res, 200, msg.authentication.logoutSuccess);
   });
 };
 
+// Get user by ID
 const getUserById = async (req, res) => {
-  const id = req.params.id;
   try {
-    const user = await User.findById(id).select("-password");
-    if (!user) return res.status(404).json({ message: msg.userNotFound });
-    res.status(200).json(user);
+    const userId = req.params.id;
+
+    // Find the user by ID and exclude the password field
+    const user = await User.findById(userId).select("-password");
+    if (!user) {
+      return handleResponse(res, 404, msg.user.userNotFound);
+    }
+
+    // Return success response with the user data
+    return handleResponse(res, 200, msg.user.userFetched, user);
   } catch (error) {
-    handleError(res, msg.errorFetchingUser, error);
+    // Handle error and return error response
+    handleError(res, msg.user.errorFetchingUser, error);
   }
 };
 
+// Search users by name
 const getUserBySearch = async (req, res) => {
   try {
     const { term } = req.params;
 
+    // Check if the search term is provided
     if (!term) {
-      return res.status(400).json({ message: "Search query is required" });
-      // Added return statement
+      return handleResponse(res, 400, "Search query is required");
     }
 
+    // Find users whose name matches the search term (case-insensitive)
     const users = await User.find({ name: { $regex: term, $options: "i" } });
-
     if (!users.length) {
-      return res.status(404).json({ message: "No users found" });
-      // Added return statement
+      return handleResponse(res, 404, msg.user.userNotFound);
     }
 
-    res.status(200).json(users);
+    // Return success response with the list of users
+    return handleResponse(res, 200, msg.user.userFetched, users);
   } catch (error) {
-    handleError(res, "Error fetching user!", error);
+    // Handle error and return error response
+    handleError(res, msg.user.errorFetchingUser, error);
   }
 };
 

@@ -8,11 +8,9 @@ import { RiEqualizerLine } from "react-icons/ri";
 import { IoIosArrowDown } from "react-icons/io";
 import ProjectDetail from "./ProjectDetail";
 import ProjectList from "./ProjectList";
-import ProjectOverview from "./ProjectOverview";
 import { TbLayoutDashboard } from "react-icons/tb";
 import AddStatusPopup from "../component/AddStatusPopup";
 const dashboardTop1 = [
-  // { id: 1, icon: <RiAppsLine size={18} />, label: "Overview" },
   { id: 1, icon: <IoIosList size={18} />, label: "List" },
   { id: 2, icon: <TbLayoutDashboard size={18} />, label: "Board" },
 ];
@@ -28,8 +26,6 @@ const Dashboard = () => {
   const [openStatusPopup, setOpenStatusPopup] = useState(false);
   const renderComponent = () => {
     switch (selectedSubBoard) {
-      // case 1:
-      //   return <ProjectOverview />;
       case 1:
         return <ProjectList />;
       default:
@@ -83,8 +79,6 @@ const Dashboard = () => {
             className="text-white font-inter bg-violet-700 cursor-pointer text-sm px-3 py-1.5 rounded flex gap-2 items-center justify-center transition hover:bg-violet-600"
           >
             Add Status
-            {/* <span className="bg-violet-500 h-4 w-[1px]"></span>
-            <IoIosArrowDown size={10} /> */}
           </button>
         </div>
       </div>

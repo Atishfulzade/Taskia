@@ -10,10 +10,7 @@ mongoose.set("strictQuery", true);
 
 async function connect() {
   try {
-    await mongoose.connect(url, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await mongoose.connect(url);
     console.log("✅ MongoDB connection successful");
 
     // Handle MongoDB connection events

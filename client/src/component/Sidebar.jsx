@@ -22,28 +22,43 @@ const Sidebar = () => {
   const selectedProject = useSelector((state) => state.project.currentProject);
   const assignTask = useSelector((state) => state.assignTask?.tasks || []);
 
+  // Set the first project as the current project on mount
+  useEffect(() => {
+    if (projects.length > 0 && !selectedProject) {
+      dispatch(setCurrentProject(projects[0]));
+    }
+  }, [projects, selectedProject, dispatch]);
+
   // Function to fetch assigned projects
   const handleAssignTask = async () => {
     try {
-      // Extract unique project IDs from assigned tasks
+      if (!assignTask.length) return; // Early return if no tasks
+
+      // Extract unique project IDs
       const projectIds = [
-        ...new Set(
-          assignTask.flatMap((taskGroup) =>
-            taskGroup.tasks.map((task) => task.projectId)
-          )
-        ),
+        ...new Set(assignTask.flatMap((task) => task.projectId)),
       ];
 
-      if (projectIds.length === 0) return; // Avoid unnecessary API calls
+      console.log("Extracted Project IDs:", projectIds); // Debugging
+
+      if (!projectIds.length) return; // Avoid unnecessary API calls
 
       // Fetch all projects in parallel
       const responses = await Promise.all(
         projectIds.map(async (projectId) => {
-          return requestServer(`project/get/${projectId}`); // No .json()
+          try {
+            const response = await requestServer(`project/get/${projectId}`);
+            console.log("Fetched project:", response); // Debugging
+            return response;
+          } catch (error) {
+            console.error(`Error fetching project ${projectId}:`, error);
+            return null;
+          }
         })
       );
 
-      setAssignProjects(responses); // Assign directly since requestServer() returns JSON
+      // Filter out failed requests (null values)
+      setAssignProjects(responses.filter(Boolean));
     } catch (error) {
       console.error("Error fetching assigned projects:", error);
     }
@@ -51,11 +66,13 @@ const Sidebar = () => {
 
   // Fetch assigned projects whenever `assignTask` changes
   useEffect(() => {
+    console.log("Assign Task:", assignTask); // Debugging
     handleAssignTask();
   }, [assignTask]);
 
   return (
     <div className="w-72 h-screen bg-white border-l border dark:bg-slate-700 border-slate-200">
+      {/* Add Project Popup */}
       {addProject && <AddProjectPopup close={setAddProject} />}
 
       {/* Sidebar Header */}
@@ -99,11 +116,7 @@ const Sidebar = () => {
                     ? "bg-violet-700 text-white dark:bg-slate-900"
                     : "bg-white text-slate-900 dark:text-slate-300"
                 } 
-                dark:bg-slate-700 hover:${
-                  isActive
-                    ? "bg-violet-600 dark:text-slate-200 dark:bg-slate-500"
-                    : "bg-slate-100 dark:text-slate-800 dark:bg-slate-500"
-                }`}
+                hover:bg-slate-100 dark:hover:bg-slate-500`}
             >
               <div className="flex gap-2 items-center">
                 <IoIosList
@@ -121,30 +134,26 @@ const Sidebar = () => {
       </div>
 
       {/* Assigned Projects Section */}
-      {assignProjects?.length > 0 && (
-        <div className="flex flex-col mt-10">
+      {assignProjects.length > 0 && (
+        <div className="flex flex-col mt-10" key={Math.random()}>
           <h4 className="text-slate-700 dark:text-slate-200 px-5">Invites</h4>
-          {assignProjects?.map((project) => {
-            const isActive = selectedProject?._id === project.project._id;
+          {assignProjects.map((project) => {
+            const isActive = selectedProject?._id === project.data._id;
 
             return (
               <div
-                key={project.project._id}
+                key={project.data._id}
                 onClick={() => {
-                  dispatch(setCurrentProject(project.project));
-                  navigate(`/dashboard/${project.project._id}`);
+                  dispatch(setCurrentProject(project.data));
+                  navigate(`/dashboard/${project.data._id}`);
                 }}
                 className={`py-2 px-5 flex items-center justify-between cursor-pointer border-slate-200 
                   ${
                     isActive
-                      ? "bg-violet-700 text-white dark:bg-slate-900"
+                      ? "bg-violet-700 hover:bg-violet-800 text-white dark:bg-slate-900"
                       : "bg-white text-slate-900 dark:text-slate-300"
                   } 
-                  dark:bg-slate-700 hover:${
-                    isActive
-                      ? "bg-violet-600 dark:text-slate-200 dark:bg-slate-500"
-                      : "bg-slate-100 dark:text-slate-800 dark:bg-slate-500"
-                  }`}
+                  `}
               >
                 <div className="flex gap-2 items-center">
                   <IoIosList
@@ -152,7 +161,7 @@ const Sidebar = () => {
                     className={isActive ? "text-slate-200" : "text-slate-500"}
                   />
                   <h4 className="font-inter text-[15px]">
-                    {project.project.title}
+                    {project.data.title}
                   </h4>
                 </div>
                 <PiDotsThreeVerticalBold

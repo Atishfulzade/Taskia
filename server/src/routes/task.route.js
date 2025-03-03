@@ -25,6 +25,6 @@ router.post("/delete/:id", verifyUser, deleteTask);
 router.post("/assign", verifyUser, getTasksForUser);
 
 //update tasks assigned to a user
-router.post("/update", verifyUser, updateTask);
+// router.post("/update", verifyUser, updateTask);
 
 module.exports = router;

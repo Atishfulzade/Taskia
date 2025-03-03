@@ -1,28 +1,47 @@
 const Notification = require("../models/Notification");
-const { handleError } = require("../utils/common-functions");
+const { handleError, handleResponse } = require("../utils/common-functions");
 
+// Get all unread notifications for the logged-in user
 const getNotifications = async (req, res) => {
   try {
+    const userId = req.user.id;
+
+    // Fetch unread notifications for the user
     const notifications = await Notification.find({
-      userId: req.user.id,
+      userId,
       isRead: false,
     });
-    res.status(200).json(notifications);
+
+    // Return success response with the list of notifications
+    return handleResponse(
+      res,
+      200,
+      "Notifications fetched successfully",
+      notifications
+    );
   } catch (error) {
+    // Handle error and return error response
     handleError(res, "Error fetching notifications", error);
   }
 };
 
+// Delete a notification by ID
 const deleteNotifications = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Find and delete the notification
     const notification = await Notification.findByIdAndDelete(id);
+
+    // If notification not found, return error
     if (!notification) {
-      return res.status(404).json({ message: "Notification not found" });
+      return handleResponse(res, 404, "Notification not found");
     }
 
-    res.status(200).json({ message: "Notification deleted successfully" });
+    // Return success response for notification deletion
+    return handleResponse(res, 200, "Notification deleted successfully");
   } catch (error) {
+    // Handle error and return error response
     handleError(res, "Error deleting notification", error);
   }
 };

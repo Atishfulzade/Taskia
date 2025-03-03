@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import requestServer from "../utils/requestServer";
+import { useSelector } from "react-redux";
 
 // Debounce helper function
 const debounce = (func, delay) => {
@@ -15,7 +16,7 @@ const SearchableSelect = ({ onSelectUser }) => {
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-
+  const userId = useSelector((state) => state.user.user?._id);
   // Fetch users from API based on search term
   useEffect(() => {
     const fetchUsers = async () => {
@@ -23,7 +24,7 @@ const SearchableSelect = ({ onSelectUser }) => {
         if (searchTerm.trim()) {
           setIsLoading(true);
           const res = await requestServer(`user/search/${searchTerm}`);
-          setUsers(res);
+          setUsers(res.data.filter((user) => user._id !== userId));
           setIsLoading(false);
         } else {
           setUsers([]); // Clear results if search term is empty
@@ -86,7 +87,7 @@ const SearchableSelect = ({ onSelectUser }) => {
           ) : users.length > 0 ? (
             users.map((user) => (
               <div
-                key={user.id}
+                key={user._id}
                 onClick={() => handleSelectUser(user)}
                 style={{
                   padding: "8px",
@@ -113,7 +114,7 @@ const SearchableSelect = ({ onSelectUser }) => {
 
       {/* Selected User */}
       {selectedUser && (
-        <div style={{ marginTop: "10px", fontSize: "14px" }}>
+        <div style={{ marginTop: "10px", fontSize: "10px" }}>
           {selectedUser.name}
         </div>
       )}

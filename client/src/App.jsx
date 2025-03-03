@@ -9,6 +9,8 @@ import requestServer from "./utils/requestServer.js";
 import Loader from "./component/Loader.jsx";
 import { login, logout } from "./store/userSlice.js";
 import { addAssignTask } from "./store/assignTaskSlice.js";
+import { showToast } from "./utils/showToast.js";
+
 // Lazy load the pages
 const Welcome = lazy(() => import("./pages/Welcome.jsx"));
 const Authentication = lazy(() => import("./pages/Authentication"));
@@ -22,31 +24,49 @@ function App() {
   const userId = useSelector((state) => state.user.user?._id); // Get userId from Redux
   const [socket, setSocket] = useState(null);
   const navigate = useNavigate();
+  const token = localStorage.getItem("token");
 
   // Validate User on App Load
   useEffect(() => {
     const validateUser = async () => {
       try {
+        // Validate user token
         const res = await requestServer("user/validate");
-        dispatch(login(res.data));
-        localStorage.setItem("user", JSON.stringify(res.data));
+        console.log("validateUser", res);
 
-        const projects = await requestServer("project/all");
-        const assignTask = await requestServer("task/assign");
+        if (res.message) {
+          // Update Redux store with user data
+          dispatch(login(res.data.user));
+          localStorage.setItem("token", res.data.token);
+          localStorage.setItem("user", JSON.stringify(res.data.user));
 
-        dispatch(addAssignTask(assignTask));
-        dispatch(setProjects(projects.data));
-        dispatch(setCurrentProject(projects.data[0]));
+          // Fetch projects and assigned tasks
+          const projects = await requestServer("project/all");
+          const assignTask = await requestServer("task/assign");
+
+          // Update Redux store with projects and assigned tasks
+          dispatch(addAssignTask(assignTask.data));
+          dispatch(setProjects(projects.data));
+          navigate("/dashboard");
+        }
+        // Set the current project if projects exist
+        if (projects.data.length > 0) {
+          dispatch(setCurrentProject(projects.data[0]));
+        } else {
+          console.log(projects.message);
+        }
       } catch (error) {
+        // Handle token validation failure
+        console.error("Token invalid, redirecting to login...");
         dispatch(logout());
-        console.log("Token invalid, redirecting to login...");
         localStorage.removeItem("token");
+        localStorage.removeItem("user");
         navigate("/authenticate");
       }
     };
 
-    validateUser();
-  }, [dispatch, navigate]); // Added dispatch and navigate as dependencies
+    isAuthenticated || (token && validateUser());
+  }, []);
 
   // Connect to the Socket.IO server
   useEffect(() => {
@@ -56,6 +76,7 @@ function App() {
         reconnection: true,
       });
 
+      // Join the user's room
       newSocket.emit("joinUserRoom", userId);
       console.log("Socket connected for user:", userId);
 
@@ -64,28 +85,21 @@ function App() {
         console.log("New task assigned:", data);
 
         // Show toast notification
-        toast.success(`New Task Assigned: ${data.title}`, {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          theme: "light",
-        });
+        showToast(data.title, "info");
 
-        // You can also dispatch an action to update Redux store if needed
+        // Update Redux store with the new assigned task
         dispatch(addAssignTask(data));
       });
 
       setSocket(newSocket);
 
+      // Cleanup function to disconnect the socket
       return () => {
         newSocket.disconnect();
         console.log("Socket disconnected");
       };
     }
-  }, [isAuthenticated, userId, dispatch]);
+  }, [isAuthenticated, userId]);
 
   return (
     <>

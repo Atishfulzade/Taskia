@@ -1,25 +1,25 @@
-const handleError = require("../utils/common-functions.js")?.handleError;
+const mongoose = require("mongoose");
+const { handleError, handleResponse } = require("../utils/common-functions.js");
 const Task = require("../models/task.model.js");
 const msg = require("../utils/message-constant.json");
-const io = require("socket.io");
-const addTask = async (req, res) => {
-  console.log(req.body);
 
+// Add a new task
+const addTask = async (req, res) => {
   try {
     const { title, projectId, status, assignedTo, ...others } = req.body;
 
-    // Check if the required fields are missing
-    if (!title || !projectId || !status)
-      return res.status(400).json({ message: msg.allFieldsRequired });
-
-    // Check if the task already exists by title
-    const isAlreadyExist = await Task.findOne({ title });
-
-    if (isAlreadyExist) {
-      return res.status(400).json({ message: msg.titleAlreadyExists });
+    // Check if required fields are provided
+    if (!title || !projectId || !status) {
+      return handleResponse(res, 400, msg.task.allFieldsRequired);
     }
 
-    // Create a new task instance with the provided data
+    // Check if a task with the same title already exists
+    const isAlreadyExist = await Task.findOne({ title });
+    if (isAlreadyExist) {
+      return handleResponse(res, 400, msg.task.taskTitleAlreadyExists);
+    }
+
+    // Create a new task
     const newTask = new Task({
       title,
       projectId,
@@ -27,148 +27,188 @@ const addTask = async (req, res) => {
       status,
       ...others,
     });
-
-    // Save the task to the database
     await newTask.save();
 
-    // Emit a Socket.IO event if the task is assigned to someone
-    if (assignedTo && typeof assignedTo === "string") {
+    // Notify the assigned user via WebSocket (if applicable)
+    if (assignedTo) {
       const io = req.app.get("io");
-      console.log("Socket.IO instance:", io); // Debugging
-
       io.to(assignedTo).emit("newTaskAssigned", {
-        message: `A new task "${title}" has been assigned to you.`,
+        message: `A new task "${newTask.title}" has been assigned to you.`,
         task: newTask,
       });
     }
 
-    // Send a response indicating success
-    res.status(200).json({
-      message: msg.taskCreatedSuccessfully,
-      data: newTask,
-    });
+    // Return success response with the new task
+    return handleResponse(res, 200, msg.task.taskCreatedSuccessfully, newTask);
   } catch (error) {
-    // Handle errors that might occur during task creation
-    handleError(res, msg.errorCreatingTask, error);
+    // Handle error and return error response
+    handleError(res, msg.task.errorCreatingTask, error);
   }
 };
 
-// Update a Task
+// Update an existing task
 const updateTask = async (req, res) => {
-  const { assignedTo, title } = req.body;
-
   try {
-    const { taskId } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(taskId)) {
-      return res.status(400).json({ message: "Invalid task ID" });
+    const taskId = req.params.id;
+    // Check if taskId is provided
+    if (!taskId) {
+      return handleResponse(res, 400, msg.task.invalidTaskId);
+    }
+    console.log(taskId);
+
+    // Check if required fields are provided
+    const { assignedTo, title } = req.body;
+    if (!title) {
+      return handleResponse(res, 400, msg.task.allFieldsRequired);
     }
 
-    const newTask = await Task.findOneAndUpdate({ _id: taskId }, req.body, {
-      new: true,
+    // Validate taskId format
+    if (!mongoose.Types.ObjectId.isValid(taskId)) {
+      return handleResponse(res, 400, msg.task.invalidTaskId);
+    }
+
+    // Find and update the task
+    const updatedTask = await Task.findByIdAndUpdate(taskId, req.body, {
+      new: true, // Return the updated task
     });
 
-    if (!newTask) {
-      return res.status(404).json({ message: msg.taskNotFound });
+    // If task not found, return error
+    if (!updatedTask) {
+      return handleResponse(res, 404, msg.task.taskNotFound);
     }
 
-    // Emit a Socket.IO event if the task is assigned to someone
+    // Notify the assigned user via WebSocket (if applicable)
     if (assignedTo && typeof assignedTo === "string") {
       const io = req.app.get("io");
       io.to(assignedTo).emit("newTaskAssigned", {
         message: `A new task "${title}" has been assigned to you.`,
-        task: newTask,
+        task: updatedTask,
       });
     }
 
-    res
-      .status(200)
-      .json({ message: msg.taskUpdatedSuccessfully, Task: newTask });
+    // Return success response with the updated task
+    return handleResponse(
+      res,
+      200,
+      msg.task.taskUpdatedSuccessfully,
+      updatedTask
+    );
   } catch (error) {
-    handleError(res, msg.internalServerError, error);
+    // Handle error and return error response
+    handleError(res, msg.task.errorUpdatingTask, error);
   }
 };
 
-// Get all Tasks
+// Get all tasks for a project
 const getAllTask = async (req, res) => {
   const projectId = req.params.id;
 
-  try {
-    const task = await Task.find({ projectId: projectId });
+  // Check if projectId is provided
+  if (!projectId) {
+    return handleResponse(res, 400, msg.project.invalidProjectId);
+  }
 
-    if (!task) {
-      return res.status(404).json({ message: msg.taskNotFound });
+  try {
+    // Fetch all tasks for the given projectId
+    const tasks = await Task.find({ projectId });
+
+    // If no tasks found, return error
+    if (!tasks.length) {
+      return handleResponse(res, 404, msg.task.taskNotFound);
     }
 
-    res.status(200).json({ message: msg.taskFetchedSuccessfully, data: task });
+    // Return success response with the list of tasks
+    return handleResponse(res, 200, msg.task.taskFetchedSuccessfully, tasks);
   } catch (error) {
-    handleError(res, msg.errorFetchingTask, error);
+    // Handle error and return error response
+    handleError(res, msg.task.errorFetchingTask, error);
   }
 };
 
-// Delete a Task by ID
+// Delete a task
 const deleteTask = async (req, res) => {
   try {
-    const TaskId = req.params.id;
+    const taskId = req.params.id;
 
-    const task = await Task.findByIdAndDelete(TaskId);
+    // Find and delete the task
+    const task = await Task.findByIdAndDelete(taskId);
 
+    // If task not found, return error
     if (!task) {
-      return res.status(404).json({ message: msg.taskNotFound });
+      return handleResponse(res, 404, msg.task.taskNotFound);
     }
 
-    res.status(200).json({ message: msg.taskDeletedSuccessfully });
+    // Return success response for task deletion
+    return handleResponse(res, 200, msg.task.taskDeletedSuccessfully);
   } catch (error) {
-    res.status(500).json({ message: msg.internalServerError, error });
+    // Handle error and return error response
+    handleError(res, msg.task.errorDeletingTask, error);
   }
 };
 
+// Get tasks assigned to a specific user
 const getTasksForUser = async (req, res) => {
   try {
-    console.log("User ID:", req.user?.id); // Debugging Step 1: Check User ID
+    const userId = req.user?.id;
 
-    if (!req.user || !req.user.id) {
-      return res
-        .status(400)
-        .json({ message: "User ID is missing in request." });
+    // Check if userId is provided
+    if (!userId) {
+      return handleResponse(res, 400, msg.user.userNotExists);
     }
 
-    const tasks = await Task.find({ assignedTo: req.user.id });
+    // Fetch tasks assigned to the user
+    const tasks = await Task.find({ assignedTo: userId });
 
-    console.log("Tasks Found:", tasks); // Debugging Step 2: Log Retrieved Tasks
-
-    return res.status(200).json({ success: true, tasks });
+    // Return success response with the list of tasks
+    return handleResponse(res, 200, msg.task.taskFetchedSuccessfully, tasks);
   } catch (error) {
-    console.error("Error fetching tasks:", error); // Debugging Step 3: Log Errors
-    return res.status(500).json({ message: "Failed to fetch tasks", error });
+    // Handle error and return error response
+    handleError(res, msg.task.errorFetchingTask, error);
   }
 };
 
+// Update task status
 const updateTaskStatus = async (req, res) => {
   try {
     const { taskId } = req.params;
     const { status } = req.body;
+    console.log(req.body);
 
-    const task = await Task.findById(taskId);
-    if (!task) return res.status(404).json({ message: msg.taskNotFound });
-
-    if (task.assignedTo.toString() !== req.user.id) {
-      return res.status(403).json({ message: msg.unauthorized });
+    // Check if required fields are provided
+    if (!taskId || !status) {
+      return handleResponse(res, 400, msg.task.allFieldsRequired);
     }
 
+    // Find the task
+    const task = await Task.findById(taskId);
+
+    // If task not found, return error
+    if (!task) {
+      return handleResponse(res, 404, msg.task.taskNotFound);
+    }
+
+    // Check if the user is authorized to update the task status
+    if (task.assignedTo.toString() !== req.user.id) {
+      return handleResponse(res, 403, msg.general.notAuthorized);
+    }
+
+    // Update the task status
     task.status = status;
     await task.save();
 
-    res.status(200).json({ message: msg.taskUpdated, task });
+    // Return success response with the updated task
+    return handleResponse(res, 200, msg.task.taskUpdatedSuccessfully, task);
   } catch (error) {
-    handleError(res, msg.taskUpdateFailed, error);
+    // Handle error and return error response
+    handleError(res, msg.task.errorUpdatingTask, error);
   }
 };
 
 module.exports = {
   addTask,
-  deleteTask,
   updateTask,
   getAllTask,
+  deleteTask,
   getTasksForUser,
   updateTaskStatus,
 };

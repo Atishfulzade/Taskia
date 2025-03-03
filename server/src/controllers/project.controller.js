@@ -1,6 +1,8 @@
 const Project = require("../models/project.model.js");
 const msg = require("../utils/message-constant.json");
-const handleError = require("../utils/common-functions").handleError;
+const { handleError, handleResponse } = require("../utils/common-functions.js");
+const Task = require("../models/task.model.js");
+const Status = require("../models/status.model.js");
 
 // Add a new project
 const addProject = async (req, res) => {
@@ -8,12 +10,16 @@ const addProject = async (req, res) => {
     const { title, description } = req.body;
     const userId = req.user.id; // Assuming userId is set by authentication middleware
 
-    if (!title) return res.status(400).json({ message: msg.titleIsRequired });
+    // Check if title is provided
+    if (!title) {
+      return handleResponse(res, 400, msg.project.allFieldsRequired);
+    }
 
+    // Check if the project with the same title already exists
     const isAlreadyExist = await Project.findOne({ title });
 
     if (isAlreadyExist) {
-      return res.status(400).json({ message: msg.titleAlreadyExists });
+      return handleResponse(res, 400, msg.project.projectTitleAlreadyExists);
     }
 
     // Create new project with userId
@@ -23,33 +29,46 @@ const addProject = async (req, res) => {
     // Fetch updated list of projects associated with the user
     const projects = await Project.find({ userId });
 
-    res.status(200).json({
-      message: msg.projectCreatedSuccessfully,
+    // Return success response with the new project and updated list of projects
+    return handleResponse(res, 200, msg.project.projectCreatedSuccessfully, {
       newProject,
       projects,
     });
   } catch (error) {
-    handleError(res, msg.errorCreatingProject, error);
+    // Handle error and return error response
+    handleError(res, msg.project.errorCreatingProject, error);
   }
 };
 
-//update project
+// Update a project
 const updateProject = async (req, res) => {
   try {
     const projectId = req.params.id;
 
-    const newProject = await Project.findOneAndUpdate(
+    // Find and update the project
+    const updatedProject = await Project.findOneAndUpdate(
       { _id: projectId },
       req.body,
       {
-        new: true,
+        new: true, // Return the updated project
       }
     );
-    res
-      .status(200)
-      .json({ message: msg.projectUpdatedSuccessfully, project: newProject });
+
+    // If the project doesn't exist, return error
+    if (!updatedProject) {
+      return handleResponse(res, 404, msg.project.errorUpdatingProject);
+    }
+
+    // Return success response with the updated project
+    return handleResponse(
+      res,
+      200,
+      msg.project.projectFetchedSuccessfully,
+      updatedProject
+    );
   } catch (error) {
-    handleError(res, msg.errorUpdatingProject, error);
+    // Handle error and return error response
+    handleError(res, msg.project.errorUpdatingProject, error);
   }
 };
 
@@ -57,35 +76,54 @@ const updateProject = async (req, res) => {
 const getProjectById = async (req, res) => {
   try {
     const projectId = req.params.id;
-    const project = await Project.findById(projectId);
-
-    if (!project) {
-      return res.status(404).json({ message: msg.projectNotFound });
+    if (!projectId) {
+      return handleResponse(res, 400, msg.project.invalidProjectId);
     }
 
-    res.status(200).json({ message: msg.projectFetchedSuccessfully, project });
+    // Find the project by its ID
+    const project = await Project.findById(projectId);
+
+    // If project not found, return error
+    if (!project) {
+      return handleResponse(res, 404, msg.project.projectNotFound);
+    }
+
+    // Return success response with the project data
+    return handleResponse(
+      res,
+      200,
+      msg.project.projectFetchedSuccessfully,
+      project
+    );
   } catch (error) {
-    handleError(res, msg.errorFetchingProject, error);
+    // Handle error and return error response
+    handleError(res, msg.project.errorFetchingProject, error);
   }
 };
 
-// Get all projects
+// Get all projects for a user
 const getAllProjects = async (req, res) => {
-  const id = req.user.id;
-  try {
-    const project = await Project.find({ userId: id });
+  const userId = req.user.id;
 
-    if (project.length === 0) {
-      // Check for an empty array
-      return res.status(404).json({ message: msg.projectNotFound });
+  try {
+    // Find all projects associated with the user
+    const projects = await Project.find({ userId });
+
+    // If no projects found, return error
+    if (projects.length === 0) {
+      return handleResponse(res, 404, msg.project.projectNotFound);
     }
 
-    res
-      .status(200)
-      .json({ message: msg.projectFetchedSuccessfully, data: project });
-    console.log(project);
+    // Return success response with the list of projects
+    return handleResponse(
+      res,
+      200,
+      msg.project.projectFetchedSuccessfully,
+      projects
+    );
   } catch (error) {
-    handleError(res, msg.errorFetchingProject, error);
+    // Handle error and return error response
+    handleError(res, msg.project.errorFetchingProject, error);
   }
 };
 
@@ -93,11 +131,14 @@ const getAllProjects = async (req, res) => {
 const deleteProject = async (req, res) => {
   try {
     const projectId = req.params.id;
+    if (!projectId) {
+      return handleResponse(res, 400, msg.project.invalidProjectId);
+    }
 
-    // Find the project first
+    // Find the project to ensure it exists
     const project = await Project.findById(projectId);
     if (!project) {
-      return res.status(404).json({ message: msg.projectNotFound });
+      return handleResponse(res, 404, msg.project.projectNotFound);
     }
 
     // Delete all tasks associated with statuses under this project
@@ -109,9 +150,11 @@ const deleteProject = async (req, res) => {
     // Now delete the project
     await Project.findByIdAndDelete(projectId);
 
-    res.status(200).json({ message: msg.projectDeletedSuccessfully });
+    // Return success response for project deletion
+    return handleResponse(res, 200, msg.project.projectDeletedSuccessfully);
   } catch (error) {
-    res.status(500).json({ message: msg.internalServerError, error });
+    // Handle error and return error response
+    handleError(res, msg.project.errorDeletingProject, error);
   }
 };
 

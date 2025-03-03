@@ -1,59 +1,101 @@
 const Status = require("../models/status.model.js");
 const Task = require("../models/task.model.js");
-const handleError = require("../utils/common-functions.js")?.handleError;
+const { handleError, handleResponse } = require("../utils/common-functions.js");
 const msg = require("../utils/message-constant.json");
+
 // Add a new status
 const addStatus = async (req, res) => {
   try {
     const { title, projectId, color } = req.body;
 
-    if (!title) return res.status(400).json({ message: msg.titleIsRequired });
-
-    const isAlreadyExist = await Status.findOne({ title, projectId });
-
-    if (isAlreadyExist) {
-      return res.status(400).json({ message: msg.titleAlreadyExists });
+    // Check if title is provided
+    if (!title) {
+      return handleResponse(res, 400, msg.status.statusTitleRequired);
     }
 
+    // Check if the status with the same title already exists for the project
+    const isAlreadyExist = await Status.findOne({ title, projectId });
+    if (isAlreadyExist) {
+      return handleResponse(res, 400, msg.status.statusNameAlreadyExists);
+    }
+
+    // Create a new status and save it to the database
     const newStatus = new Status({ title, projectId, color });
     await newStatus.save();
 
-    res
-      .status(200)
-      .json({ message: msg.statusCreatedSuccessfully, data: newStatus });
+    // Return the success response with the new status
+    return handleResponse(
+      res,
+      200,
+      msg.status.statusCreatedSuccessfully,
+      newStatus
+    );
   } catch (error) {
-    handleError(res, msg.errorCreatingStatus, error);
+    // Handle error and return error response
+    handleError(res, msg.status.errorCreatingStatus, error);
   }
 };
 
-// Get all projects
+// Get all statuses for a specific project
 const getAllStatus = async (req, res) => {
   try {
     const projectId = req.params.id;
-
-    const statuses = await Status.find({ projectId });
-
-    if (!statuses.length) {
-      return res.status(404).json({ message: msg.statusNotFound });
+    if (!projectId) {
+      return handleResponse(res, 400, msg.project.invalidProjectId);
     }
 
-    res
-      .status(200)
-      .json({ message: msg.statusUpdatedSuccessfully, data: statuses });
+    // Fetch statuses related to the given projectId
+    const statuses = await Status.find({ projectId });
+
+    // Check if there are no statuses found
+    if (!statuses.length) {
+      return handleResponse(res, 404, msg.status.statusNotFound);
+    }
+
+    // Return the success response with all statuses
+    return handleResponse(res, 200, msg.status.statusFetchedSuccess, statuses);
   } catch (error) {
-    handleError(res, msg.errorFetchingStatus, error);
+    // Handle error and return error response
+    handleError(res, msg.status.errorFetchingStatus, error);
   }
 };
 
-// Delete a status by ID
+const getStatusById = async (req, res) => {
+  const statusId = req.params.id;
+
+  // Validate statusId
+  if (!statusId) {
+    return handleResponse(res, 400, msg.status.invalidStatusId);
+  }
+
+  try {
+    // Find the status by ID
+    const status = await Status.findById(statusId);
+
+    // Check if the status exists
+    if (!status) {
+      return handleResponse(res, 404, msg.status.statusNotFound);
+    }
+
+    // Return the status in the response
+    return handleResponse(res, 200, msg.status.statusFetchedSuccess, status);
+  } catch (error) {
+    // Handle any errors that occur during the process
+    handleError(res, msg.status.errorFetchingStatus, error);
+  }
+};
+// Delete a status by its ID
 const deleteStatus = async (req, res) => {
   try {
     const statusId = req.params.id;
+    if (!statusId) {
+      return handleResponse(res, 400, msg.status.invalidStatusId);
+    }
 
     // Find the status to ensure it exists
     const status = await Status.findById(statusId);
     if (!status) {
-      return res.status(404).json({ message: "Status not found" });
+      return handleResponse(res, 404, msg.status.statusNotFound);
     }
 
     // Delete all tasks related to this status
@@ -62,32 +104,42 @@ const deleteStatus = async (req, res) => {
     // Now delete the status
     await Status.findByIdAndDelete(statusId);
 
-    res
-      .status(200)
-      .json({ message: "Status and related tasks deleted successfully" });
+    // Return success response for status and related tasks deletion
+    return handleResponse(res, 200, msg.status.statusDeletedSuccessfully);
   } catch (error) {
-    res.status(500).json({ message: "Internal server error", error });
+    // Handle error and return error response
+    handleError(res, msg.status.errorDeletingStatus, error);
   }
 };
 
-// Update a status by ID
-
+// Update a status by its ID
 const updateStatus = async (req, res) => {
   try {
-    const statusId = req.params.id; // Corrected the variable name
-    const status = await Status.findByIdAndUpdate(statusId, req.body, {
-      new: true,
-    });
-
-    if (!status) {
-      return res.status(404).json({ message: msg.statusNotFound });
+    const statusId = req.params.id;
+    if (!statusId) {
+      return handleResponse(res, 400, msg.status.invalidStatusId);
     }
 
-    res
-      .status(200)
-      .json({ message: msg.statusUpdatedSuccessfully, data: status });
+    // Find the status and update with the new data
+    const status = await Status.findByIdAndUpdate(statusId, req.body, {
+      new: true, // Return the updated status
+    });
+
+    // If status not found, return an error response
+    if (!status) {
+      return handleResponse(res, 404, msg.status.statusNotFound);
+    }
+
+    // Return success response with the updated status
+    return handleResponse(
+      res,
+      200,
+      msg.status.statusUpdatedSuccessfully,
+      status
+    );
   } catch (error) {
-    handleError(res, msg.errorUpdatingStatus, error);
+    // Handle error and return error response
+    handleError(res, msg.status.errorUpdatingStatus, error);
   }
 };
 
@@ -96,4 +148,5 @@ module.exports = {
   updateStatus,
   deleteStatus,
   getAllStatus,
+  getStatusById,
 };

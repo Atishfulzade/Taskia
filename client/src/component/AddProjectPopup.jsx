@@ -11,7 +11,6 @@ import { useNavigate } from "react-router-dom";
 const AddProjectPopup = ({ close }) => {
   const dialogRef = useRef(null);
   const dispatch = useDispatch();
-  // const [isChecked, setIsChecked] = useState(false);
   const userId = useSelector((state) => state.user?.user?.data?._id);
   const navigate = useNavigate();
 
@@ -19,7 +18,6 @@ const AddProjectPopup = ({ close }) => {
     initialValues: {
       title: "",
       description: "",
-      // isPrivate: true,
     },
     validationSchema: Yup.object({
       title: Yup.string().required("Title is required"),
@@ -28,8 +26,10 @@ const AddProjectPopup = ({ close }) => {
     onSubmit: async (values, { resetForm }) => {
       try {
         const res = await requestServer("project/add", { ...values, userId });
-        dispatch(setCurrentProject(res.newProject));
-        dispatch(setProjects(res.projects));
+        dispatch(setCurrentProject(res.data.newProject));
+        dispatch(setProjects(res.data.projects));
+        console.log(res.message);
+
         showToast(res.message, "success");
         resetForm();
         close(false);
@@ -39,10 +39,8 @@ const AddProjectPopup = ({ close }) => {
         if (error.response?.data?.message === "Token not found") {
           showToast("Invalid token! Please login again.", "error");
           localStorage.removeItem("token");
-          localStorage.removeItem("userState");
           dispatch(setCurrentProject(null));
           dispatch(setProjects([]));
-          navigate("/authenticate");
         } else {
           showToast(
             error.response?.data?.message || "Something went wrong",

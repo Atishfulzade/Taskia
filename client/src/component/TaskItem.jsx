@@ -8,41 +8,57 @@ import requestServer from "../utils/requestServer";
 import { useEffect, useState } from "react";
 import React from "react";
 
-const TaskItem = ({ task }) => {
+const TaskItem = ({ task, setEditTaskOpen }) => {
+  // Drag-and-drop functionality
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: task?._id,
   });
+
+  // State for showing subtasks and assigned user
   const [showSubTask, setShowSubTask] = useState(false);
   const [assignedUser, setAssignedUser] = useState("");
 
+  // Fetch assigned user details (Only if task.assignedTo exists)
   useEffect(() => {
     if (task?.assignedTo) {
       requestServer(`user/u/${task.assignedTo}`)
-        .then((user) => {
-          setAssignedUser(user?.name ?? "Unknown");
-        })
-        .catch((error) => {
-          console.error("Error fetching user:", error);
-        });
+        .then((user) => setAssignedUser(user?.data?.name ?? "Unknown"))
+        .catch((error) => console.error("Error fetching user:", error));
     }
   }, [task?.assignedTo]);
 
-  const handlePriority = (priority) => {
-    switch (priority) {
-      case "Medium":
-        return "text-yellow-500";
-      case "High":
-        return "text-red-500";
-      default:
-        return "text-slate-600";
-    }
+  // Get initials of the assigned user
+  const getInitials = (name) =>
+    name
+      ?.split(" ")
+      .map((n) => n[0]?.toUpperCase())
+      .join("") ?? "?";
+
+  // Priority colors mapping
+  const priorityColors = {
+    Medium: "text-yellow-500",
+    High: "text-red-500",
+    Low: "text-slate-600",
   };
+  const handlePriority = (priority) =>
+    priorityColors[priority] || "text-slate-600";
 
   return (
     <div
       ref={setNodeRef}
       {...listeners}
       {...attributes}
+      onMouseDown={(e) => e.stopPropagation()} // Stop drag interference
+      onClick={(e) => {
+        console.log(hi);
+        e.stopPropagation();
+
+        setEditTaskOpen((prev) => ({
+          ...prev,
+          isOpen: !prev.isOpen,
+          task: task,
+        }));
+      }}
       className="border my-1 select-none h-fit border-slate-50 bg-white rounded-lg cursor-grab hover:bg-slate-50"
       style={{
         padding: "10px",
@@ -51,25 +67,28 @@ const TaskItem = ({ task }) => {
           : undefined,
       }}
     >
+      {/* Task Title */}
       <h4 className="text-stone-600 font-inter text-sm font-medium leading-5 line-clamp-2">
         {task?.title}
       </h4>
+
+      {/* Task Details (Assigned User, Due Date, Priority) */}
       <div className="flex mt-3 gap-1.5">
+        {/* Assigned User */}
         <div className="flex cursor-pointer">
           {task?.assignedTo ? (
             <span
               title={assignedUser}
               className="border text-white flex items-center justify-center pt-[2px] bg-violet-600 rounded-full border-slate-300 w-6 h-6 text-[11px]"
             >
-              {assignedUser
-                ?.split(" ")
-                .map((name) => name[0])
-                .join("")}
+              {getInitials(assignedUser)}
             </span>
           ) : (
             <FaRegCircleUser className="border text-slate-700 border-slate-200 p-1 w-6 h-6 rounded" />
           )}
         </div>
+
+        {/* Due Date */}
         <div className="flex border gap-1 cursor-pointer justify-center border-slate-200 p-1 h-6 rounded items-center">
           <FaRegCalendar size={14} className="text-slate-500" />
           {task?.dueDate && (
@@ -78,6 +97,8 @@ const TaskItem = ({ task }) => {
             </p>
           )}
         </div>
+
+        {/* Priority */}
         <div className="flex border cursor-pointer border-slate-200 p-1 h-6 rounded items-center">
           <TbFlag3 size={14} className="text-slate-500" />
           {task?.priority !== "No" && (
@@ -91,20 +112,22 @@ const TaskItem = ({ task }) => {
           )}
         </div>
       </div>
-      {task.subTask.length > 0 && (
+
+      {/* Subtasks */}
+      {Array.isArray(task.subTask) && task.subTask.length > 0 && (
         <div
-          onMouseDown={(e) => {
-            e.stopPropagation();
-            setShowSubTask((prev) => !prev);
-          }}
+          onMouseDown={(e) => e.stopPropagation()} // Prevent drag interference
+          onClick={() => setShowSubTask((prev) => !prev)}
           className="flex cursor-pointer mt-3 gap-1.5 justify-start text-sm items-center"
         >
           <PiGitMergeDuotone className="text-slate-500" />
           <p className="text-slate-600 text-[12px]">
-            {task.subTask.length} subtask
+            {task.subTask.length} subtask{task.subTask.length > 1 ? "s" : ""}
           </p>
         </div>
       )}
+
+      {/* Subtask Details */}
       {showSubTask &&
         task.subTask.map((subtask, i) => (
           <div className="mt-3 ml-5 line-clamp-1" key={subtask._id}>
