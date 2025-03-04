@@ -14,7 +14,7 @@ import TaskItem from "../component/TaskItem";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/Tabs";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "../components/ui/Badge";
 import { Skeleton } from "../components/ui/Skeleton";
 
 // Icons
