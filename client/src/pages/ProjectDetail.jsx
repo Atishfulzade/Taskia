@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useRef } from "react";
 import { DndContext, closestCorners, DragOverlay } from "@dnd-kit/core";
 import { useDispatch, useSelector } from "react-redux";
@@ -13,17 +11,11 @@ import bgColors from "../utils/constant";
 import Column from "../component/Column";
 import AddTaskPopup from "../component/AddTaskPopup";
 import TaskItem from "../component/TaskItem";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
+import { Tabs, TabsList, TabsTrigger } from "../components/ui/Tabs";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Skeleton } from "../components/ui/Skeleton";
 
 // Icons
 import { TbStack2 } from "react-icons/tb";
@@ -31,7 +23,6 @@ import { PiGitMergeDuotone } from "react-icons/pi";
 import { IoFilter, IoSearch } from "react-icons/io5";
 import { RiExpandUpDownLine } from "react-icons/ri";
 import { GoPeople, GoPerson } from "react-icons/go";
-import { LuPlus } from "react-icons/lu";
 import { MdOutlineViewKanban } from "react-icons/md";
 
 const ProjectDetail = () => {
@@ -41,7 +32,7 @@ const ProjectDetail = () => {
   const [loading, setLoading] = useState(false);
   const [activeId, setActiveId] = useState(null);
   const [activeTask, setActiveTask] = useState(null);
-  const [viewMode, setViewMode] = useState("all"); // "all" or "me"
+  const [viewMode, setViewMode] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showSubtasks, setShowSubtasks] = useState(true);
   const [editTaskOpen, setEditTaskOpen] = useState({
