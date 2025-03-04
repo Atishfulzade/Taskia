@@ -30,18 +30,16 @@ export default function Column({
   return (
     <div
       ref={setNodeRef}
-      className={`h-fit w-[17rem] ${
-        status?.color?.secondaryColor || "bg-gray-100"
-      } rounded-lg p-2`}
+      className={`h-fit w-[17rem]  rounded-lg p-2`}
+      style={{ backgroundColor: status.color.secondaryColor }}
     >
       {/* Column Header */}
       <div className="flex justify-between items-center">
         <div className="flex gap-2 items-center text-md text-slate-800 font-medium font-inter">
           {/* Status Icon and Title */}
           <div
-            className={`flex items-center rounded-md gap-1 p-0.5 px-2 ${
-              status?.color?.primaryColor || "bg-gray-200"
-            }`}
+            style={{ backgroundColor: status.color.primaryColor }}
+            className={`flex items-center rounded-md gap-1 p-0.5 px-2 `}
           >
             <FaRegCircle className="text-violet-600" size={14} />
             <h3

@@ -4,7 +4,7 @@ const CircularProgress = ({
   percentage,
   size = 50,
   strokeWidth = 4,
-  color = "blue",
+  color,
   bgColor = "transparent",
   innerPadding = 2,
 }) => {

@@ -1,7 +1,7 @@
 import { Route, Routes, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { Bounce, toast, ToastContainer } from "react-toastify";
-import { useEffect, Suspense, lazy, useState } from "react";
+import { useEffect, Suspense, lazy } from "react";
 import { io } from "socket.io-client";
 
 import { setCurrentProject, setProjects } from "./store/projectSlice.js";
@@ -11,7 +11,7 @@ import { login, logout } from "./store/userSlice.js";
 import { addAssignTask } from "./store/assignTaskSlice.js";
 import { showToast } from "./utils/showToast.js";
 
-// Lazy load the pages
+// Lazy load pages
 const Welcome = lazy(() => import("./pages/Welcome.jsx"));
 const Authentication = lazy(() => import("./pages/Authentication"));
 const Layout = lazy(() => import("./component/Layout"));
@@ -20,44 +20,49 @@ const Error = lazy(() => import("./pages/Error.jsx"));
 
 function App() {
   const dispatch = useDispatch();
-  const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
-  const userId = useSelector((state) => state.user.user?._id); // Get userId from Redux
-  const [socket, setSocket] = useState(null);
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
 
-  // Validate User on App Load
+  const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
+  const user = useSelector((state) => state.user.user);
+  const projects = useSelector((state) => state.project.projects.length);
+  const token = localStorage.getItem("token");
+  const assignedTask = useSelector((state) => state.assignTask.tasks);
+
+  // Validate User & Restore Data
   useEffect(() => {
     const validateUser = async () => {
       try {
-        // Validate user token
-        const res = await requestServer("user/validate");
-        console.log("validateUser", res);
-
-        if (res.message) {
-          // Update Redux store with user data
-          dispatch(login(res.data.user));
-          localStorage.setItem("token", res.data.token);
-          localStorage.setItem("user", JSON.stringify(res.data.user));
-
-          // Fetch projects and assigned tasks
-          const projects = await requestServer("project/all");
-          const assignTask = await requestServer("task/assign");
-
-          // Update Redux store with projects and assigned tasks
-          dispatch(addAssignTask(assignTask.data));
-          dispatch(setProjects(projects.data));
-          navigate("/dashboard");
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          dispatch(login(JSON.parse(storedUser)));
         }
-        // Set the current project if projects exist
-        if (projects.data.length > 0) {
-          dispatch(setCurrentProject(projects.data[0]));
-        } else {
-          console.log(projects.message);
+
+        if (token) {
+          const res = await requestServer("user/validate");
+
+          if (res.message) {
+            dispatch(login(res.data.user));
+            localStorage.setItem("token", res.data.token);
+            localStorage.setItem("user", JSON.stringify(res.data.user));
+          } else {
+            throw new Error("Invalid token");
+          }
+        }
+
+        if (projects === 0) {
+          const projectsRes = await requestServer("project/all");
+          dispatch(setProjects(projectsRes.data || []));
+          if (projectsRes.data?.length) {
+            dispatch(setCurrentProject(projectsRes.data[0]));
+          }
+        }
+
+        if (!assignedTask.length) {
+          const assignTaskRes = await requestServer("task/assign");
+          dispatch(addAssignTask(assignTaskRes.data || []));
         }
       } catch (error) {
-        // Handle token validation failure
-        console.error("Token invalid, redirecting to login...");
+        console.error("Authentication failed, redirecting...");
         dispatch(logout());
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -65,41 +70,38 @@ function App() {
       }
     };
 
-    isAuthenticated || (token && validateUser());
-  }, []);
+    if ((isAuthenticated || token) && !user) {
+      validateUser();
+    }
+  }, [isAuthenticated, token, projects.length, user]);
 
-  // Connect to the Socket.IO server
+  // Connect to WebSocket
   useEffect(() => {
-    if (isAuthenticated && userId) {
-      const newSocket = io(import.meta.env.VITE_SERVER_URL, {
+    if (isAuthenticated && user?._id) {
+      const socket = io(import.meta.env.VITE_SERVER_URL, {
         transports: ["websocket"],
         reconnection: true,
       });
 
-      // Join the user's room
-      newSocket.emit("joinUserRoom", userId);
-      console.log("Socket connected for user:", userId);
+      socket.on("connect", () => console.log("Socket connected:", socket.id));
+      socket.on("connect_error", (error) =>
+        console.error("Socket connection error:", error)
+      );
 
-      // Handle new task assignment notification
-      newSocket.on("newTaskAssigned", (data) => {
-        console.log("New task assigned:", data);
+      socket.emit("joinUserRoom", user._id);
 
-        // Show toast notification
-        showToast(data.title, "info");
-
-        // Update Redux store with the new assigned task
-        dispatch(addAssignTask(data));
+      socket.on("newTaskAssigned", (data) => {
+        if (data?.task?.title) {
+          showToast(data.task.title, "info");
+          dispatch(addAssignTask(data.task));
+        } else {
+          console.error("Invalid task assignment:", data);
+        }
       });
 
-      setSocket(newSocket);
-
-      // Cleanup function to disconnect the socket
-      return () => {
-        newSocket.disconnect();
-        console.log("Socket disconnected");
-      };
+      return () => socket.disconnect();
     }
-  }, [isAuthenticated, userId]);
+  }, [isAuthenticated, user?._id]);
 
   return (
     <>
@@ -107,22 +109,11 @@ function App() {
         position="bottom-right"
         autoClose={3000}
         hideProgressBar
-        newestOnTop={false}
         closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
         pauseOnHover
-        theme="light"
         transition={Bounce}
       />
-      <Suspense
-        fallback={
-          <div className="flex justify-center items-center h-full bg-slate-100/90">
-            <Loader />
-          </div>
-        }
-      >
+      <Suspense fallback={<Loader />}>
         <Routes>
           <Route path="/" element={<Welcome />} />
           <Route path="authenticate" element={<Authentication />} />

@@ -14,8 +14,8 @@ const AddStatusPopup = ({ setOpenStatusPopup, status }) => {
   const [loading, setLoading] = useState(false);
   const [selectedColor, setSelectedColor] = useState(
     status?.color || {
-      primaryColor: "bg-gray-200",
-      secondaryColor: "bg-gray-50",
+      primaryColor: "#E5E7EB",
+      secondaryColor: "#F9FAFB",
     }
   );
 
@@ -130,10 +130,9 @@ const AddStatusPopup = ({ setOpenStatusPopup, status }) => {
               {bgColors.map((color, index) => (
                 <div
                   key={index}
+                  style={{ backgroundColor: color.primaryColor }}
                   onClick={() => setSelectedColor(color)}
                   className={`w-6 h-6 rounded-full cursor-pointer mx-1 ${
-                    color.primaryColor
-                  } ${
                     selectedColor.primaryColor === color.primaryColor
                       ? "border-2 border-violet-700"
                       : "border-0"

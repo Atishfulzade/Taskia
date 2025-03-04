@@ -5,6 +5,8 @@ const msg = require("../utils/message-constant.json");
 
 // Add a new task
 const addTask = async (req, res) => {
+  console.log(req.body);
+
   try {
     const { title, projectId, status, assignedTo, ...others } = req.body;
 
@@ -19,20 +21,28 @@ const addTask = async (req, res) => {
       return handleResponse(res, 400, msg.task.taskTitleAlreadyExists);
     }
 
+    // Validate assignedTo field (Convert empty string to null)
+    const validAssignedTo =
+      assignedTo && mongoose.Types.ObjectId.isValid(assignedTo)
+        ? assignedTo
+        : null;
+
     // Create a new task
     const newTask = new Task({
       title,
       projectId,
-      assignedTo,
+      assignedTo: validAssignedTo, // Ensuring it is either a valid ObjectId or null
       status,
       ...others,
     });
+
     await newTask.save();
 
     // Notify the assigned user via WebSocket (if applicable)
-    if (assignedTo) {
+    if (validAssignedTo) {
       const io = req.app.get("io");
-      io.to(assignedTo).emit("newTaskAssigned", {
+      console.log(`Emitting task notification to user: ${validAssignedTo}`);
+      io.to(validAssignedTo).emit("newTaskAssigned", {
         message: `A new task "${newTask.title}" has been assigned to you.`,
         task: newTask,
       });
@@ -76,13 +86,18 @@ const updateTask = async (req, res) => {
     if (!updatedTask) {
       return handleResponse(res, 404, msg.task.taskNotFound);
     }
+    const validAssignedTo =
+      assignedTo && mongoose.Types.ObjectId.isValid(assignedTo)
+        ? assignedTo
+        : null;
 
     // Notify the assigned user via WebSocket (if applicable)
-    if (assignedTo && typeof assignedTo === "string") {
+    if (validAssignedTo) {
       const io = req.app.get("io");
-      io.to(assignedTo).emit("newTaskAssigned", {
-        message: `A new task "${title}" has been assigned to you.`,
-        task: updatedTask,
+      console.log(`Emitting task notification to user: ${validAssignedTo}`);
+      io.to(validAssignedTo).emit("newTaskAssigned", {
+        message: `A new task "${newTask.title}" has been assigned to you.`,
+        task: newTask,
       });
     }
 

@@ -19,13 +19,14 @@ const AddTaskPopup = ({ setTaskOpen, currentStatus, taskData, isEdit }) => {
   const [selectedUserId, setSelectedUserId] = useState(
     taskData?.assignedTo || ""
   );
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const userId = useSelector((state) => state.user.user._id);
 
   // Handle user selection from SearchableSelect
   const handleUserSelect = (user) => {
-    setSelectedUserId(user._id);
+    setSelectedUserId(user ? user._id : null); // Set to null if no user is selected
   };
 
   // Close popup when clicking outside or pressing Escape
@@ -57,7 +58,7 @@ const AddTaskPopup = ({ setTaskOpen, currentStatus, taskData, isEdit }) => {
     description: Yup.string(),
     priority: Yup.string(),
     assignedBy: Yup.string(),
-    assignedTo: Yup.string(),
+    assignedTo: Yup.string().nullable(), // Allow null
     dueDate: Yup.date(),
     status: Yup.string().required("Status is required"),
     subTask: Yup.array().of(
@@ -79,11 +80,11 @@ const AddTaskPopup = ({ setTaskOpen, currentStatus, taskData, isEdit }) => {
     setFileLoading(true);
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "your_cloudinary_preset"); // Replace with your Cloudinary upload preset
+    formData.append("upload_preset", "Taskia"); // Replace with your Cloudinary upload preset
 
     try {
       const response = await fetch(
-        "https://api.cloudinary.com/v1_1/your_cloud_name/upload", // Replace with your Cloudinary cloud name
+        "https://api.cloudinary.com/v1_1/dqizv2ags/upload", // Replace with your Cloudinary cloud name
         {
           method: "POST",
           body: formData,
@@ -138,7 +139,7 @@ const AddTaskPopup = ({ setTaskOpen, currentStatus, taskData, isEdit }) => {
             priority: taskData?.priority || "No",
             projectId: projectId || "",
             status: currentStatus?._id || taskData?.status || "",
-            assignedTo: selectedUserId || taskData?.assignedTo || "",
+            assignedTo: selectedUserId || taskData?.assignedTo || null, // Set to null if no user is selected
             dueDate: taskData?.dueDate || "",
             assignedBy: userId || "",
             subTask: taskData?.subTask || [],

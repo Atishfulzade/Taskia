@@ -4,18 +4,31 @@ import { IoAdd } from "react-icons/io5";
 import { RiDraggable, RiCheckboxBlankCircleLine } from "react-icons/ri";
 import { TbFlag3Filled } from "react-icons/tb";
 import { LiaPenSolid } from "react-icons/lia";
-import { MdOutlineDeleteOutline } from "react-icons/md";
 import CircularProgress from "./CircularProgress";
 import { FaRegCalendar, FaRegCircleUser } from "react-icons/fa6";
 import { formatDate } from "../utils/formatDate";
 import { useEffect, useState } from "react";
 import requestServer from "../utils/requestServer";
+import { IoAttachSharp } from "react-icons/io5";
+import { useSelector } from "react-redux";
 
 const Task = ({ task, priority }) => {
   const [assignedUser, setAssignedUser] = useState("");
-  const handleStatus = async () => {
-    await requestServer(`status/get/${task.status}`);
-  };
+  const [statusDetails, setStatusDetails] = useState(null);
+  const statusLength = useSelector((state) => state.status?.statuses?.length);
+  // Fetch status details
+  useEffect(() => {
+    if (task?.status) {
+      requestServer(`status/get/${task.status}`)
+        .then((response) => {
+          setStatusDetails(response.data); // Set the status details
+        })
+        .catch((error) => {
+          console.error("Error fetching status:", error);
+        });
+    }
+  }, [task?.status]);
+
   // Fetch assigned user details
   useEffect(() => {
     if (task?.assignedTo) {
@@ -28,7 +41,6 @@ const Task = ({ task, priority }) => {
         });
     }
   }, [task?.assignedTo]);
-  console.log(assignedUser);
 
   // Drag-and-drop functionality
   const { attributes, listeners, setNodeRef, transform, transition } =
@@ -55,6 +67,7 @@ const Task = ({ task, priority }) => {
     <div
       ref={setNodeRef}
       style={style}
+      onClick={(e) => e.stopPropagation()} // Prevents event propagation
       {...attributes}
       {...listeners}
       className="dark:bg-slate-800 border-b bg-white group border-slate-200 dark:border-slate-500 p-1.5 dark:hover:bg-slate-900 flex justify-start items-center gap-2 rounded hover:bg-slate-50 cursor-grab"
@@ -65,7 +78,7 @@ const Task = ({ task, priority }) => {
       </div>
 
       {/* Task Name */}
-      <p className="w-full text-sm font-inter text-slate-900 dark:text-slate-100 flex font-medium gap-1 items-center">
+      <p className="w-full text-sm font-inter text-slate-700 dark:text-slate-100 flex font-medium gap-1 items-center">
         <RiCheckboxBlankCircleLine size={16} className="text-violet-600" />
         {task?.title}
       </p>
@@ -73,17 +86,16 @@ const Task = ({ task, priority }) => {
       {/* Task Status & Progress */}
       <div className="w-1/3">
         <p
-          className={`w-fit py-1.5 rounded-sm text-xs flex justify-center items-center gap-1 px-4 text-slate-600 font-inter font-medium ${
-            task?.primaryColor || "bg-gray-300"
-          }`}
+          style={{ backgroundColor: statusDetails?.color?.secondaryColor }}
+          className={`w-fit py-1.5 rounded-sm text-xs  flex justify-center items-center gap-1 px-4 text-slate-600 font-inter font-medium`}
         >
           <CircularProgress
-            percentage={60}
+            percentage={statusLength * 10} // Distributes equally among all statuses
             size={20}
             strokeWidth={2}
-            color={task?.secondaryColor}
+            color={statusDetails?.color?.primaryColor} // Use status secondary color
           />
-          {task?.status}
+          {statusDetails?.title || "No Status"} {/* Display status title */}
         </p>
       </div>
 
@@ -126,6 +138,17 @@ const Task = ({ task, priority }) => {
         <FaRegCalendar size={16} className="text-slate-500 " />
         {formatDate(task.dueDate)}
       </div>
+      {/* attachment */}
+      {task.attachedFile.length ? (
+        <div
+          title={task.attachedFile.url}
+          className="w-1/3 ml-5 text-xs flex gap-1 dark:text-white text-slate-500"
+        >
+          <IoAttachSharp size={18} className="text-slate-500 " />
+        </div>
+      ) : (
+        <div className="w-1/3 ml-5 text-xs flex gap-1 dark:text-white text-slate-500"></div>
+      )}
     </div>
   );
 };

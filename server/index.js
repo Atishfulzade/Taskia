@@ -61,7 +61,9 @@ const server = http.createServer(app);
 // Initialize Socket.IO
 const io = socketIo(server, {
   cors: {
-    origin: process.env.CLIENT_URL,
+    origin: process.env.CLIENT_URL || "*",
+    methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
@@ -75,7 +77,7 @@ io.on("connection", (socket) => {
   // Join user-specific room
   socket.on("joinUserRoom", (userId) => {
     socket.join(userId.toString());
-    console.log(`📌 User ${userId} joined room`);
+    console.log(`📌 User ${userId} joined room`, io.sockets.adapter.rooms);
   });
 
   // Handle disconnection

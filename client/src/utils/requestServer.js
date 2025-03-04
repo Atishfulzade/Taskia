@@ -5,12 +5,19 @@ const requestServer = async (path, data = {}) => {
     const token = localStorage.getItem("token");
     const backendURL = import.meta.env.VITE_SERVER_URL;
     const baseURL = import.meta.env.VITE_BASE_ROUTE;
-    console.log(`${backendURL}${baseURL}${path}`);
+
+    // Ensure URL is properly formatted
+    const formattedURL = `${backendURL.replace(/\/$/, "")}/${baseURL
+      .replace(/^\//, "")
+      .replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
+
+    console.log("Request URL:", formattedURL);
 
     const res = await axios({
-      url: `${backendURL}${baseURL}${path}`,
+      url: formattedURL,
       method: "POST",
-      data: Object.keys(data).length ? data : undefined,
+      data: Object.keys(data).length > 0 ? data : undefined,
+      timeout: 5000,
       headers: {
         Authorization: token ? `Bearer ${token}` : "",
         "Content-Type": "application/json",
@@ -19,7 +26,13 @@ const requestServer = async (path, data = {}) => {
 
     return res.data;
   } catch (error) {
-    console.error("Request error:", error);
+    if (error.response) {
+      console.error("Server responded with error:", error.response.data);
+    } else if (error.request) {
+      console.error("No response from server:", error.request);
+    } else {
+      console.error("Request setup error:", error.message);
+    }
     throw error;
   }
 };

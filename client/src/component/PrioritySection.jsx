@@ -92,6 +92,9 @@ const PrioritySection = ({
               <p className="w-1/3 text-[12px] font-inter ml-6 font-regular dark:text-slate-100 text-slate-400">
                 Due date
               </p>
+              <p className="w-1/3 text-[12px] font-inter ml-6 font-regular dark:text-slate-100 text-slate-400">
+                Attachments
+              </p>
             </div>
 
             {/* Sortable Task List */}

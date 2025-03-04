@@ -7,6 +7,7 @@ import { formatDate } from "../utils/formatDate";
 import requestServer from "../utils/requestServer";
 import { useEffect, useState } from "react";
 import React from "react";
+import { IoAttachSharp } from "react-icons/io5";
 
 const TaskItem = ({ task, setEditTaskOpen }) => {
   // Drag-and-drop functionality
@@ -111,6 +112,16 @@ const TaskItem = ({ task, setEditTaskOpen }) => {
             </p>
           )}
         </div>
+        {task.attachedFile.length ? (
+          <div
+            title={task.attachedFile.url}
+            className="flex border cursor-pointer border-slate-200 p-1 h-6 rounded items-center"
+          >
+            <IoAttachSharp size={16} className="text-slate-500" />
+          </div>
+        ) : (
+          ""
+        )}
       </div>
 
       {/* Subtasks */}
