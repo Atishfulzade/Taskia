@@ -34,7 +34,7 @@ import {
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "../components/ui/Skeleton";
 import { ScrollArea } from "../components/ui/ScrollArea";
 import { cn } from "@/lib/utils";
 import {

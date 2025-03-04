@@ -24,7 +24,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "../components/ui/Tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,12 +32,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../components/ui/DropdownMenu";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
+import { Badge } from "../components/ui/Badge";
+import { Button } from "../components/ui/Button";
+import { Checkbox } from "../components/ui/Checkbox";
+import { Avatar, AvatarFallback } from "../components/ui/Avatar";
+import { Skeleton } from "../components/ui/Skeleton";
+import { Progress } from "../components/ui/Progress";
 import { formatDate } from "../utils/formatDate";
 import requestServer from "../utils/requestServer";
 
