@@ -49,11 +49,9 @@ const TaskItem = ({ task, setEditTaskOpen }) => {
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      onMouseDown={(e) => e.stopPropagation()} // Stop drag interference
-      onClick={(e) => {
-        console.log(hi);
+      onMouseDown={(e) => {
         e.stopPropagation();
-
+        console.log("lello");
         setEditTaskOpen((prev) => ({
           ...prev,
           isOpen: !prev.isOpen,
