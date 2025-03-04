@@ -96,9 +96,9 @@ const Authentication = () => {
   });
 
   return (
-    <div className="h-screen flex">
+    <div className="h-screen flex flex-col md:flex-row">
       {/* Left Section */}
-      <div className="w-3/4 bg-gradient-to-r from-blue-600 to-blue-800 flex flex-col justify-center text-white p-10">
+      <div className="w-full md:w-3/4 bg-gradient-to-r from-blue-600 to-blue-800 flex flex-col justify-center text-white p-10">
         <img src={logo} alt="logo" className="h-14 absolute top-10 left-10" />
         <h1 className="text-4xl ml-10 font-bold">Taskia</h1>
         <p className="mt-4 ml-10 text-lg text-start">
@@ -108,7 +108,7 @@ const Authentication = () => {
       </div>
 
       {/* Right Section */}
-      <div className="w-1/2 flex flex-col justify-center items-center bg-white p-10">
+      <div className="w-full md:w-1/2 flex flex-col justify-center items-center bg-white p-10">
         <h2 className="text-2xl font-semibold">
           {isRegistration ? "Join Taskia!" : "Hello Again!"}
         </h2>
@@ -116,7 +116,7 @@ const Authentication = () => {
           {isRegistration ? "Create an account" : "Welcome back!"}
         </p>
 
-        <form className="mt-6 w-80" onSubmit={formik.handleSubmit}>
+        <form className="mt-6 w-full max-w-sm" onSubmit={formik.handleSubmit}>
           {isRegistration && (
             <div className="relative">
               <input
@@ -124,10 +124,10 @@ const Authentication = () => {
                 name="name"
                 placeholder="Full name"
                 {...formik.getFieldProps("name")}
-                className="w-full indent-2 p-4 border pl-10 border-slate-300 rounded-full mt-3 focus:ring-2 focus:ring-blue-400"
+                className="w-full p-3 border pl-10 border-slate-300 rounded-lg mt-3 focus:ring-2 focus:ring-blue-400"
               />
               <CiUser
-                className="absolute bottom-4 left-4 text-slate-400"
+                className="absolute bottom-3 left-3 text-slate-400"
                 size={24}
               />
             </div>
@@ -141,10 +141,10 @@ const Authentication = () => {
               name="email"
               placeholder="Email Address"
               {...formik.getFieldProps("email")}
-              className="w-full p-4 border pl-10 indent-2 border-slate-300 rounded-full mt-3 focus:ring-2 focus:ring-blue-400"
+              className="w-full p-3 border pl-10 border-slate-300 rounded-lg mt-3 focus:ring-2 focus:ring-blue-400"
             />
             <CiMail
-              className="absolute bottom-4 left-4 text-slate-400"
+              className="absolute bottom-3 left-3 text-slate-400"
               size={24}
             />
           </div>
@@ -157,19 +157,19 @@ const Authentication = () => {
               name="password"
               placeholder="Password"
               {...formik.getFieldProps("password")}
-              className="w-full p-4 border indent-2 pl-10 border-slate-300 rounded-full mt-3 focus:ring-2 focus:ring-blue-400"
+              className="w-full p-3 border pl-10 border-slate-300 rounded-lg mt-3 focus:ring-2 focus:ring-blue-400"
             />
             {showPassword ? (
               <CiUnlock
                 size={24}
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute bottom-4 cursor-pointer left-4 text-slate-400"
+                className="absolute bottom-3 cursor-pointer left-3 text-slate-400"
               />
             ) : (
               <CiLock
                 size={24}
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute bottom-4 cursor-pointer left-4 text-slate-400"
+                className="absolute bottom-3 cursor-pointer left-3 text-slate-400"
               />
             )}
           </div>
@@ -179,7 +179,7 @@ const Authentication = () => {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full mt-5 py-3 rounded-full text-white ${
+            className={`w-full mt-5 py-3 rounded-lg text-white ${
               loading ? "bg-blue-300" : "bg-blue-600 hover:bg-blue-800"
             }`}
           >
@@ -192,7 +192,7 @@ const Authentication = () => {
               : "Login"}
           </button>
 
-          <div className="w-full py-3 flex border justify-center gap-2 items-center cursor-pointer hover:bg-slate-100 border-slate-300 rounded-full mt-3">
+          <div className="w-full py-3 flex border justify-center gap-2 items-center cursor-pointer hover:bg-slate-100 border-slate-300 rounded-lg mt-3">
             <FcGoogle size={20} /> Login with Google
           </div>
 

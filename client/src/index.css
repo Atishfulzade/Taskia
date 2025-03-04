@@ -1,6 +1,76 @@
+/* Include Tailwind's base styles */
 @import "tailwindcss";
-@custom-variant dark (&:where(.dark, .dark *));
+@tailwind base;
 
+/* Include Tailwind's component styles */
+@tailwind components;
+
+/* Include Tailwind's utility classes */
+@tailwind utilities;
+
+/* Your custom styles */
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --border: hsl(var(--border));
+    --input: hsl(var(--input));
+    --ring: hsl(var(--ring));
+    --background: hsl(var(--background));
+    --foreground: hsl(var(--foreground));
+    --primary: hsl(var(--primary));
+    --primary-foreground: hsl(var(--primary-foreground));
+    --secondary: hsl(var(--secondary));
+    --secondary-foreground: hsl(var(--secondary-foreground));
+    --destructive: hsl(var(--destructive));
+    --destructive-foreground: hsl(var(--destructive-foreground));
+    --muted: hsl(var(--muted));
+    --muted-foreground: hsl(var(--muted-foreground));
+    --accent: hsl(var(--accent));
+    --accent-foreground: hsl(var(--accent-foreground));
+    --popover: hsl(var(--popover));
+    --popover-foreground: hsl(var(--popover-foreground));
+    --card: hsl(var(--card));
+    --card-foreground: hsl(var(--card-foreground));
+  }
+}
+
+/* Font definitions */
+@font-face {
+  font-family: "Inter";
+  src: url("./assets/font/Inter-VariableFont_opsz,wght.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "poppins-bold";
+  src: url("./assets/font/Poppins-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "poppins-normal";
+  src: url("./assets/font/Poppins-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+/* Global theme */
+:root {
+  --font-poppins-regular: "poppins-normal";
+  --font-inter: "Inter";
+  --font-poppins-bold: "poppins-bold";
+  --radius: 8px;
+  --primary: "#5D0EC0";
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Loader animation */
 .loader {
   width: 60px;
   aspect-ratio: 2;
@@ -9,37 +79,8 @@
   background-size: calc(100% / 3) 50%;
   animation: l3 1s infinite linear;
 }
-#root {
-  height: 100vh;
-  overflow-y: hidden;
-}
-*::-webkit-scrollbar {
-  display: none;
-}
-@font-face {
-  font-family: "Inter";
-  src: url("./assets/font/Inter-VariableFont_opsz,wght.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-}
-@font-face {
-  font-family: "poppins-bold";
-  src: url("./assets/font/Poppins-Bold.ttf") format("truetype");
-  font-weight: 700;
-  font-style: normal;
-}
-@font-face {
-  font-family: "poppins-normal";
-  src: url("./assets/font/Poppins-Regular.ttf") format("truetype");
-  font-weight: 400;
-  font-style: normal;
-}
-@theme {
-  --font-poppins-regular: "poppins-normal";
-  --font-inter: "Inter";
-  --font-poppins-bold: "poppins-bold";
-}
 
+/* Keyframes */
 @keyframes l3 {
   20% {
     background-position: 0% 0%, 50% 50%, 100% 50%;
@@ -53,4 +94,21 @@
   80% {
     background-position: 0% 50%, 50% 50%, 100% 100%;
   }
+}
+
+/* Root container */
+#root {
+  height: 100vh;
+  overflow-y: hidden;
+}
+
+/* Border radius */
+.rounded-lg {
+  border-radius: var(--radius);
+}
+.rounded-md {
+  border-radius: calc(var(--radius) - 2px);
+}
+.rounded-sm {
+  border-radius: calc(var(--radius) - 4px);
 }

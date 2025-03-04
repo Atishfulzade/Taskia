@@ -73,26 +73,26 @@ const PrioritySection = ({
         {openDropdowns[priority] && (
           <div className="flex flex-col w-full p-1 rounded-lg">
             {/* Table Headers */}
-            <div className="flex w-full">
-              <p className="w-full text-[12px] font-inter ml-8 font-regular dark:text-slate-100 text-slate-400">
+            <div className="flex w-full items-center border-b border-slate-200 dark:border-slate-600 pb-2">
+              <p className="w-[30%] text-[12px] font-inter font-medium dark:text-slate-100 text-slate-400">
                 Name
               </p>
-              <p className="w-1/3 text-[12px] font-inter ml-0 font-regular dark:text-slate-100 text-slate-400">
+              <p className="w-[15%] text-[12px] font-inter font-medium dark:text-slate-100 text-slate-400">
                 Status
               </p>
-              <p className="w-1/3 text-[12px] font-inter ml-28 font-regular dark:text-slate-100 text-slate-400">
+              <p className="w-[15%] text-[12px] font-inter font-medium dark:text-slate-100 text-slate-400">
                 Created at
               </p>
-              <p className="w-1/4 text-[12px] font-inter font-regular dark:text-slate-100 text-slate-400">
+              <p className="w-[15%] text-[12px] font-inter font-medium dark:text-slate-100 text-slate-400">
                 Assigned
               </p>
-              <p className="w-[20%] text-[12px] font-inter font-regular dark:text-slate-100 text-slate-400">
+              <p className="w-[10%] text-[12px] font-inter font-medium dark:text-slate-100 text-slate-400">
                 Priority
               </p>
-              <p className="w-1/3 text-[12px] font-inter ml-6 font-regular dark:text-slate-100 text-slate-400">
+              <p className="w-[15%] text-[12px] font-inter font-medium dark:text-slate-100 text-slate-400">
                 Due date
               </p>
-              <p className="w-1/3 text-[12px] font-inter ml-6 font-regular dark:text-slate-100 text-slate-400">
+              <p className="w-[10%] text-[12px] font-inter font-medium dark:text-slate-100 text-slate-400">
                 Attachments
               </p>
             </div>

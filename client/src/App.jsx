@@ -24,7 +24,7 @@ function App() {
 
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
   const user = useSelector((state) => state.user.user);
-  const projects = useSelector((state) => state.project.projects.length);
+  const projects = useSelector((state) => state.project.projects);
   const token = localStorage.getItem("token");
   const assignedTask = useSelector((state) => state.assignTask.tasks);
 
@@ -32,48 +32,71 @@ function App() {
   useEffect(() => {
     const validateUser = async () => {
       try {
+        // Check if there's a stored user in localStorage
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
-          dispatch(login(JSON.parse(storedUser)));
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            dispatch(login(parsedUser));
+          } catch (parseError) {
+            console.error("Error parsing stored user:", parseError);
+            localStorage.removeItem("user");
+          }
         }
 
+        // Validate token with server
         if (token) {
           const res = await requestServer("user/validate");
 
-          if (res.message) {
+          if (res?.data?.user && res?.data?.token) {
+            // Update user and token in store and localStorage
             dispatch(login(res.data.user));
             localStorage.setItem("token", res.data.token);
             localStorage.setItem("user", JSON.stringify(res.data.user));
           } else {
-            throw new Error("Invalid token");
+            throw new Error("Invalid authentication response");
           }
         }
 
-        if (projects === 0) {
+        // Fetch projects if not already loaded
+        if (!projects || projects.length === 0) {
           const projectsRes = await requestServer("project/all");
-          dispatch(setProjects(projectsRes.data || []));
-          if (projectsRes.data?.length) {
-            dispatch(setCurrentProject(projectsRes.data[0]));
+
+          if (projectsRes?.data && Array.isArray(projectsRes.data)) {
+            dispatch(setProjects(projectsRes.data));
+            if (projectsRes.data.length > 0) {
+              dispatch(setCurrentProject(projectsRes.data[0]));
+            }
           }
         }
 
-        if (!assignedTask.length) {
+        // Fetch assigned tasks if not already loaded
+        if (!assignedTask || assignedTask.length === 0) {
           const assignTaskRes = await requestServer("task/assign");
-          dispatch(addAssignTask(assignTaskRes.data || []));
+
+          if (assignTaskRes?.data && Array.isArray(assignTaskRes.data)) {
+            dispatch(addAssignTask(assignTaskRes.data));
+          }
         }
       } catch (error) {
-        console.error("Authentication failed, redirecting...");
+        console.error("Authentication validation failed:", error);
+
+        // Clear authentication state
         dispatch(logout());
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+
+        // Navigate to authentication page
         navigate("/authenticate");
       }
     };
 
+    // Only run validation if user is not authenticated but has a token,
+    // or if user is authenticated but no user object exists
     if ((isAuthenticated || token) && !user) {
       validateUser();
     }
-  }, [isAuthenticated, token, projects.length, user]);
+  }, [isAuthenticated, token, projects.length, user, dispatch, navigate]);
 
   // Connect to WebSocket
   useEffect(() => {
@@ -101,7 +124,7 @@ function App() {
 
       return () => socket.disconnect();
     }
-  }, [isAuthenticated, user?._id]);
+  }, [isAuthenticated, user?._id, dispatch]);
 
   return (
     <>

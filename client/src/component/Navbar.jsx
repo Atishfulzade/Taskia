@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import logo from "../assets/logo-white.png";
 import UserProfile from "./UserProfile";
 import { useSelector } from "react-redux";
+import NotificationsComponent from "./NotificationsComponent";
 
 const Navbar = () => {
   // Load dark mode preference from localStorage
@@ -77,13 +78,10 @@ const Navbar = () => {
         </div>
 
         {/* Notification Button */}
-        <button className="flex px-3 gap-1 py-1 hover:bg-violet-700 font-inter font-normal rounded-lg items-center justify-center text-white">
-          <FiBell size={20} />
-          Notification
-        </button>
+        <NotificationsComponent />
 
         {/* New Button */}
-        <button className="flex px-3 gap-1 py-1 hover:bg-violet-700 font-inter font-normal items-center rounded-lg justify-center text-white">
+        <button className="flex px-2 gap-1 py-0.5 hover:bg-violet-700 font-inter font-normal items-center rounded-lg justify-center text-white">
           <IoAddCircleOutline size={20} />
           New
         </button>
@@ -96,7 +94,7 @@ const Navbar = () => {
         {/* Profile Section */}
         <div
           onClick={() => setShowProfile(!showProfile)}
-          className="flex select-none cursor-pointer px-1 gap-1 items-center bg-violet-500 rounded-full"
+          className="flex select-none cursor-pointer px-1.5   gap-1 items-center bg-violet-500 rounded-full"
         >
           <div className="h-6 w-6 flex bg-violet-700 cursor-pointer border items-center justify-center border-violet-500 text-white text-xs rounded-full">
             {userInfo?.name?.trim()[0] || "?"}

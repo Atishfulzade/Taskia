@@ -1,13 +1,25 @@
+"use client";
+
 import { useDraggable } from "@dnd-kit/core";
-import { FaRegCircleUser } from "react-icons/fa6";
-import { FaRegCalendar } from "react-icons/fa";
-import { TbFlag3 } from "react-icons/tb";
-import { PiGitMergeDuotone } from "react-icons/pi";
+import { useState, useEffect } from "react";
 import { formatDate } from "../utils/formatDate";
 import requestServer from "../utils/requestServer";
-import { useEffect, useState } from "react";
 import React from "react";
+
+// Icons
+import {
+  FaRegCircleUser,
+  FaRegCalendar,
+  FaChevronDown,
+  FaChevronRight,
+} from "react-icons/fa6";
+import { TbFlag3 } from "react-icons/tb";
+import { PiGitMergeDuotone } from "react-icons/pi";
 import { IoAttachSharp } from "react-icons/io5";
+import {
+  MdOutlineCheckCircle,
+  MdOutlineRadioButtonUnchecked,
+} from "react-icons/md";
 
 const TaskItem = ({ task, setEditTaskOpen }) => {
   // Drag-and-drop functionality
@@ -15,16 +27,35 @@ const TaskItem = ({ task, setEditTaskOpen }) => {
     id: task?._id,
   });
 
-  // State for showing subtasks and assigned user
+  // State for showing subtasks, assigned user, and loading states
   const [showSubTask, setShowSubTask] = useState(false);
   const [assignedUser, setAssignedUser] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [completedSubtasks, setCompletedSubtasks] = useState(0);
+
+  // Calculate completed subtasks
+  useEffect(() => {
+    if (Array.isArray(task?.subTask) && task.subTask.length > 0) {
+      const completed = task.subTask.filter(
+        (subtask) => subtask.completed
+      ).length;
+      setCompletedSubtasks(completed);
+    }
+  }, [task?.subTask]);
 
   // Fetch assigned user details (Only if task.assignedTo exists)
   useEffect(() => {
     if (task?.assignedTo) {
+      setIsLoading(true);
       requestServer(`user/u/${task.assignedTo}`)
-        .then((user) => setAssignedUser(user?.data?.name ?? "Unknown"))
-        .catch((error) => console.error("Error fetching user:", error));
+        .then((user) => {
+          setAssignedUser(user?.data?.name ?? "Unknown");
+          setIsLoading(false);
+        })
+        .catch((error) => {
+          console.error("Error fetching user:", error);
+          setIsLoading(false);
+        });
     }
   }, [task?.assignedTo]);
 
@@ -35,121 +66,220 @@ const TaskItem = ({ task, setEditTaskOpen }) => {
       .map((n) => n[0]?.toUpperCase())
       .join("") ?? "?";
 
-  // Priority colors mapping
-  const priorityColors = {
-    Medium: "text-yellow-500",
-    High: "text-red-500",
-    Low: "text-slate-600",
+  // Priority badges with colors and styles
+  const priorityBadges = {
+    High: {
+      color: "bg-red-100 text-red-700 border-red-200",
+      icon: "text-red-500",
+    },
+    Medium: {
+      color: "bg-yellow-100 text-yellow-700 border-yellow-200",
+      icon: "text-yellow-500",
+    },
+    Low: {
+      color: "bg-slate-100 text-slate-700 border-slate-200",
+      icon: "text-slate-600",
+    },
   };
-  const handlePriority = (priority) =>
-    priorityColors[priority] || "text-slate-600";
+
+  // Handle opening the edit task modal
+  const handleEditTask = (e) => {
+    e.stopPropagation();
+    setEditTaskOpen((prev) => ({
+      ...prev,
+      isOpen: !prev.isOpen,
+      task: task,
+    }));
+  };
+
+  // Check if due date is overdue
+  const isOverdue = () => {
+    if (!task?.dueDate) return false;
+    return new Date(task.dueDate) < new Date();
+  };
 
   return (
     <div
       ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      onMouseDown={(e) => {
-        e.stopPropagation();
-        console.log("lello");
-        setEditTaskOpen((prev) => ({
-          ...prev,
-          isOpen: !prev.isOpen,
-          task: task,
-        }));
-      }}
-      className="border my-1 select-none h-fit border-slate-50 bg-white rounded-lg cursor-grab hover:bg-slate-50"
+      className="border my-2 select-none h-fit border-slate-200 bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
       style={{
-        padding: "10px",
         transform: transform
           ? `translate(${transform.x}px, ${transform.y}px)`
           : undefined,
       }}
     >
-      {/* Task Title */}
-      <h4 className="text-stone-600 font-inter text-sm font-medium leading-5 line-clamp-2">
-        {task?.title}
-      </h4>
-
-      {/* Task Details (Assigned User, Due Date, Priority) */}
-      <div className="flex mt-3 gap-1.5">
-        {/* Assigned User */}
-        <div className="flex cursor-pointer">
-          {task?.assignedTo ? (
+      {/* Task Card Content */}
+      <div className="p-3">
+        {/* Priority indicator (if exists) */}
+        {task?.priority && task.priority !== "No" && (
+          <div className="mb-2">
             <span
-              title={assignedUser}
-              className="border text-white flex items-center justify-center pt-[2px] bg-violet-600 rounded-full border-slate-300 w-6 h-6 text-[11px]"
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                priorityBadges[task.priority]?.color ||
+                "bg-slate-100 text-slate-700"
+              }`}
             >
-              {getInitials(assignedUser)}
-            </span>
-          ) : (
-            <FaRegCircleUser className="border text-slate-700 border-slate-200 p-1 w-6 h-6 rounded" />
-          )}
-        </div>
-
-        {/* Due Date */}
-        <div className="flex border gap-1 cursor-pointer justify-center border-slate-200 p-1 h-6 rounded items-center">
-          <FaRegCalendar size={14} className="text-slate-500" />
-          {task?.dueDate && (
-            <p className="text-red-500 text-[12px] font-inter">
-              {formatDate(task.dueDate)}
-            </p>
-          )}
-        </div>
-
-        {/* Priority */}
-        <div className="flex border cursor-pointer border-slate-200 p-1 h-6 rounded items-center">
-          <TbFlag3 size={14} className="text-slate-500" />
-          {task?.priority !== "No" && (
-            <p
-              className={`${handlePriority(
-                task.priority
-              )} text-[12px] font-inter`}
-            >
+              <TbFlag3
+                className={
+                  priorityBadges[task.priority]?.icon || "text-slate-600"
+                }
+              />
               {task.priority}
-            </p>
+            </span>
+          </div>
+        )}
+
+        {/* Task Title */}
+        <div onClick={handleEditTask} className="cursor-pointer">
+          <h4 className="text-slate-800 font-inter text-sm font-medium leading-5 line-clamp-2 hover:text-violet-700 transition-colors">
+            {task?.title}
+          </h4>
+        </div>
+
+        {/* Task Details Row */}
+        <div className="flex mt-3 gap-2 flex-wrap">
+          {/* Assigned User */}
+          <div
+            className="flex items-center"
+            title={assignedUser || "Unassigned"}
+          >
+            {isLoading ? (
+              <div className="animate-pulse bg-slate-200 rounded-full w-6 h-6"></div>
+            ) : task?.assignedTo ? (
+              <span className="border text-white flex items-center justify-center bg-violet-600 rounded-full border-violet-300 w-6 h-6 text-[11px] shadow-sm">
+                {getInitials(assignedUser)}
+              </span>
+            ) : (
+              <FaRegCircleUser className="text-slate-400 border border-slate-200 p-1 w-6 h-6 rounded-full" />
+            )}
+          </div>
+
+          {/* Due Date */}
+          {task?.dueDate && (
+            <div className="flex border gap-1 justify-center border-slate-200 p-1 h-6 rounded-md items-center bg-slate-50">
+              <FaRegCalendar
+                size={12}
+                className={isOverdue() ? "text-red-500" : "text-slate-500"}
+              />
+              <p
+                className={`${
+                  isOverdue() ? "text-red-500 font-medium" : "text-slate-600"
+                } text-[11px] font-inter`}
+              >
+                {formatDate(task.dueDate)}
+              </p>
+            </div>
+          )}
+
+          {/* Attachments */}
+          {task.attachedFile && task.attachedFile.length > 0 && (
+            <div
+              title={`${task.attachedFile.length} attachment${
+                task.attachedFile.length > 1 ? "s" : ""
+              }`}
+              className="flex border gap-1 justify-center border-slate-200 p-1 h-6 rounded-md items-center bg-slate-50"
+            >
+              <IoAttachSharp size={12} className="text-slate-500" />
+              <span className="text-[11px] text-slate-600">
+                {task.attachedFile.length}
+              </span>
+            </div>
           )}
         </div>
-        {task.attachedFile.length ? (
-          <div
-            title={task.attachedFile.url}
-            className="flex border cursor-pointer border-slate-200 p-1 h-6 rounded items-center"
-          >
-            <IoAttachSharp size={16} className="text-slate-500" />
+
+        {/* Subtasks Section */}
+        {Array.isArray(task.subTask) && task.subTask.length > 0 && (
+          <div className="mt-3 border-t border-slate-100 pt-2">
+            {/* Subtask Header */}
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSubTask((prev) => !prev);
+              }}
+              className="flex cursor-pointer justify-between items-center group"
+            >
+              <div className="flex gap-1.5 items-center">
+                <PiGitMergeDuotone className="text-violet-500" />
+                <p className="text-slate-700 text-xs font-medium">
+                  Subtasks ({completedSubtasks}/{task.subTask.length})
+                </p>
+              </div>
+
+              {/* Progress bar */}
+              <div className="flex items-center gap-2">
+                <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-violet-500 rounded-full"
+                    style={{
+                      width: `${
+                        (completedSubtasks / task.subTask.length) * 100
+                      }%`,
+                    }}
+                  ></div>
+                </div>
+                {showSubTask ? (
+                  <FaChevronDown
+                    size={12}
+                    className="text-slate-400 group-hover:text-slate-700 transition-colors"
+                  />
+                ) : (
+                  <FaChevronRight
+                    size={12}
+                    className="text-slate-400 group-hover:text-slate-700 transition-colors"
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Subtask List */}
+            {showSubTask && (
+              <div className="mt-2 space-y-2 pl-2 pr-1 py-1 bg-slate-50 rounded-md max-h-40 overflow-y-auto">
+                {task.subTask.map((subtask) => (
+                  <div
+                    key={subtask._id}
+                    className="flex gap-2 items-start py-1 px-1 hover:bg-slate-100 rounded transition-colors"
+                  >
+                    {subtask.completed ? (
+                      <MdOutlineCheckCircle
+                        className="text-green-500 min-w-[16px] mt-0.5"
+                        size={16}
+                      />
+                    ) : (
+                      <MdOutlineRadioButtonUnchecked
+                        className="text-slate-400 min-w-[16px] mt-0.5"
+                        size={16}
+                      />
+                    )}
+                    <div>
+                      <p
+                        className={`text-xs font-medium ${
+                          subtask.completed
+                            ? "text-slate-500 line-through"
+                            : "text-slate-700"
+                        }`}
+                      >
+                        {subtask.title}
+                      </p>
+                      {subtask.description && (
+                        <p className="text-[10px] line-clamp-2 text-slate-500 mt-0.5">
+                          {subtask.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        ) : (
-          ""
         )}
       </div>
 
-      {/* Subtasks */}
-      {Array.isArray(task.subTask) && task.subTask.length > 0 && (
-        <div
-          onMouseDown={(e) => e.stopPropagation()} // Prevent drag interference
-          onClick={() => setShowSubTask((prev) => !prev)}
-          className="flex cursor-pointer mt-3 gap-1.5 justify-start text-sm items-center"
-        >
-          <PiGitMergeDuotone className="text-slate-500" />
-          <p className="text-slate-600 text-[12px]">
-            {task.subTask.length} subtask{task.subTask.length > 1 ? "s" : ""}
-          </p>
-        </div>
-      )}
-
-      {/* Subtask Details */}
-      {showSubTask &&
-        task.subTask.map((subtask, i) => (
-          <div className="mt-3 ml-5 line-clamp-1" key={subtask._id}>
-            <p className="text-[12px] font-inter text-slate-600">
-              {i + 1}. {subtask.title}
-            </p>
-            {subtask.description && (
-              <p className="text-[10px] line-clamp-2 text-slate-500 font-inter">
-                {subtask.description}
-              </p>
-            )}
-          </div>
-        ))}
+      {/* Drag Handle - Separated from content to avoid click conflicts */}
+      <div
+        {...listeners}
+        {...attributes}
+        className="h-1.5 bg-slate-100 rounded-b-lg cursor-grab active:cursor-grabbing hover:bg-violet-100 transition-colors"
+      />
     </div>
   );
 };
