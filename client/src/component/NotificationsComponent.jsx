@@ -8,6 +8,7 @@ import {
   Info,
   MessageCircle,
 } from "lucide-react";
+import { FiBell } from "react-icons/fi";
 
 const NotificationIcon = {
   success: CheckCircle,
@@ -77,7 +78,7 @@ const NotificationsComponent = () => {
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 rounded-full  hover:bg-violet-700 dark:hover:bg-slate-700 transition-colors"
       >
-        <Bell className="text-slate-100 dark:text-slate-300" />
+        <FiBell size={20} className="text-white" />
         {notifications.length > 0 && (
           <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
             {notifications.length}

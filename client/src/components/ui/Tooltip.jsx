@@ -1,114 +1,53 @@
-import styled from "styled-components";
-import React, { createContext, useContext, useState } from "react";
+import * as React from "react"
+import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 
-// Create a context for the tooltip
-const TooltipContext = createContext();
+import { cn } from "@/lib/utils"
 
-// TooltipProvider component
-export const TooltipProvider = ({ children }) => {
-  const [isOpen, setIsOpen] = useState(false);
+function TooltipProvider({
+  delayDuration = 0,
+  ...props
+}) {
+  return (<TooltipPrimitive.Provider data-slot="tooltip-provider" delayDuration={delayDuration} {...props} />);
+}
 
+function Tooltip({
+  ...props
+}) {
   return (
-    <TooltipContext.Provider value={{ isOpen, setIsOpen }}>
-      {children}
-    </TooltipContext.Provider>
+    (<TooltipProvider>
+      <TooltipPrimitive.Root data-slot="tooltip" {...props} />
+    </TooltipProvider>)
   );
-};
+}
 
-// TooltipWrapper component
-const TooltipWrapper = styled.div`
-  position: relative;
-  display: inline-block;
-`;
+function TooltipTrigger({
+  ...props
+}) {
+  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />;
+}
 
-// TooltipText component (Fixed positioning issues)
-const TooltipText = styled.span`
-  visibility: ${({ isOpen }) => (isOpen ? "visible" : "hidden")};
-  opacity: ${({ isOpen }) => (isOpen ? 1 : 0)};
-  position: absolute;
-  background: #333;
-  color: #fff;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  white-space: nowrap;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  transform: ${({ isOpen }) => (isOpen ? "scale(1)" : "scale(0.95)")};
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
-  font-family: "Inter", sans-serif;
-  margin: 0;
-  line-height: normal;
-
-  /* Adjust positioning */
-  ${({ position }) =>
-    position === "top" &&
-    `bottom: 110%; left: 50%; transform: translateX(-50%) scale(${({
-      isOpen,
-    }) => (isOpen ? 1 : 0.95)});`}
-  ${({ position }) =>
-    position === "bottom" &&
-    `top: 110%; left: 50%; transform: translateX(-50%) scale(${({ isOpen }) =>
-      isOpen ? 1 : 0.95});`}
-  ${({ position }) =>
-    position === "left" &&
-    `top: 50%; right: 110%; transform: translateY(-50%) scale(${({ isOpen }) =>
-      isOpen ? 1 : 0.95});`}
-  ${({ position }) =>
-    position === "right" &&
-    `top: 50%; left: 110%; transform: translateY(-50%) scale(${({ isOpen }) =>
-      isOpen ? 1 : 0.95});`}
-
-  &:after {
-    content: "";
-    position: absolute;
-    border-style: solid;
-    border-width: 6px;
-    border-color: transparent;
-  }
-
-  ${({ position }) =>
-    position === "top" &&
-    `&:after { top: 100%; left: 50%; transform: translateX(-50%); border-top-color: #333; }`}
-  ${({ position }) =>
-    position === "bottom" &&
-    `&:after { bottom: 100%; left: 50%; transform: translateX(-50%); border-bottom-color: #333; }`}
-  ${({ position }) =>
-    position === "left" &&
-    `&:after { left: 100%; top: 50%; transform: translateY(-50%); border-left-color: #333; }`}
-  ${({ position }) =>
-    position === "right" &&
-    `&:after { right: 100%; top: 50%; transform: translateY(-50%); border-right-color: #333; }`}
-`;
-
-// Tooltip component (Ensuring correct positioning)
-export const Tooltip = ({ children, position = "bottom" }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
+function TooltipContent({
+  className,
+  sideOffset = 0,
+  children,
+  ...props
+}) {
   return (
-    <TooltipContext.Provider value={{ isOpen, setIsOpen }}>
-      <TooltipWrapper
-        onMouseEnter={() => setIsOpen(true)}
-        onMouseLeave={() => setIsOpen(false)}
-      >
+    (<TooltipPrimitive.Portal>
+      <TooltipPrimitive.Content
+        data-slot="tooltip-content"
+        sideOffset={sideOffset}
+        className={cn(
+          "bg-primary text-primary-foreground animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-fit rounded-md px-3 py-1.5 text-xs text-balance",
+          className
+        )}
+        {...props}>
         {children}
-      </TooltipWrapper>
-    </TooltipContext.Provider>
+        <TooltipPrimitive.Arrow
+          className="bg-primary fill-primary z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px]" />
+      </TooltipPrimitive.Content>
+    </TooltipPrimitive.Portal>)
   );
-};
+}
 
-// TooltipTrigger component
-export const TooltipTrigger = ({ children, asChild }) => {
-  return asChild ? children : <div>{children}</div>;
-};
-
-// TooltipContent component
-export const TooltipContent = ({ children, className }) => {
-  const { isOpen } = useContext(TooltipContext);
-
-  return (
-    <TooltipText isOpen={isOpen} className={className}>
-      {children}
-    </TooltipText>
-  );
-};
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }

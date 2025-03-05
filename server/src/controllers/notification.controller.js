@@ -7,10 +7,7 @@ const getNotifications = async (req, res) => {
     const userId = req.user.id;
 
     // Fetch unread notifications for the user
-    const notifications = await Notification.find({
-      userId,
-      isRead: false,
-    });
+    const notifications = await Notification.find({ userId });
 
     // Return success response with the list of notifications
     return handleResponse(
@@ -22,6 +19,47 @@ const getNotifications = async (req, res) => {
   } catch (error) {
     // Handle error and return error response
     handleError(res, "Error fetching notifications", error);
+  }
+};
+
+// Add a new notification
+const addNotification = async (req, res) => {
+  try {
+    const { title, type, timestamp } = req.body;
+    const userId = req.user.id;
+
+    // Check if the notification already exists
+    const existingNotification = await Notification.findOne({
+      title,
+      type,
+      timestamp,
+      userId,
+    });
+    if (existingNotification) {
+      return handleResponse(res, 400, "Notification already exists");
+    }
+
+    // Create a new notification
+    const newNotification = new Notification({
+      title,
+      type,
+      timestamp,
+      userId,
+    });
+
+    // Save the new notification
+    await newNotification.save();
+
+    // Return success response for notification creation
+    return handleResponse(
+      res,
+      200,
+      "Notification created successfully",
+      newNotification
+    );
+  } catch (error) {
+    // Handle error and return error response
+    handleError(res, "Error creating notification", error);
   }
 };
 
@@ -46,4 +84,4 @@ const deleteNotifications = async (req, res) => {
   }
 };
 
-module.exports = { getNotifications, deleteNotifications };
+module.exports = { getNotifications, addNotification, deleteNotifications };

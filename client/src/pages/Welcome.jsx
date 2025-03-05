@@ -77,27 +77,27 @@ const HeroSection = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white pt-20">
-      <div className="container mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
+    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-200 to-white">
+      <div className="container mx-auto px-4 flex flex-col items-center justify-center text-center gap-12">
         {/* Content Section */}
         <motion.div
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-center md:text-left"
+          className="text-center"
         >
           <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6 leading-tight">
-            Manage Tasks <br />
-            <span className="text-blue-600">Effortlessly</span>
+            Manage Tasks
+            <span className="text-blue-600"> Effortlessly</span>
           </h1>
 
-          <p className="text-slate-600 text-lg mb-8 max-w-md mx-auto md:mx-0">
+          <p className="text-slate-600 text-lg mb-8 ">
             Boost your productivity with Taskia - the ultimate task management
             platform designed to streamline your workflow.
           </p>
 
           {/* Feature Highlights */}
-          <div className="flex flex-col md:flex-row gap-4 mb-8">
+          <div className="flex flex-col md:flex-row gap-4 mb-8 justify-center">
             {[
               { icon: CheckCircle2, text: "Organize Tasks" },
               { icon: Zap, text: "Boost Productivity" },
@@ -114,7 +114,7 @@ const HeroSection = () => {
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-4 justify-center">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -131,20 +131,6 @@ const HeroSection = () => {
               Learn More <Rocket size={20} />
             </motion.button>
           </div>
-        </motion.div>
-
-        {/* Image Section */}
-        <motion.div
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6 }}
-          className="hidden md:flex justify-center items-center"
-        >
-          <img
-            src={headImage}
-            alt="Task Management Dashboard"
-            className="max-w-full h-auto rounded-2xl shadow-2xl transform hover:scale-105 transition-transform duration-300"
-          />
         </motion.div>
       </div>
     </div>

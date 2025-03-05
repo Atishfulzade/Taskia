@@ -1,20 +1,15 @@
-// src/components/ui/Skeleton.jsx
-import styled, { keyframes } from "styled-components";
+import { cn } from "@/lib/utils"
 
-const shimmer = keyframes`
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-`;
+function Skeleton({
+  className,
+  ...props
+}) {
+  return (
+    (<div
+      data-slot="skeleton"
+      className={cn("bg-primary/10 animate-pulse rounded-md", className)}
+      {...props} />)
+  );
+}
 
-export const Skeleton = styled.div`
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: ${shimmer} 1.5s infinite;
-  border-radius: 4px;
-  width: ${({ width }) => width || "100%"};
-  height: ${({ height }) => height || "20px"};
-`;
+export { Skeleton }

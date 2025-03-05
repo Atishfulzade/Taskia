@@ -13,6 +13,12 @@ const projectSchema = new mongoose.Schema(
     description: {
       type: String,
     },
+    members: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     // isPrivate: { type: Boolean },
   },
   {

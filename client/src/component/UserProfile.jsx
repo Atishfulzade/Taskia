@@ -7,7 +7,12 @@ import { showToast } from "../utils/showToast";
 import { useNavigate } from "react-router-dom";
 
 // Icons
-import { LogOut, User, Settings, HelpCircle, Moon, Sun, X } from "lucide-react";
+import { LogOut, User, Settings, HelpCircle, Moon, X } from "lucide-react";
+
+// ShadCN components
+import { Button } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
+import { Dialog } from "../components/ui/Dialog";
 
 const UserProfile = ({ setShowProfile, userInfo }) => {
   const boxRef = useRef(null);
@@ -78,72 +83,79 @@ const UserProfile = ({ setShowProfile, userInfo }) => {
         className="absolute top-14 right-4 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden"
       >
         {/* Close Button */}
-        <button
+        <Button
           onClick={() => setShowProfile(false)}
-          className="absolute top-3 right-3 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+          variant="ghost"
+          size="icon"
+          className="absolute top-3 right-3 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          aria-label="Close profile menu"
         >
           <X size={20} />
-        </button>
+        </Button>
 
         {/* User Header */}
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center">
+        <Card className="px-6 py-4 border-b z-50 border-slate-200 dark:border-slate-700 flex items-center">
           {/* Circular Avatar */}
           <div className="w-12 h-12 rounded-full bg-violet-500 text-white flex items-center justify-center text-2xl font-bold mr-4 shadow-md">
             {userInfo?.name?.trim()[0] || "?"}
           </div>
 
           <div>
-            <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+            <Text className="text-lg font-semibold text-slate-800 dark:text-slate-200">
               {userInfo?.name || "Guest User"}
-            </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            </Text>
+            <Text className="text-sm text-slate-500 dark:text-slate-400">
               {userInfo?.email || "No email"}
-            </p>
+            </Text>
           </div>
-        </div>
+        </Card>
 
         {/* Profile Menu */}
         <div className="py-2">
           {profileMenuItems.map((item, index) => (
-            <button
+            <Button
               key={index}
               onClick={item.action}
+              variant="ghost"
               className="w-full flex items-center px-6 py-3 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group"
+              aria-label={item.label}
             >
               <item.icon
                 className="mr-3 text-slate-500 dark:text-slate-400 group-hover:text-violet-600 transition-colors"
                 size={20}
               />
-              <span className="text-slate-700 dark:text-slate-300 group-hover:text-violet-600 transition-colors">
+              <Text className="text-slate-700 dark:text-slate-300 group-hover:text-violet-600 transition-colors">
                 {item.label}
-              </span>
-            </button>
+              </Text>
+            </Button>
           ))}
 
           {/* Theme Toggle (Placeholder) */}
-          <button className="w-full flex items-center px-6 py-3 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group border-t border-slate-200 dark:border-slate-700">
+          <Button className="w-full flex items-center px-6 py-3 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group border-t border-slate-200 dark:border-slate-700">
             <Moon
               className="mr-3 text-slate-500 dark:text-slate-400 group-hover:text-violet-600 transition-colors"
               size={20}
             />
-            <span className="text-slate-700 dark:text-slate-300 group-hover:text-violet-600 transition-colors">
+            <Text className="text-slate-700 dark:text-slate-300 group-hover:text-violet-600 transition-colors">
               Dark Mode
-            </span>
-          </button>
+            </Text>
+          </Button>
 
           {/* Logout Button */}
-          <button
+          <Button
             onClick={logoutUser}
+            variant="destructive"
             className="w-full flex items-center px-6 py-3 hover:bg-red-50 transition-colors group border-t border-slate-200 dark:border-slate-700"
+            aria-label="Log out"
           >
             <LogOut
               className="mr-3 text-red-500 group-hover:text-red-600 transition-colors"
               size={20}
             />
-            <span className="text-red-500 group-hover:text-red-600 transition-colors">
+            <Text className="text-red-500 group-hover:text-red-600 transition-colors">
               Log Out
-            </span>
-          </button>
+            </Text>
+          </Button>
         </div>
       </motion.div>
     </AnimatePresence>
