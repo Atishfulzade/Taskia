@@ -80,7 +80,7 @@ const AddProjectPopup = ({ close }) => {
 
   return (
     <Dialog open={true} onOpenChange={() => close(false)}>
-      <DialogContent ref={dialogRef} className="sm:max-w-[500px]">
+      <DialogContent ref={dialogRef} className="sm:max-w-[500px] bg-white">
         <DialogHeader>
           <DialogTitle>Create Project</DialogTitle>
           <DialogDescription>

@@ -48,18 +48,17 @@ function App() {
         if (token) {
           const res = await requestServer("user/validate");
 
-          if (res?.data?.user && res?.data?.token) {
+          if (res?.data) {
             // Update user and token in store and localStorage
-            dispatch(login(res.data.user));
-            localStorage.setItem("token", res.data.token);
-            localStorage.setItem("user", JSON.stringify(res.data.user));
+            dispatch(login(res.data.data.user));
+            localStorage.setItem("user", JSON.stringify(res.data));
           } else {
             throw new Error("Invalid authentication response");
           }
         }
 
         // Fetch projects if not already loaded
-        if (!projects || projects.length === 0) {
+        if (!projects || (projects.length === 0 && token)) {
           const projectsRes = await requestServer("project/all");
 
           if (projectsRes?.data && Array.isArray(projectsRes.data)) {
@@ -71,7 +70,7 @@ function App() {
         }
 
         // Fetch assigned tasks if not already loaded
-        if (!assignedTask || assignedTask.length === 0) {
+        if (!assignedTask || (assignedTask.length === 0 && token)) {
           const assignTaskRes = await requestServer("task/assign");
 
           if (assignTaskRes?.data && Array.isArray(assignTaskRes.data)) {
@@ -93,10 +92,8 @@ function App() {
 
     // Only run validation if user is not authenticated but has a token,
     // or if user is authenticated but no user object exists
-    if ((isAuthenticated || token) && !user) {
-      validateUser();
-    }
-  }, [isAuthenticated, token, projects.length, user, dispatch, navigate]);
+    token && validateUser();
+  }, []);
 
   // Connect to WebSocket
   useEffect(() => {
@@ -113,9 +110,17 @@ function App() {
 
       socket.emit("joinUserRoom", user._id);
 
-      socket.on("newTaskAssigned", (data) => {
-        if (data?.task?.title) {
+      socket.on("newTaskAssigned", async (data) => {
+        if (data?.task?.title && data?.task?.assignedTo) {
           showToast(data.task.title, "info");
+
+          await requestServer(`notification/add`, {
+            userId: data.task.assignedTo, // Save the assigned user's ID
+            title: data.task.title,
+            type: data.task.type,
+            createdAt: data.task.createdAt,
+          });
+
           dispatch(addAssignTask(data.task));
         } else {
           console.error("Invalid task assignment:", data);
@@ -144,7 +149,6 @@ function App() {
           {isAuthenticated ? (
             <Route path="dashboard" element={<Layout />}>
               <Route index element={<Dashboard />} />
-              <Route path=":id" element={<Dashboard />} />
             </Route>
           ) : (
             <Route path="*" element={<Error />} />

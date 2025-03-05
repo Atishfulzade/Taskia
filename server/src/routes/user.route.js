@@ -15,7 +15,7 @@ router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/logout", verifyUser, logOutUser);
 router.post("/search/:term", verifyUser, getUserBySearch);
-router.post("/validate", validateUser);
+router.post("/validate", verifyUser, validateUser);
 router.post("/u/:id", verifyUser, getUserById);
 
 module.exports = router;

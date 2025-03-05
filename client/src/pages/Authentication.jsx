@@ -58,6 +58,7 @@ const Authentication = () => {
 
         // Send request to the backend
         res = await requestServer(endpoint, payload);
+        console.log(res);
 
         // Show success message
         showToast(res.data.message, "success");

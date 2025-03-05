@@ -13,6 +13,8 @@ import {
   PanelLeft,
   Folder,
 } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -26,37 +28,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import AddProjectPopup from "./AddProjectPopup";
+import { setCurrentProject } from "@/store/projectSlice"; // Import setCurrentProject
 
-// Sample project data for demonstration
-const sampleProjects = [
-  {
-    _id: "1",
-    title: "Marketing Campaign",
-    isStarred: true,
-    lastAccessed: new Date().toISOString(),
-  },
-  {
-    _id: "2",
-    title: "Website Redesign",
-    isStarred: false,
-    lastAccessed: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    _id: "3",
-    title: "Mobile App Development",
-    isStarred: true,
-    lastAccessed: new Date(Date.now() - 172800000).toISOString(),
-  },
-  {
-    _id: "4",
-    title: "Q4 Financial Report",
-    isStarred: false,
-    lastAccessed: new Date(Date.now() - 259200000).toISOString(),
-  },
-  { _id: "5", title: "Product Launch", isStarred: false, lastAccessed: null },
-  { _id: "6", title: "User Research", isStarred: false, lastAccessed: null },
-];
-
+// Sample shared projects data
 const sharedProjects = [
   {
     _id: "7",
@@ -80,7 +55,7 @@ const ProjectItem = ({ project, isActive, onClick, onContextMenu }) => {
       exit={{ opacity: 0, height: 0 }}
       transition={{ duration: 0.2 }}
       className={cn(
-        "group flex items-center justify-between py-2 px-3 rounded-md my-1 cursor-pointer",
+        "group flex items-center z-0 justify-between py-2 px-3 rounded-md my-1 cursor-pointer",
         isActive
           ? "bg-slate-200 text-slate-900"
           : "text-slate-700 hover:bg-slate-100"
@@ -105,7 +80,7 @@ const ProjectItem = ({ project, isActive, onClick, onContextMenu }) => {
               <MoreHorizontal className="h-4 w-4 text-slate-500" />
             </div>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-48 bg-white">
             <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();
@@ -148,21 +123,10 @@ const ProjectItem = ({ project, isActive, onClick, onContextMenu }) => {
 };
 
 const Sidebar = ({ onCollapse }) => {
-  //const navigate = useNavigate();
-  //const dispatch = useDispatch();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showAddProject, setShowAddProject] = useState(false);
-  //const [assignedProjects, setAssignedProjects] = useState([]);
-  //const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
-  //const [contextMenu, setContextMenu] = useState({
-  //  show: false,
-  //  x: 0,
-  //  y: 0,
-  //  projectId: null,
-  //  action: null,
-  //});
   const [expandedSections, setExpandedSections] = useState({
     myProjects: true,
     shared: true,
@@ -170,101 +134,15 @@ const Sidebar = ({ onCollapse }) => {
   });
   const searchInputRef = useRef(null);
 
-  // Redux states
-  //const projects = useSelector((state) => state.project.projects || []);
-  //const selectedProject = useSelector((state) => state.project.currentProject);
-  //const assignTask = useSelector((state) => state.assignTask?.tasks || []);
-  const [selectedProjectId, setSelectedProjectId] = useState(null);
-  const [projects, setProjects] = useState(sampleProjects);
-  //const [enhancedProjects, setEnhancedProjects] = useState([]);
-  //const [recentProjects, setRecentProjects] = useState([]);
+  const dispatch = useDispatch();
+  const navigate = useNavigate(); // Initialize useNavigate
+  const projects = useSelector((state) => state.project.projects);
+  const currentProject = useSelector((state) => state.project.currentProject);
 
-  // Process projects with additional metadata
-  //useEffect(() => {
-  //  if (projects.length) {
-  //    const enhanced = projects.map((project) => ({
-  //      ...project,
-  //      isStarred: localStorage.getItem(`starred_${project._id}`) === "true",
-  //      lastAccessed:
-  //        localStorage.getItem(`lastAccessed_${project._id}`) || null,
-  //    }));
+  const [selectedProjectId, setSelectedProjectId] = useState(
+    currentProject?._id || null
+  );
 
-  //    enhanced.sort((a, b) => {
-  //      if (a.isStarred && !b.isStarred) return -1;
-  //      if (!a.isStarred && b.isStarred) return 1;
-  //      return a.title.localeCompare(b.title);
-  //    });
-
-  //    setEnhancedProjects(enhanced);
-
-  //    const recent = enhanced
-  //      .filter((p) => p.lastAccessed)
-  //      .sort((a, b) => new Date(b.lastAccessed) - new Date(a.lastAccessed))
-  //      .slice(0, 5);
-
-  //    setRecentProjects(recent);
-  //  }
-  //}, [projects]);
-
-  // Set the first project as the current project on mount
-  //useEffect(() => {
-  //  if (enhancedProjects.length > 0 && !selectedProject) {
-  //    dispatch(setCurrentProject(enhancedProjects[0]));
-  //  }
-  //}, [enhancedProjects, selectedProject, dispatch]);
-
-  // Fetch assigned projects
-  //const fetchAssignedProjects = async () => {
-  //  try {
-  //    setIsLoading(true);
-  //    if (!assignTask.length) {
-  //      setAssignedProjects([]);
-  //      return;
-  //    }
-
-  //    const projectIds = [
-  //      ...new Set(assignTask.flatMap((task) => task.projectId)),
-  //    ];
-
-  //    if (!projectIds.length) {
-  //      setAssignedProjects([]);
-  //      return;
-  //    }
-
-  //    const responses = await Promise.all(
-  //      projectIds.map(async (projectId) => {
-  //        try {
-  //          const response = await requestServer(`project/get/${projectId}`);
-  //          return response;
-  //        } catch (error) {
-  //          console.error(`Error fetching project ${projectId}:`, error);
-  //          return null;
-  //        }
-  //      })
-  //    );
-
-  //    const validProjects = responses.filter(Boolean).map((project) => ({
-  //      ...project,
-  //      data: {
-  //        ...project.data,
-  //        isStarred:
-  //          localStorage.getItem(`starred_${project.data._id}`) === "true",
-  //      },
-  //    }));
-
-  //    setAssignedProjects(validProjects);
-  //  } catch (error) {
-  //    console.error("Error fetching assigned projects:", error);
-  //  } finally {
-  //    setIsLoading(false);
-  //  }
-  //};
-
-  //useEffect(() => {
-  //  fetchAssignedProjects();
-  //}, [assignTask]);
-
-  // Focus search input when search is shown
   useEffect(() => {
     if (showSearch && searchInputRef.current) {
       searchInputRef.current.focus();
@@ -273,51 +151,37 @@ const Sidebar = ({ onCollapse }) => {
 
   // Handle project selection
   const handleSelectProject = (project) => {
-    setSelectedProjectId(project._id);
-    // In a real app, you would navigate or dispatch an action here
-    console.log("Selected project:", project);
+    setSelectedProjectId(project._id); // Update local state
+    dispatch(setCurrentProject(project)); // Update Redux state
   };
-
-  // Handle context menu
-  //const handleContextMenu = (e, project, action) => {
-  //  e.preventDefault();
-  //  e.stopPropagation();
-
-  //  if (action) {
-  //    handleContextAction(project._id, action);
-  //  } else {
-  //    setContextMenu({
-  //      show: true,
-  //      x: e.clientX,
-  //      y: e.clientY,
-  //      projectId: project._id,
-  //    });
-  //  }
-  //};
 
   // Handle context menu actions
   const handleContextAction = (project, action) => {
     switch (action) {
       case "star":
-        setProjects((prev) =>
-          prev.map((p) =>
-            p._id === project._id ? { ...p, isStarred: !p.isStarred } : p
+        dispatch(
+          setCurrentProject((prevProjects) =>
+            prevProjects.map((p) =>
+              p._id === project._id ? { ...p, isStarred: !p.isStarred } : p
+            )
           )
         );
         break;
+
       case "rename":
-        // In a real app, you would show a rename dialog
-        console.log("Rename project:", project._id);
+        console.log(`Renaming project: ${project._id}`);
         break;
+
       case "delete":
-        // In a real app, you would show a confirmation dialog
-        console.log("Delete project:", project._id);
+        console.log(`Deleting project: ${project._id}`);
         break;
+
       case "share":
-        // In a real app, you would show a sharing dialog
-        console.log("Share project:", project._id);
+        console.log(`Sharing project: ${project._id}`);
         break;
+
       default:
+        console.warn(`Unknown action: ${action}`);
         break;
     }
   };
@@ -353,7 +217,6 @@ const Sidebar = ({ onCollapse }) => {
 
   return (
     <>
-      {/* Sidebar Container */}
       <motion.div
         initial={false}
         animate={{ width: isCollapsed ? 60 : 280 }}
@@ -369,7 +232,7 @@ const Sidebar = ({ onCollapse }) => {
             {!isCollapsed && (
               <>
                 {showSearch ? (
-                  <div className="absolute w-[180px] z-20 right-10 bg-white">
+                  <div className="absolute w-[180px] z-20 right-10 top-1.5 bg-white">
                     <Input
                       ref={searchInputRef}
                       type="text"
@@ -408,12 +271,9 @@ const Sidebar = ({ onCollapse }) => {
                   </button>
                 )}
 
-                <button
-                  className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md"
-                  onClick={() => setShowAddProject(true)}
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
+                {showAddProject && (
+                  <AddProjectPopup close={setShowAddProject} />
+                )}
               </>
             )}
 
@@ -641,53 +501,6 @@ const Sidebar = ({ onCollapse }) => {
           </Button>
         </div>
       </motion.div>
-
-      {/* Add Project Dialog - This would be a modal in a real app */}
-      {showAddProject && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-          onClick={() => setShowAddProject(false)}
-        >
-          <div
-            className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-xl font-semibold mb-4 text-slate-800">
-              Create New Project
-            </h2>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Project Name
-              </label>
-              <Input
-                className="w-full border-slate-300"
-                placeholder="Enter project name"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Description (Optional)
-              </label>
-              <textarea
-                className="w-full border border-slate-300 rounded-md p-2 text-sm"
-                rows={3}
-                placeholder="Enter project description"
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowAddProject(false)}
-              >
-                Cancel
-              </Button>
-              <Button onClick={() => setShowAddProject(false)}>
-                Create Project
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

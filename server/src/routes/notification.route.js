@@ -4,16 +4,16 @@ const {
   getNotifications,
   addNotification,
   deleteNotifications,
-} = require("../controllers/notificationController");
-const { authenticateUser } = require("../middleware/authMiddleware");
+} = require("../controllers/notification.controller.js");
+const { verifyUser } = require("../middlewares/verifyUser.middleware.js");
 
 // Get all notifications for the logged-in user
-router.post("/notifications", authenticateUser, getNotifications);
+router.post("/get", verifyUser, getNotifications);
 
 // Add a new notification
-router.post("/notifications", authenticateUser, addNotification);
+router.post("/add", verifyUser, addNotification);
 
 // Delete a notification by ID
-router.post("/notifications/:id", authenticateUser, deleteNotifications);
+router.post("/delete/:id", verifyUser, deleteNotifications);
 
 module.exports = router;

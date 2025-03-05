@@ -15,64 +15,24 @@ import requestServer from "../utils/requestServer";
 import bgColors from "../utils/constant";
 
 // Shadcn UI Components
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 
-// Icons
 import {
-  Plus,
   Search,
   Filter,
-  ArrowUpDown,
-  Users,
-  User,
-  ListFilter,
-  MoreHorizontal,
-  Merge,
+  ArrowDownIcon,
+  ChevronsUpDown,
+  Plus,
 } from "lucide-react";
+import Column from "@/component/Column";
 
 const ProjectDetail = () => {
   // State Management
@@ -136,15 +96,31 @@ const ProjectDetail = () => {
     });
   }, [tasks, viewMode, searchQuery, userId, filterOptions]);
 
-  // Fetch and Update Functions (keep existing implementations)
+  // Fetch and Update Functions
   const fetchStatuses = async () => {
-    /* Existing implementation */
+    try {
+      const res = await requestServer(`status/all/${projectId}`);
+      dispatch(setStatuses(res.data));
+    } catch (error) {
+      console.error("Error fetching statuses:", error);
+    }
   };
+
   const fetchTasks = async () => {
-    /* Existing implementation */
+    try {
+      const res = await requestServer(`task/all/${projectId}`);
+      dispatch(setTasks(res.data));
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+    }
   };
+
   const updateCurrentTask = async (task) => {
-    /* Existing implementation */
+    try {
+      await requestServer(`task/update/${task._id}`, task);
+    } catch (error) {
+      console.error("Error updating task:", error);
+    }
   };
 
   // Advanced Drag and Drop Handlers
@@ -211,84 +187,86 @@ const ProjectDetail = () => {
   }, [projectId]);
 
   return (
-    <div className="h-full w-full bg-background">
+    <div className="h-full w-full bg-background px-6">
       {/* Project Header */}
-      <Card className="sticky top-0 z-10 rounded-none border-x-0 border-t-0">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>{projectName || "Project Dashboard"}</CardTitle>
-              <div className="flex items-center space-x-2 mt-2">
-                <Badge variant="secondary">{total} Tasks</Badge>
-                <Badge variant="outline">{myTasks} My Tasks</Badge>
-              </div>
-            </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button onClick={() => setTaskOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Task
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Create a new task in this project</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+      <div className="flex justify-between items-center mb-5 border-b p-2">
+        <div>
+          <CardTitle className="text-xl font-semibold flex gap-3.5 text-slate-800">
+            {projectName || "Project Dashboard"} <Badge>{total} Tasks</Badge>
+          </CardTitle>
+        </div>
+        <div className="flex items-center space-x-2">
+          {/* View Mode */}
+
+          <Button size="sm" onClick={() => setViewMode("me")}>
+            <Plus className="mr-0 h-4 w-4" /> Add status
+          </Button>
+
+          <Button
+            variant={viewMode === "me" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("me")}
+          >
+            <ChevronsUpDown className="mr-0 h-4 w-4" /> Sort
+          </Button>
+
+          {/* Advanced Filtering */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Filter className=" h-4 w-4" />
+                Filter
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              {/* Filter options implementation */}
+            </PopoverContent>
+          </Popover>
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search tasks..."
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-        </CardHeader>
-      </Card>
+        </div>
+      </div>
 
-      {/* Toolbar */}
-      <Card className="sticky top-[85px] z-10 rounded-none border-x-0 border-t-0">
-        <CardContent className="pt-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              {/* View Mode */}
-              <Tabs value={viewMode} onValueChange={setViewMode}>
-                <TabsList>
-                  <TabsTrigger value="all">
-                    <Users className="mr-2 h-4 w-4" />
-                    All Tasks
-                  </TabsTrigger>
-                  <TabsTrigger value="me">
-                    <User className="mr-2 h-4 w-4" />
-                    My Tasks
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+      {/* Columns */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex gap-4 overflow-x-auto">
+          {statuses.map((status) => (
+            <Column
+              key={status._id}
+              status={status}
+              tasks={filteredTasks.filter((task) => task.status === status._id)}
+              setEditTaskOpen={setEditTaskOpen}
+              setTaskOpen={setTaskOpen}
+              selectedStatus={status._id}
+              isLoading={loading}
+            />
+          ))}
+        </div>
 
-              {/* Advanced Filtering */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Filter className="mr-2 h-4 w-4" />
-                    Filter
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80">
-                  {/* Filter options implementation */}
-                </PopoverContent>
-              </Popover>
-
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search tasks..."
-                  className="pl-8"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+        {/* Drag Overlay */}
+        <DragOverlay>
+          {activeTask ? (
+            <div className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
+              <p className="font-semibold">{activeTask.title}</p>
+              <p className="text-sm text-slate-500">{activeTask.description}</p>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Kanban Board Implementation */}
-      {/* (Keep existing DndContext implementation with shadcn components) */}
+          ) : null}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 };

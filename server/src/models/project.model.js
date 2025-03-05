@@ -13,13 +13,14 @@ const projectSchema = new mongoose.Schema(
     description: {
       type: String,
     },
+    isStarred: Boolean,
+    lastAccessed: Date,
     members: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
       },
     ],
-    // isPrivate: { type: Boolean },
   },
   {
     timestamps: true,

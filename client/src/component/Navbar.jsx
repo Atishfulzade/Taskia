@@ -34,7 +34,7 @@ const Navbar = () => {
 
   // Dark mode effect
   useEffect(() => {
-    const html = document.querySelector("html");
+    const html = document.querySelector("#root");
     if (isDarkMode) {
       html.classList.add("dark");
       localStorage.setItem("theme", "dark");
@@ -69,25 +69,6 @@ const Navbar = () => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-    }
-  };
-
-  // Profile dropdown menu actions
-  const handleProfileAction = (action) => {
-    setShowProfile(false);
-    switch (action) {
-      case "profile":
-        navigate("/profile");
-        break;
-      case "settings":
-        navigate("/settings");
-        break;
-      case "logout":
-        dispatch(logout());
-        navigate("/login");
-        break;
-      default:
-        break;
     }
   };
 
@@ -143,26 +124,31 @@ const Navbar = () => {
         </button>
 
         {/* Profile Section */}
-        <div ref={profileRef} className="relative">
-          <div
-            onClick={() => setShowProfile(!showProfile)}
-            className="flex select-none cursor-pointer px-2 py-1 gap-2 items-center bg-violet-500 rounded-full hover:bg-violet-600 transition-colors"
-          >
-            <div className="h-8 w-8 flex bg-violet-700 cursor-pointer border items-center justify-center border-violet-500 text-white text-sm rounded-full">
-              {userInfo?.name?.trim()[0] || "?"}
-            </div>
-            <span className="hidden md:block text-white text-sm">
-              {userInfo?.name || "User"}
-            </span>
-            <IoIosArrowDown className="text-white" />
+        <div
+          ref={profileRef}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent event propagation
+            setShowProfile(!showProfile);
+          }}
+          className="flex select-none cursor-pointer px-2 py-1 gap-2 items-center bg-violet-500 rounded-full hover:bg-violet-600 transition-colors"
+        >
+          <div className="h-8 w-8 flex bg-violet-700 cursor-pointer border items-center justify-center border-violet-500 text-white text-sm rounded-full">
+            {userInfo?.name?.trim()[0] || "?"}
           </div>
-
-          {showProfile && (
-            <div className="absolute right-0 mt-2">
-              <UserProfile onAction={handleProfileAction} />
-            </div>
-          )}
+          <span className="hidden md:block text-white text-sm">
+            {userInfo?.name || "User"}
+          </span>
+          <IoIosArrowDown className="text-white" />
         </div>
+
+        {/* Render UserProfile */}
+        {showProfile && (
+          <UserProfile
+            setShowProfile={setShowProfile}
+            userInfo={userInfo}
+            ref={profileRef}
+          />
+        )}
       </div>
     </nav>
   );

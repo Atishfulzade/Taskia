@@ -1,4 +1,4 @@
-const Notification = require("../models/Notification");
+const Notification = require("../models/notification.model");
 const { handleError, handleResponse } = require("../utils/common-functions");
 
 // Get all unread notifications for the logged-in user
@@ -25,41 +25,29 @@ const getNotifications = async (req, res) => {
 // Add a new notification
 const addNotification = async (req, res) => {
   try {
-    const { title, type, timestamp } = req.body;
-    const userId = req.user.id;
+    const { userId, title, type, createdAt } = req.body;
 
-    // Check if the notification already exists
-    const existingNotification = await Notification.findOne({
-      title,
-      type,
-      timestamp,
-      userId,
-    });
-    if (existingNotification) {
-      return handleResponse(res, 400, "Notification already exists");
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required" });
     }
 
-    // Create a new notification
     const newNotification = new Notification({
-      title,
+      userId, // Make sure the assigned user's ID is saved
+      message: title,
       type,
-      timestamp,
-      userId,
+      createdAt,
     });
 
-    // Save the new notification
     await newNotification.save();
 
-    // Return success response for notification creation
-    return handleResponse(
-      res,
-      200,
-      "Notification created successfully",
-      newNotification
-    );
+    res
+      .status(201)
+      .json({ success: true, message: "Notification saved successfully!" });
   } catch (error) {
-    // Handle error and return error response
-    handleError(res, "Error creating notification", error);
+    console.error("Error saving notification:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
