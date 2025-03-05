@@ -189,7 +189,7 @@ const ProjectDetail = () => {
   return (
     <div className="h-full w-full bg-background px-6">
       {/* Project Header */}
-      <div className="flex justify-between items-center mb-5 border-b p-2">
+      <div className="flex justify-between items-center mb-5 border-b border-slate-300 p-2">
         <div>
           <CardTitle className="text-xl font-semibold flex gap-3.5 text-slate-800">
             {projectName || "Project Dashboard"} <Badge>{total} Tasks</Badge>
@@ -198,8 +198,8 @@ const ProjectDetail = () => {
         <div className="flex items-center space-x-2">
           {/* View Mode */}
 
-          <Button size="sm" onClick={() => setViewMode("me")}>
-            <Plus className="mr-0 h-4 w-4" /> Add status
+          <Button size="sm" className="bg-violet-600 cursor-pointer text-white">
+            <Plus className=" h-4 w-4" /> Add status
           </Button>
 
           <Button

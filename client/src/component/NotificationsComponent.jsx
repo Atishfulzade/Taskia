@@ -9,6 +9,8 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { FiBell } from "react-icons/fi";
+import requestServer from "@/utils/requestServer";
+import { useSelector } from "react-redux";
 
 const NotificationIcon = {
   success: CheckCircle,
@@ -20,34 +22,14 @@ const NotificationIcon = {
 const NotificationsComponent = () => {
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
-
-  // Simulated socket or event-based notification mechanism
+  const assignTask = useSelector((state) => state.assignTask.task);
+  const handleNotifications = async () => {
+    const res = await requestServer("notification/get");
+    setNotifications(res.data);
+  };
   useEffect(() => {
-    // This could be replaced with actual socket.io or WebSocket logic
-    const mockNotificationEvents = [
-      {
-        id: 1,
-        title: "New task assigned",
-        type: "info",
-        timestamp: new Date(),
-      },
-      {
-        id: 2,
-        title: "Project deadline approaching",
-        type: "error",
-        timestamp: new Date(),
-      },
-      {
-        id: 3,
-        title: "Successful team update",
-        type: "success",
-        timestamp: new Date(),
-      },
-    ];
-
-    // Simulate adding notifications
-    setNotifications(mockNotificationEvents);
-  }, []);
+    handleNotifications();
+  }, [assignTask]);
 
   const removeNotification = (id) => {
     setNotifications((prev) =>
