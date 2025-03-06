@@ -1,39 +1,9 @@
 import React, { useState, useMemo } from "react";
-import {
-  Search,
-  Settings,
-  Filter,
-  Plus,
-  MoreHorizontal,
-  RefreshCw,
-  Layout,
-  Columns,
-  List,
-} from "lucide-react";
+import { Search, Columns, List } from "lucide-react";
 
 // Shadcn UI Components
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuLabel,
-  DropdownMenuGroup,
-} from "@/components/ui/dropdown-menu";
 
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Project Components

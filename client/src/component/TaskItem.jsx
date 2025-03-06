@@ -1,12 +1,9 @@
-"use client";
-
 import { useDraggable } from "@dnd-kit/core";
 import { useState, useEffect } from "react";
 import { formatDate } from "../utils/formatDate";
 import requestServer from "../utils/requestServer";
 import React from "react";
 
-// Icons
 import {
   FaRegCircleUser,
   FaRegCalendar,
@@ -20,8 +17,9 @@ import {
   MdOutlineCheckCircle,
   MdOutlineRadioButtonUnchecked,
 } from "react-icons/md";
+import { TaskModal } from "./AddTaskPopup";
 
-const TaskItem = ({ task, setEditTaskOpen }) => {
+const TaskItem = ({ task, setEditTaskOpen, setTaskOpen, taskOpen }) => {
   // Drag-and-drop functionality
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: task?._id,
@@ -82,16 +80,6 @@ const TaskItem = ({ task, setEditTaskOpen }) => {
     },
   };
 
-  // Handle opening the edit task modal
-  const handleEditTask = (e) => {
-    e.stopPropagation();
-    setEditTaskOpen((prev) => ({
-      ...prev,
-      isOpen: !prev.isOpen,
-      task: task,
-    }));
-  };
-
   // Check if due date is overdue
   const isOverdue = () => {
     if (!task?.dueDate) return false;
@@ -130,7 +118,13 @@ const TaskItem = ({ task, setEditTaskOpen }) => {
         )}
 
         {/* Task Title */}
-        <div onClick={handleEditTask} className="cursor-pointer">
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            setTaskOpen(true);
+          }}
+          className="cursor-pointer"
+        >
           <h4 className="text-slate-800 font-inter text-sm font-medium leading-5 line-clamp-2 hover:text-violet-700 transition-colors">
             {task?.title}
           </h4>
@@ -273,7 +267,13 @@ const TaskItem = ({ task, setEditTaskOpen }) => {
           </div>
         )}
       </div>
-
+      <TaskModal
+        onOpenChange={setTaskOpen}
+        currentStatus={status}
+        isEdit={true}
+        open={taskOpen}
+        taskData={task}
+      />
       {/* Drag Handle - Separated from content to avoid click conflicts */}
       <div
         {...listeners}

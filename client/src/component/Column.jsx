@@ -12,13 +12,14 @@ import { FaRegCircle } from "react-icons/fa6";
 import { PiDotsThreeBold } from "react-icons/pi";
 import { TbLayoutKanban } from "react-icons/tb";
 import TaskMoreDropdown from "./TaskMoreDropdown";
+import { TaskModal } from "./AddTaskPopup";
 
 export default function Column({
   status,
   tasks = [],
   setEditTaskOpen,
   setTaskOpen,
-  selectedStatus,
+  taskOpen,
   isLoading = false,
 }) {
   // Droppable setup
@@ -28,7 +29,6 @@ export default function Column({
 
   // State
   const [showMore, setShowMore] = useState(false);
-  const [showAddTask, setShowAddTask] = useState(false);
   const dropdownRef = useRef(null);
 
   // Redux state
@@ -54,12 +54,6 @@ export default function Column({
     };
   }, []);
 
-  // Handle opening the task creation popup
-  const handleTaskOpen = () => {
-    selectedStatus(status);
-    setTaskOpen(true);
-  };
-
   return (
     <div
       className={`flex flex-col h-[calc(100vh-180px)] w-[280px] rounded-lg shadow-sm transition-all duration-200 ${
@@ -72,6 +66,12 @@ export default function Column({
     >
       {/* Column Header */}
       <div className="p-3 border-b border-slate-200">
+        <TaskModal
+          open={taskOpen}
+          onOpenChange={setTaskOpen}
+          currentStatus={status}
+          isEdit={false}
+        />
         <div className="flex justify-between items-center">
           <div className="flex gap-2 items-center">
             {/* Status Badge */}
@@ -128,7 +128,7 @@ export default function Column({
 
               {/* Add Task Button */}
               <button
-                onClick={handleTaskOpen}
+                onClick={() => setTaskOpen(true)}
                 className="p-1.5 rounded-full hover:bg-slate-100 transition-colors text-slate-600"
                 title="Add a new task"
               >
@@ -162,6 +162,8 @@ export default function Column({
               task={task}
               status={status}
               setEditTaskOpen={setEditTaskOpen}
+              taskOpen={taskOpen}
+              setTaskOpen={setTaskOpen}
             />
           ))
         ) : (
@@ -178,18 +180,14 @@ export default function Column({
       {isProjectOwner && (
         <div className="p-2 border-t border-slate-200">
           <button
-            onClick={handleTaskOpen}
-            onMouseEnter={() => setShowAddTask(true)}
-            onMouseLeave={() => setShowAddTask(false)}
+            onClick={() => setTaskOpen(true)}
             className="w-full py-2 px-3 rounded-md bg-white hover:bg-violet-50 border border-slate-200 hover:border-violet-200 transition-colors flex items-center justify-center gap-1 text-slate-600 hover:text-violet-600 group"
           >
             <IoIosAdd
               size={18}
               className="text-violet-500 group-hover:text-violet-600 transition-colors"
             />
-            <span className="text-sm font-medium">
-              {showAddTask ? "Add a new task" : "Add task"}
-            </span>
+            <span className="text-sm font-medium">Add task"</span>
           </button>
         </div>
       )}

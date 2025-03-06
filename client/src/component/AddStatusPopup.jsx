@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { IoIosClose } from "react-icons/io";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { X } from "lucide-react";
 
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,14 +90,14 @@ const AddStatusPopup = ({ open, setOpen, status }) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Status</DialogTitle>
-          <IoIosClose
-            className="absolute top-4 right-4 cursor-pointer"
-            size={22}
-            onClick={() => setOpen(false)}
-          />
+          <DialogClose asChild>
+            <button className="absolute top-4 right-4 p-1">
+              <X size={20} className="text-gray-500 hover:text-gray-700" />
+            </button>
+          </DialogClose>
         </DialogHeader>
 
         <form className="flex flex-col gap-4" onSubmit={formik.handleSubmit}>
@@ -112,29 +113,27 @@ const AddStatusPopup = ({ open, setOpen, status }) => {
             <p className="text-red-500 text-sm">{formik.errors.title}</p>
           )}
 
-          <div className="flex flex-col">
+          <div>
             <p className="text-sm text-slate-600 mb-2">Select color</p>
-            <div className="flex w-full gap-1 flex-wrap">
+            <div className="flex flex-wrap gap-2">
               {bgColors.map((color, index) => (
-                <div
+                <button
                   key={index}
+                  type="button"
                   style={{ backgroundColor: color.primaryColor }}
                   onClick={() => setSelectedColor(color)}
-                  className={`w-6 h-6 rounded-full cursor-pointer mx-1 ${
+                  className={`w-8 h-8 rounded-full border-2 ${
                     selectedColor.primaryColor === color.primaryColor
-                      ? "border-2 border-violet-700"
-                      : "border"
+                      ? "border-violet-700"
+                      : "border-transparent"
                   }`}
+                  aria-label={`Select ${color.primaryColor}`}
                 />
               ))}
             </div>
           </div>
 
-          <Button
-            type="submit"
-            disabled={loading}
-            className="bg-purple-600 text-white"
-          >
+          <Button type="submit" disabled={loading} variant="default">
             {loading
               ? status
                 ? "Updating..."

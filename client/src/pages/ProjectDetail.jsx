@@ -33,6 +33,7 @@ import {
   Plus,
 } from "lucide-react";
 import Column from "@/component/Column";
+import { TaskModal } from "@/component/AddTaskPopup";
 
 const ProjectDetail = () => {
   // State Management
@@ -255,6 +256,7 @@ const ProjectDetail = () => {
               tasks={filteredTasks.filter((task) => task.status === status._id)}
               setEditTaskOpen={setEditTaskOpen}
               setTaskOpen={setTaskOpen}
+              taskOpen={taskOpen}
               selectedStatus={status._id}
               isLoading={loading}
             />
