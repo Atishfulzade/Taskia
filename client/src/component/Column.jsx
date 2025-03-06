@@ -1,5 +1,3 @@
-"use client";
-
 import { useDroppable } from "@dnd-kit/core";
 import { useState, useRef, useEffect } from "react";
 import { useSelector } from "react-redux";
@@ -22,25 +20,19 @@ export default function Column({
   taskOpen,
   isLoading = false,
 }) {
-  // Droppable setup
-  const { setNodeRef, isOver, active } = useDroppable({
+  const { setNodeRef, isOver } = useDroppable({
     id: status?._id || "default-status",
   });
 
-  // State
   const [showMore, setShowMore] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Redux state
   const currentProjectUserId = useSelector(
     (state) => state.project.currentProject.userId
   );
   const userId = useSelector((state) => state.user.user._id);
-
-  // Check if user is project owner
   const isProjectOwner = userId === currentProjectUserId;
 
-  // Handle clicking outside dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -54,6 +46,17 @@ export default function Column({
     };
   }, []);
 
+  const renderAddTaskButton = () => (
+    <button
+      onClick={() => setTaskOpen(true)}
+      className="p-1.5 rounded-full hover:bg-slate-100 transition-colors text-slate-600"
+      title="Add a new task"
+      aria-label="Add task"
+    >
+      <IoIosAdd size={18} />
+    </button>
+  );
+
   return (
     <div
       className={`flex flex-col h-[calc(100vh-180px)] w-[280px] rounded-lg shadow-sm transition-all duration-200 ${
@@ -64,17 +67,15 @@ export default function Column({
         borderLeft: `3px solid ${status?.color?.primaryColor || "#e2e8f0"}`,
       }}
     >
-      {/* Column Header */}
+      <TaskModal
+        open={taskOpen}
+        onOpenChange={setTaskOpen}
+        currentStatus={status}
+        isEdit={false}
+      />
       <div className="p-3 border-b border-slate-200">
-        <TaskModal
-          open={taskOpen}
-          onOpenChange={setTaskOpen}
-          currentStatus={status}
-          isEdit={false}
-        />
         <div className="flex justify-between items-center">
           <div className="flex gap-2 items-center">
-            {/* Status Badge */}
             <div
               style={{
                 backgroundColor: status?.color?.primaryColor || "#e2e8f0",
@@ -89,25 +90,21 @@ export default function Column({
                 {status?.title?.toUpperCase()}
               </h3>
             </div>
-
-            {/* Task Count */}
             <span className="text-slate-500 text-xs font-medium px-2 py-1 bg-slate-100 rounded-full">
               {tasks?.length || 0}
             </span>
           </div>
-
-          {/* Actions (More Options and Add Task) */}
           {isProjectOwner && (
             <div className="flex gap-1">
-              {/* More Options Dropdown */}
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setShowMore(!showMore)}
                   className="p-1.5 rounded-full hover:bg-slate-100 transition-colors text-slate-600"
+                  aria-label="More options"
+                  aria-expanded={showMore}
                 >
                   <PiDotsThreeBold size={18} />
                 </button>
-
                 <AnimatePresence>
                   {showMore && (
                     <motion.div
@@ -125,27 +122,16 @@ export default function Column({
                   )}
                 </AnimatePresence>
               </div>
-
-              {/* Add Task Button */}
-              <button
-                onClick={() => setTaskOpen(true)}
-                className="p-1.5 rounded-full hover:bg-slate-100 transition-colors text-slate-600"
-                title="Add a new task"
-              >
-                <IoIosAdd size={18} />
-              </button>
+              {renderAddTaskButton()}
             </div>
           )}
         </div>
       </div>
-
-      {/* Task List Container */}
       <div
         ref={setNodeRef}
         className="flex-1 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent"
       >
         {isLoading ? (
-          // Loading skeleton
           Array(3)
             .fill(0)
             .map((_, index) => (
@@ -155,7 +141,6 @@ export default function Column({
               />
             ))
         ) : tasks?.length > 0 ? (
-          // Task list
           tasks.map((task) => (
             <TaskItem
               key={task?._id || `task-${task.index}`}
@@ -167,7 +152,6 @@ export default function Column({
             />
           ))
         ) : (
-          // Empty state
           <div className="flex flex-col items-center justify-center h-full text-center p-4 text-slate-400">
             <TbLayoutKanban size={32} className="mb-2" />
             <p className="text-sm">No tasks yet</p>
@@ -175,19 +159,18 @@ export default function Column({
           </div>
         )}
       </div>
-
-      {/* Add Task Button at the Bottom */}
       {isProjectOwner && (
         <div className="p-2 border-t border-slate-200">
           <button
             onClick={() => setTaskOpen(true)}
             className="w-full py-2 px-3 rounded-md bg-white hover:bg-violet-50 border border-slate-200 hover:border-violet-200 transition-colors flex items-center justify-center gap-1 text-slate-600 hover:text-violet-600 group"
+            aria-label="Add task"
           >
             <IoIosAdd
               size={18}
               className="text-violet-500 group-hover:text-violet-600 transition-colors"
             />
-            <span className="text-sm font-medium">Add task"</span>
+            <span className="text-sm font-medium">Add task</span>
           </button>
         </div>
       )}

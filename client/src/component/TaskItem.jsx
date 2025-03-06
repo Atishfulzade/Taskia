@@ -19,11 +19,18 @@ import {
 } from "react-icons/md";
 import { TaskModal } from "./AddTaskPopup";
 
-const TaskItem = ({ task, setEditTaskOpen, setTaskOpen, taskOpen }) => {
-  // Drag-and-drop functionality
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id: task?._id,
-  });
+const TaskItem = ({
+  task,
+  status,
+  setTaskOpen,
+  taskOpen,
+  setEditTaskOpen,
+  isDragging = false,
+}) => {
+  // Only use useDraggable if not being used as a drag overlay
+  const { attributes, listeners, setNodeRef, transform } = !isDragging
+    ? useDraggable({ id: task?._id })
+    : { attributes: {}, listeners: {}, setNodeRef: null, transform: null };
 
   // State for showing subtasks, assigned user, and loading states
   const [showSubTask, setShowSubTask] = useState(false);
@@ -88,12 +95,16 @@ const TaskItem = ({ task, setEditTaskOpen, setTaskOpen, taskOpen }) => {
 
   return (
     <div
-      ref={setNodeRef}
-      className="border my-2 select-none h-fit border-slate-200 bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+      ref={!isDragging ? setNodeRef : undefined}
+      className={`border my-2 select-none h-fit border-slate-200 bg-white rounded-lg shadow-sm ${
+        isDragging ? "shadow-xl opacity-90 scale-105" : "hover:shadow-md"
+      } transition-all duration-200`}
       style={{
         transform: transform
           ? `translate(${transform.x}px, ${transform.y}px)`
           : undefined,
+        // Add additional styling for dragging state
+        zIndex: isDragging ? 999 : 1,
       }}
     >
       {/* Task Card Content */}
@@ -120,6 +131,7 @@ const TaskItem = ({ task, setEditTaskOpen, setTaskOpen, taskOpen }) => {
         {/* Task Title */}
         <div
           onClick={(e) => {
+            if (isDragging) return; // Don't trigger clicks while dragging
             e.stopPropagation();
             setTaskOpen(true);
           }}
@@ -187,6 +199,7 @@ const TaskItem = ({ task, setEditTaskOpen, setTaskOpen, taskOpen }) => {
             {/* Subtask Header */}
             <div
               onClick={(e) => {
+                if (isDragging) return; // Don't trigger clicks while dragging
                 e.stopPropagation();
                 setShowSubTask((prev) => !prev);
               }}
@@ -226,7 +239,7 @@ const TaskItem = ({ task, setEditTaskOpen, setTaskOpen, taskOpen }) => {
             </div>
 
             {/* Subtask List */}
-            {showSubTask && (
+            {showSubTask && !isDragging && (
               <div className="mt-2 space-y-2 pl-2 pr-1 py-1 bg-slate-50 rounded-md max-h-40 overflow-y-auto">
                 {task.subTask.map((subtask) => (
                   <div
@@ -267,19 +280,26 @@ const TaskItem = ({ task, setEditTaskOpen, setTaskOpen, taskOpen }) => {
           </div>
         )}
       </div>
-      <TaskModal
-        onOpenChange={setTaskOpen}
-        currentStatus={status}
-        isEdit={true}
-        open={taskOpen}
-        taskData={task}
-      />
-      {/* Drag Handle - Separated from content to avoid click conflicts */}
-      <div
-        {...listeners}
-        {...attributes}
-        className="h-1.5 bg-slate-100 rounded-b-lg cursor-grab active:cursor-grabbing hover:bg-violet-100 transition-colors"
-      />
+
+      {/* Don't render modal when it's a drag overlay */}
+      {!isDragging && (
+        <TaskModal
+          onOpenChange={setTaskOpen}
+          currentStatus={status}
+          isEdit={true}
+          open={taskOpen}
+          taskData={task}
+        />
+      )}
+
+      {/* Drag Handle - Only render when not dragging */}
+      {!isDragging && (
+        <div
+          {...listeners}
+          {...attributes}
+          className="h-1.5 bg-slate-100 rounded-b-lg cursor-grab active:cursor-grabbing hover:bg-violet-100 transition-colors"
+        />
+      )}
     </div>
   );
 };

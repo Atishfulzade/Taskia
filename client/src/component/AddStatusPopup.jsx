@@ -3,14 +3,13 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { X } from "lucide-react";
 
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose,
+  DialogDescription, // Ensure this is imported
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +19,7 @@ import { addStatus, updateStatus } from "../store/statusSlice";
 import { setCurrentProject, setProjects } from "../store/projectSlice";
 import bgColors from "../utils/constant";
 
-const AddStatusPopup = ({ open, setOpen, status }) => {
+const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
   const [loading, setLoading] = useState(false);
   const [selectedColor, setSelectedColor] = useState(
     status?.color || {
@@ -48,15 +47,22 @@ const AddStatusPopup = ({ open, setOpen, status }) => {
       try {
         setLoading(true);
         let res;
-        if (status) {
-          res = await requestServer(`status/update/${status._id}`, values);
+        if (isEdit) {
+          // Update status if in edit mode
+          res = await requestServer(
+            `status/update/${status._id}`,
+            values,
+            "PUT"
+          );
           dispatch(updateStatus(res.data));
         } else {
-          res = await requestServer("status/add", values);
+          // Add new status if not in edit mode
+          res = await requestServer("status/add", values, "POST");
           dispatch(addStatus(res.data));
         }
         showToast(res.data.message, "success");
-        setOpen(false);
+        setOpen(false); // Close the popup after successful submission
+        formik.resetForm();
       } catch (error) {
         console.error("Error:", error);
         if (error.response?.data?.message === "Token not found") {
@@ -90,17 +96,20 @@ const AddStatusPopup = ({ open, setOpen, status }) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-md">
+      <DialogContent
+        className="max-w-md bg-white"
+        aria-describedby="status-form-description" // Add this
+      >
         <DialogHeader>
-          <DialogTitle>Status</DialogTitle>
-          <DialogClose asChild>
-            <button className="absolute top-4 right-4 p-1">
-              <X size={20} className="text-gray-500 hover:text-gray-700" />
-            </button>
-          </DialogClose>
+          <DialogTitle>{isEdit ? "Edit Status" : "Add Status"}</DialogTitle>
+          <DialogDescription id="status-form-description">
+            {/* Add a description for screen readers */}
+            Create a new status by filling out the form below.
+          </DialogDescription>
         </DialogHeader>
 
         <form className="flex flex-col gap-4" onSubmit={formik.handleSubmit}>
+          {/* Status Title Input */}
           <Input
             type="text"
             name="title"
@@ -113,6 +122,7 @@ const AddStatusPopup = ({ open, setOpen, status }) => {
             <p className="text-red-500 text-sm">{formik.errors.title}</p>
           )}
 
+          {/* Color Selection */}
           <div>
             <p className="text-sm text-slate-600 mb-2">Select color</p>
             <div className="flex flex-wrap gap-2">
@@ -133,12 +143,18 @@ const AddStatusPopup = ({ open, setOpen, status }) => {
             </div>
           </div>
 
-          <Button type="submit" disabled={loading} variant="default">
+          {/* Submit Button */}
+          <Button
+            type="submit"
+            disabled={loading}
+            variant="default"
+            className="bg-violet-600 text-white"
+          >
             {loading
-              ? status
+              ? isEdit
                 ? "Updating..."
                 : "Adding..."
-              : status
+              : isEdit
               ? "Update Status"
               : "Add Status"}
           </Button>

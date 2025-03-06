@@ -37,6 +37,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { addTask, updateTask } from "../store/taskSlice";
 import requestServer from "../utils/requestServer";
 import { showToast } from "../utils/showToast";
+import { DialogDescription } from "@radix-ui/react-dialog";
 
 // Define the form schema with Zod
 const taskSchema = z.object({
@@ -216,14 +217,24 @@ export function TaskModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-white max-h-[90vh] overflow-hidden">
+      <DialogContent
+        className="sm:max-w-[500px] bg-white max-h-[90vh] overflow-hidden"
+        aria-describedby="task-form-description"
+      >
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Task" : "Add Task"}</DialogTitle>
+          <DialogDescription id="task-form-description">
+            {/* Add a description for screen readers */}
+            Create a new task by filling out the form below.
+          </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(90vh-120px)] pr-4">
+        <ScrollArea className="max-h-[calc(90vh-120px)] pr-4 ">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-4 m-0.5"
+            >
               {/* Task Title */}
               <FormField
                 control={form.control}

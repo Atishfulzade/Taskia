@@ -33,11 +33,13 @@ import {
   Plus,
 } from "lucide-react";
 import Column from "@/component/Column";
-import { TaskModal } from "@/component/AddTaskPopup";
+import TaskItem from "@/component/TaskItem"; // Import TaskItem component
+import AddStatusPopup from "@/component/AddStatusPopup";
 
 const ProjectDetail = () => {
   // State Management
   const [taskOpen, setTaskOpen] = useState(false);
+  const [editTaskOpen, setEditTaskOpen] = useState(false); // Add this for edit task popup
   const [currentStatus, setCurrentStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [activeId, setActiveId] = useState(null);
@@ -45,10 +47,7 @@ const ProjectDetail = () => {
   const [viewMode, setViewMode] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showSubtasks, setShowSubtasks] = useState(true);
-  const [editTaskOpen, setEditTaskOpen] = useState({
-    isOpen: false,
-    task: null,
-  });
+  const [showStatusPopup, setShowStatusPopup] = useState(false);
 
   // Advanced Filtering States
   const [filterOptions, setFilterOptions] = useState({
@@ -96,6 +95,12 @@ const ProjectDetail = () => {
       return matchesViewMode && matchesSearch && matchesFilters;
     });
   }, [tasks, viewMode, searchQuery, userId, filterOptions]);
+
+  // Find the status for the active task
+  const activeTaskStatus = useMemo(() => {
+    if (!activeTask) return null;
+    return statuses.find((status) => status._id === activeTask.status);
+  }, [activeTask, statuses]);
 
   // Fetch and Update Functions
   const fetchStatuses = async () => {
@@ -173,11 +178,10 @@ const ProjectDetail = () => {
   // Task Counts and Analytics
   const getTaskCounts = () => {
     const total = tasks.length;
-    const myTasks = tasks.filter((task) => task.assignedTo === userId).length;
-    return { total, myTasks };
+    return { total };
   };
 
-  const { total, myTasks } = getTaskCounts();
+  const { total } = getTaskCounts();
 
   // Load data on component mount
   useEffect(() => {
@@ -188,9 +192,9 @@ const ProjectDetail = () => {
   }, [projectId]);
 
   return (
-    <div className="h-full w-full  px-6">
+    <div className="h-full w-full px-6">
       {/* Project Header */}
-      <div className="flex justify-between items-center mb-2  p-2">
+      <div className="flex justify-between items-center mb-2 p-2">
         <div>
           <CardTitle className="text-xl font-semibold flex gap-3.5 text-slate-800">
             {projectName || "Project Dashboard"} <Badge>{total} Tasks</Badge>
@@ -198,11 +202,18 @@ const ProjectDetail = () => {
         </div>
         <div className="flex items-center space-x-2">
           {/* View Mode */}
-
-          <Button size="sm" className="bg-violet-600 cursor-pointer text-white">
-            <Plus className=" h-4 w-4" /> Add status
+          <Button
+            onClick={() => setShowStatusPopup(true)}
+            size="sm"
+            className="bg-violet-600 cursor-pointer text-white"
+          >
+            <Plus className="h-4 w-4" /> Add status
           </Button>
-
+          <AddStatusPopup
+            open={showStatusPopup}
+            setOpen={setShowStatusPopup}
+            isEdit={false}
+          />
           <Button
             size="sm"
             variant="outline"
@@ -219,17 +230,17 @@ const ProjectDetail = () => {
                 size="sm"
                 className="border-slate-300 text-slate-800"
               >
-                <Filter className=" h-4 w-4" />
+                <Filter className="h-4 w-4" />
                 Filter
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80">
+            <PopoverContent className="w-80 z-50">
               {/* Filter options implementation */}
             </PopoverContent>
           </Popover>
 
           {/* Search */}
-          <div className="relative">
+          <div className="relative z-10">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search tasks..."
@@ -254,10 +265,9 @@ const ProjectDetail = () => {
               key={status._id}
               status={status}
               tasks={filteredTasks.filter((task) => task.status === status._id)}
-              setEditTaskOpen={setEditTaskOpen}
               setTaskOpen={setTaskOpen}
               taskOpen={taskOpen}
-              selectedStatus={status._id}
+              setEditTaskOpen={setEditTaskOpen}
               isLoading={loading}
             />
           ))}
@@ -266,10 +276,14 @@ const ProjectDetail = () => {
         {/* Drag Overlay */}
         <DragOverlay>
           {activeTask ? (
-            <div className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
-              <p className="font-semibold">{activeTask.title}</p>
-              <p className="text-sm text-slate-500">{activeTask.description}</p>
-            </div>
+            <TaskItem
+              task={activeTask}
+              status={activeTaskStatus}
+              setTaskOpen={setTaskOpen}
+              taskOpen={false}
+              setEditTaskOpen={setEditTaskOpen}
+              isDragging={true} // Important flag to handle special drag state
+            />
           ) : null}
         </DragOverlay>
       </DndContext>

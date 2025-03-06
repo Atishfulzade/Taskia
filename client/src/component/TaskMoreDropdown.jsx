@@ -53,8 +53,10 @@ const TaskMoreDropdown = ({ setShowMore, status }) => {
       {/* Edit Status Popup */}
       {editStatus && (
         <AddStatusPopup
+          open={editStatus}
+          setOpen={setEditStatus}
+          isEdit={true}
           status={status}
-          close={() => setEditStatus(false)} // Close edit popup
         />
       )}
 

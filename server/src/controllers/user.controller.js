@@ -124,17 +124,18 @@ const getUserById = async (req, res) => {
 };
 
 // Search users by name
-const getUserBySearch = async (req, res) => {
+const getAllUser = async (req, res) => {
   try {
-    const { term } = req.params;
+    // Extract search term from query parameters (if any)
+    const term = req.query.name;
 
-    // Check if the search term is provided
-    if (!term) {
-      return handleResponse(res, 400, "Search query is required");
-    }
+    // Build the query object
+    const query = term ? { name: { $regex: term, $options: "i" } } : {};
 
-    // Find users whose name matches the search term (case-insensitive)
-    const users = await User.find({ name: { $regex: term, $options: "i" } });
+    // Find users based on the query
+    const users = await User.find(query);
+
+    // Check if any users were found
     if (!users.length) {
       return handleResponse(res, 404, msg.user.userNotFound);
     }
@@ -151,6 +152,6 @@ module.exports = {
   registerUser,
   loginUser,
   logOutUser,
-  getUserBySearch,
+  getAllUser,
   getUserById,
 };

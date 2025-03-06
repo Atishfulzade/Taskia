@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { Check, ChevronsUpDown, User } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,19 +17,26 @@ import {
 } from "@/components/ui/popover";
 import requestServer from "../utils/requestServer";
 import { showToast } from "../utils/showToast";
+import { useDebounce } from "../hooks/useDebounce"; // Custom debounce hook
 
 export function UserSearch({ onSelectUser, defaultValue }) {
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Fetch users when component mounts
+  // Debounce the search term to avoid excessive API calls
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Fetch users based on the search term
   useEffect(() => {
     const fetchUsers = async () => {
       setLoading(true);
       try {
-        const response = await requestServer(`user/all`);
+        const response = await requestServer(
+          `user/all?name=${debouncedSearchTerm}`
+        );
         setUsers(response.data || []);
 
         // If defaultValue is provided, find and select that user
@@ -50,7 +55,7 @@ export function UserSearch({ onSelectUser, defaultValue }) {
     };
 
     fetchUsers();
-  }, [defaultValue]);
+  }, [debouncedSearchTerm, defaultValue]);
 
   const handleSelect = (userId) => {
     const user = users.find((user) => user._id === userId);
@@ -89,7 +94,11 @@ export function UserSearch({ onSelectUser, defaultValue }) {
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0 bg-white">
         <Command>
-          <CommandInput placeholder="Search users..." />
+          <CommandInput
+            placeholder="Search users..."
+            value={searchTerm}
+            onValueChange={setSearchTerm}
+          />
           <CommandList>
             <CommandEmpty>
               {loading ? "Loading..." : "No users found."}

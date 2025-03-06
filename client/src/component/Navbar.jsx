@@ -15,17 +15,24 @@ import UserProfile from "./UserProfile";
 import NotificationsComponent from "./NotificationsComponent";
 
 const Navbar = () => {
-  const [isDarkMode, setIsDarkMode] = useState(
-    localStorage.getItem("theme") === "dark"
-  );
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        return parsedUser?.data?.user?.theme === "dark";
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
+    }
+    return false; // Default to light mode if no valid data is found
+  });
+
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const userInfo = useSelector((state) => state.user.user);
-  const notifications = useSelector(
-    (state) => state.notifications?.items || []
-  );
 
   const profileRef = useRef(null);
   const notificationsRef = useRef(null);
