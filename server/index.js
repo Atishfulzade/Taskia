@@ -2,11 +2,12 @@ const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
 const http = require("http");
-const { Server } = require("socket.io");
 const dotenv = require("dotenv");
 const { connect } = require("./src/db/conn.js");
 const routes = require("./src/routes/index.js");
 const socketIo = require("socket.io");
+const MongoStore = require("connect-mongo");
+
 // Load environment variables
 dotenv.config();
 
@@ -17,29 +18,33 @@ const port = process.env.PORT || 3000;
 app.use(
   cors({
     origin: process.env.CLIENT_URL,
-    methods: ["POST"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true, // Enable cookies and authentication
   })
 );
 app.use(express.json()); // JSON body parser
 
-// Database connection
-connect();
-
-// Session Middleware
+// Session Middleware (Fixed: Only one session middleware)
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET || "your_secret_key",
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: `${process.env.MONGO_URI}${process.env.MONGO_URI}`, // Your MongoDB connection string
+      ttl: 14 * 24 * 60 * 60, // Session expiration in seconds (14 days)
+    }),
     cookie: {
-      secure: process.env.NODE_ENV === "production", // HTTPS in production
-      httpOnly: true, // Prevent client-side access
-      maxAge: 1000 * 60 * 60 * 24, // 1 day
+      secure: process.env.NODE_ENV === "production", // Ensure HTTPS in production
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 14, // 14 days
     },
   })
 );
+
+// Database connection
+connect();
 
 // Logging Middleware
 app.use((req, res, next) => {
