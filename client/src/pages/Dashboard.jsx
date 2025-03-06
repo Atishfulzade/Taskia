@@ -84,9 +84,9 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="w-full h-screen py-1  flex flex-col bg-background">
+    <div className="w-full h-screen   flex flex-col bg-background">
       {/* Top Navigation Bar */}
-      <div className="flex  px-4 justify-between items-center">
+      <div className="flex  px-4 h-12 justify-between  border-b  border-slate-300 items-center">
         {/* Left Navigation */}
         <Tabs
           value={selectedSubBoard.toString()}
@@ -97,7 +97,7 @@ const Dashboard = () => {
               <TabsTrigger
                 key={item.id}
                 value={item.id.toString()}
-                className="space-x-2 rounded-sm px-3 flex items-center"
+                className="space-x-2 rounded-sm px-3 py-2  flex items-center"
               >
                 <item.icon className="h-4 w-4" />
                 <span>{item.label}</span>

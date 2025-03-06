@@ -223,7 +223,7 @@ const Sidebar = ({ onCollapse }) => {
         className="h-screen border-r border-slate-300 bg-white flex flex-col"
       >
         {/* Sidebar Header */}
-        <div className="flex h-14 items-center justify-between border-b border-slate-300 px-3">
+        <div className="flex h-12 items-center justify-between border-b border-slate-300 px-3">
           {!isCollapsed && (
             <h3 className="font-medium text-slate-800">Projects</h3>
           )}
@@ -232,7 +232,7 @@ const Sidebar = ({ onCollapse }) => {
             {!isCollapsed && (
               <>
                 {showSearch ? (
-                  <div className="absolute w-[180px] z-20 right-10 top-1.5 bg-white">
+                  <div className="absolute w-[180px] z-20 right-10 top-1 bg-white">
                     <Input
                       ref={searchInputRef}
                       type="text"

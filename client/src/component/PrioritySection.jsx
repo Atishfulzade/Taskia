@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useMemo } from "react";
 import {
   SortableContext,
@@ -46,12 +44,7 @@ const priorityConfig = {
     hover: "hover:bg-amber-50",
     empty: "bg-amber-50",
   },
-  Low: {
-    icon: <TbFlag3 className="text-blue-500" size={16} />,
-    badge: "bg-blue-100 text-blue-700 border-blue-200",
-    hover: "hover:bg-blue-50",
-    empty: "bg-blue-50",
-  },
+
   No: {
     icon: <TbFlag3 className="text-slate-400" size={16} />,
     badge: "bg-slate-100 text-slate-700 border-slate-200",
@@ -220,7 +213,7 @@ const PrioritySection = ({
             </div>
 
             {/* Task List */}
-            <div className="px-2 py-2">
+            <div className="px-2 py-2 bg-white">
               <SortableContext
                 items={sortableItems}
                 strategy={verticalListSortingStrategy}

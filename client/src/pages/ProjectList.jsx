@@ -67,7 +67,6 @@ const ProjectList = () => {
   const [openDropdowns, setOpenDropdowns] = useState({
     High: true,
     Medium: true,
-    Low: true,
     No: true,
   });
 
@@ -238,24 +237,9 @@ const ProjectList = () => {
       {/* Header with Project Name */}
       <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
         <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-          {projectName || "Project Tasks"}
+          {projectName || "Project Tasks"}{" "}
+          <Badge className="text-xs">{total} tasks</Badge>
         </h1>
-        <div className="flex items-center gap-2 mt-1">
-          <Badge variant="outline" className="text-xs">
-            {total} tasks
-          </Badge>
-          <span className="text-sm text-slate-500 dark:text-slate-400">
-            {highCount > 0 && (
-              <span className="text-red-500 mr-2">{highCount} high</span>
-            )}
-            {mediumCount > 0 && (
-              <span className="text-amber-500 mr-2">{mediumCount} medium</span>
-            )}
-            {lowCount > 0 && (
-              <span className="text-blue-500 mr-2">{lowCount} low</span>
-            )}
-          </span>
-        </div>
       </div>
 
       {/* Controls Bar */}
@@ -263,63 +247,26 @@ const ProjectList = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Left controls */}
           <div className="flex flex-wrap items-center gap-2">
-            {/* View Mode Tabs */}
-            <Tabs
-              defaultValue="all"
-              value={viewMode}
-              onValueChange={setViewMode}
-              className="mr-2"
-            >
-              <TabsList>
-                <TabsTrigger
-                  value="all"
-                  className="text-xs sm:text-sm flex items-center gap-1"
-                >
-                  <GoPeople size={14} />
-                  <span className="hidden xs:inline">All Tasks</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="me"
-                  className="text-xs sm:text-sm flex items-center gap-1"
-                >
-                  <GoPerson size={14} />
-                  <span className="hidden xs:inline">My Tasks</span>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
             <div className="flex items-center gap-1">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleAllDropdowns(true)}
-                      className="h-8 text-xs sm:text-sm"
-                    >
-                      <PiGitMergeDuotone size={14} className="mr-1" />
-                      <span className="hidden sm:inline">Expand All</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Expand all sections</TooltipContent>
-                </Tooltip>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => toggleAllDropdowns(true)}
+                className="h-8 text-xs sm:text-sm cursor-pointer border-slate-300 text-slate-800 "
+              >
+                <PiGitMergeDuotone size={14} className="mr-1" />
+                <span className="hidden sm:inline">Expand All</span>
+              </Button>
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleAllDropdowns(false)}
-                      className="h-8 text-xs sm:text-sm"
-                    >
-                      <TbStack2 size={14} className="mr-1" />
-                      <span className="hidden sm:inline">Collapse All</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Collapse all sections</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => toggleAllDropdowns(false)}
+                className="h-8 text-xs sm:text-sm cursor-pointer border-slate-300 text-slate-800 "
+              >
+                <TbStack2 size={14} className="mr-1" />
+                <span className="hidden sm:inline">Collapse All</span>
+              </Button>
             </div>
           </div>
 

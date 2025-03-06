@@ -187,9 +187,9 @@ const ProjectDetail = () => {
   }, [projectId]);
 
   return (
-    <div className="h-full w-full bg-background px-6">
+    <div className="h-full w-full  px-6">
       {/* Project Header */}
-      <div className="flex justify-between items-center mb-5 border-b border-slate-300 p-2">
+      <div className="flex justify-between items-center mb-2  p-2">
         <div>
           <CardTitle className="text-xl font-semibold flex gap-3.5 text-slate-800">
             {projectName || "Project Dashboard"} <Badge>{total} Tasks</Badge>
@@ -203,9 +203,9 @@ const ProjectDetail = () => {
           </Button>
 
           <Button
-            variant={viewMode === "me" ? "default" : "outline"}
             size="sm"
-            onClick={() => setViewMode("me")}
+            variant="outline"
+            className="border-slate-300 text-slate-800 cursor-pointer"
           >
             <ChevronsUpDown className="mr-0 h-4 w-4" /> Sort
           </Button>
@@ -213,7 +213,11 @@ const ProjectDetail = () => {
           {/* Advanced Filtering */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-slate-300 text-slate-800"
+              >
                 <Filter className=" h-4 w-4" />
                 Filter
               </Button>
