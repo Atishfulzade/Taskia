@@ -15,23 +15,17 @@ import requestServer from "../utils/requestServer";
 import bgColors from "../utils/constant";
 
 // Shadcn UI Components
-import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@/components/ui/Popover";
 
-import {
-  Search,
-  Filter,
-  ArrowDownIcon,
-  ChevronsUpDown,
-  Plus,
-} from "lucide-react";
+import { Search, Filter, ChevronsUpDown, Plus } from "lucide-react";
 import Column from "@/component/Column";
 import TaskItem from "@/component/TaskItem"; // Import TaskItem component
 import AddStatusPopup from "@/component/AddStatusPopup";

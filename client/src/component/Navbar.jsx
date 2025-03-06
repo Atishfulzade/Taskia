@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FiSearch, FiBell, FiUser, FiSettings, FiLogOut } from "react-icons/fi";
+import { FiSearch } from "react-icons/fi";
 import { IoIosArrowDown } from "react-icons/io";
 import {
   IoAddCircleOutline,
@@ -9,7 +9,6 @@ import {
 } from "react-icons/io5";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { logout } from "../store/userSlice"; // Assuming you have a logout action
 import logo from "../assets/logo-white.png";
 import UserProfile from "./UserProfile";
 import NotificationsComponent from "./NotificationsComponent";

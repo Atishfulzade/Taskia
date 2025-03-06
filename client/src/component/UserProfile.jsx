@@ -25,15 +25,15 @@ import {
 // ShadCN components
 import { Button } from "../components/ui/Button";
 import { Switch } from "../components/ui/switch";
-import { Separator } from "../components/ui/separator";
+import { Separator } from "../components/ui/Separator";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "../components/ui/tooltip";
-import { Badge } from "../components/ui/badge";
-import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
+} from "../components/ui/Tooltip";
+import { Badge } from "../components/ui/Badge";
+import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/Avatar";
 import { formatDate } from "@/utils/formatDate";
 
 const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {

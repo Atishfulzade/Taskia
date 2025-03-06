@@ -3,8 +3,8 @@ import { Search, Columns, List } from "lucide-react";
 
 // Shadcn UI Components
 
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/Input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 
 // Project Components
 import ProjectDetail from "./ProjectDetail";

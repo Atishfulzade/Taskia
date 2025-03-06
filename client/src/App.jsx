@@ -10,6 +10,7 @@ import Loader from "./component/Loader.jsx";
 import { login, logout } from "./store/userSlice.js";
 import { addAssignTask } from "./store/assignTaskSlice.js";
 import { showToast } from "./utils/showToast.js";
+import NotFound from "./component/NotFound.jsx";
 
 // Lazy load pages
 const Welcome = lazy(() => import("./pages/Welcome.jsx"));
@@ -151,7 +152,7 @@ function App() {
               <Route index element={<Dashboard />} />
             </Route>
           ) : (
-            <Route path="*" element={<Error />} />
+            <Route path="*" element={<NotFound />} />
           )}
 
           <Route path="*" element={<Error />} />

@@ -77,3 +77,6 @@
     --sidebar-foreground: oklch(0.984 0.003 247.858);
   }
 }
+*::-webkit-scrollbar {
+  display: none;
+}

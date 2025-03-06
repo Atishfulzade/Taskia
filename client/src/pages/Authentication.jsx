@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useCallback, useMemo } from "react";
 import { CiMail, CiUser } from "react-icons/ci";
 import { FcGoogle } from "react-icons/fc";

@@ -10,9 +10,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription, // Ensure this is imported
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from "@/components/ui/Dialog";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { showToast } from "../utils/showToast";
 import requestServer from "../utils/requestServer";
 import { addStatus, updateStatus } from "../store/statusSlice";

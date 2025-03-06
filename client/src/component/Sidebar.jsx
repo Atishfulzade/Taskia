@@ -30,12 +30,6 @@ import {
 import { cn } from "@/lib/utils";
 import AddProjectPopup from "./AddProjectPopup";
 import { setCurrentProject } from "@/store/projectSlice"; // Import setCurrentProject
-import { TooltipProvider } from "@/components/ui/Tooltip";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@radix-ui/react-tooltip";
 
 // Sample shared projects data
 const sharedProjects = [

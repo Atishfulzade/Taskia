@@ -17,7 +17,6 @@ import { updateTask, setTasks } from "../store/taskSlice";
 // Components
 import PrioritySection from "../component/PrioritySection";
 import Task from "../component/Task";
-import { Tabs, TabsList, TabsTrigger } from "../components/ui/Tabs";
 import { Input } from "../components/ui/Input";
 import {
   Select,
@@ -27,12 +26,7 @@ import {
   SelectValue,
 } from "../components/ui/Select";
 import { Button } from "../components/ui/Button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../components/ui/Tooltip";
+
 import { Badge } from "../components/ui/Badge";
 import { Skeleton } from "../components/ui/Skeleton";
 import { Alert, AlertDescription } from "../components/ui/Alert";
