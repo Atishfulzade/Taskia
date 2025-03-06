@@ -192,7 +192,7 @@ const ProjectDetail = () => {
   }, [projectId]);
 
   return (
-    <div className="h-full w-full px-6">
+    <div className="h-full w-full px-6 z-10">
       {/* Project Header */}
       <div className="flex justify-between items-center mb-2 p-2">
         <div>
@@ -240,7 +240,7 @@ const ProjectDetail = () => {
           </Popover>
 
           {/* Search */}
-          <div className="relative z-10">
+          <div className="relative z-[1]">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search tasks..."

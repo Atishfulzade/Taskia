@@ -98,18 +98,16 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
         className="max-w-md bg-white"
-        aria-describedby="status-form-description" // Add this
+        aria-describedby="status-form-description"
       >
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Status" : "Add Status"}</DialogTitle>
           <DialogDescription id="status-form-description">
-            {/* Add a description for screen readers */}
             Create a new status by filling out the form below.
           </DialogDescription>
         </DialogHeader>
 
         <form className="flex flex-col gap-4" onSubmit={formik.handleSubmit}>
-          {/* Status Title Input */}
           <Input
             type="text"
             name="title"

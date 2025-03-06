@@ -30,6 +30,12 @@ import {
 import { cn } from "@/lib/utils";
 import AddProjectPopup from "./AddProjectPopup";
 import { setCurrentProject } from "@/store/projectSlice"; // Import setCurrentProject
+import { TooltipProvider } from "@/components/ui/Tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@radix-ui/react-tooltip";
 
 // Sample shared projects data
 const sharedProjects = [
@@ -220,7 +226,7 @@ const Sidebar = ({ onCollapse }) => {
       <motion.div
         initial={false}
         animate={{ width: isCollapsed ? 60 : 280 }}
-        className="h-screen border-r border-slate-300 bg-white flex flex-col"
+        className="h-[calc(100vh-50px)] border-r border-slate-300 bg-white flex flex-col"
       >
         {/* Sidebar Header */}
         <div className="flex h-12 items-center justify-between border-b border-slate-300 px-3">
@@ -270,13 +276,17 @@ const Sidebar = ({ onCollapse }) => {
                     <Search size={18} />
                   </button>
                 )}
-
-                {showAddProject && (
-                  <AddProjectPopup close={setShowAddProject} />
-                )}
               </>
             )}
 
+            <button
+              className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md"
+              onClick={() => setShowAddProject(true)}
+            >
+              <Plus size={18} />
+            </button>
+
+            {showAddProject && <AddProjectPopup close={setShowAddProject} />}
             <button
               className="h-8 w-8 flex justify-center items-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md"
               onClick={toggleCollapse}

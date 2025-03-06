@@ -15,7 +15,7 @@ const projectSchema = new mongoose.Schema(
     },
     isStarred: Boolean,
     lastAccessed: Date,
-    members: [
+    member: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",

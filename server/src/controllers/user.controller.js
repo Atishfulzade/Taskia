@@ -125,26 +125,26 @@ const getUserById = async (req, res) => {
 
 // Search users by name
 const getAllUser = async (req, res) => {
+  console.log("Query Parameters:", req.query);
   try {
-    // Extract search term from query parameters (if any)
-    const term = req.query.name;
-
-    // Build the query object
+    const term = req.query.name || ""; // Ensure term is not undefined
     const query = term ? { name: { $regex: term, $options: "i" } } : {};
 
-    // Find users based on the query
-    const users = await User.find(query);
+    console.log("MongoDB Query:", query);
 
-    // Check if any users were found
+    const users = await User.find(query);
+    console.log("Fetched Users:", users);
+
     if (!users.length) {
-      return handleResponse(res, 404, msg.user.userNotFound);
+      return res.status(404).json({ message: "No users found" });
     }
 
-    // Return success response with the list of users
-    return handleResponse(res, 200, msg.user.userFetched, users);
+    return res
+      .status(200)
+      .json({ message: "Users fetched successfully", users });
   } catch (error) {
-    // Handle error and return error response
-    handleError(res, msg.user.errorFetchingUser, error);
+    console.error("Error fetching users:", error);
+    return res.status(500).json({ message: "Error fetching users", error });
   }
 };
 

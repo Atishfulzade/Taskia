@@ -1,25 +1,24 @@
 import { useFormik } from "formik";
-import React, { useRef, useEffect } from "react";
-import { IoIosClose } from "react-icons/io";
+import React from "react";
 import requestServer from "../utils/requestServer";
 import { showToast } from "../utils/showToast";
 import { useDispatch, useSelector } from "react-redux";
 import { setCurrentProject, setProjects } from "../store/projectSlice";
 import * as Yup from "yup";
 import { useNavigate } from "react-router-dom";
-import { Button } from "../components/ui/Button"; // Shadcn Button
-import { Input } from "../components/ui/Input"; // Shadcn Input
-import { Label } from "../components/ui/Label"; // Shadcn Label
+import { Button } from "../components/ui/Button"; // ShadCN Button
+import { Input } from "../components/ui/Input"; // ShadCN Input
+import { Label } from "../components/ui/Label"; // ShadCN Label
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "../components/ui/Dialog"; // Shadcn Dialog
+} from "../components/ui/Dialog"; // ShadCN Dialog
+import { UserSearch } from "./UserSearch";
 
 const AddProjectPopup = ({ close }) => {
-  const dialogRef = useRef(null);
   const dispatch = useDispatch();
   const userId = useSelector((state) => state.user?.user?.data?._id);
   const navigate = useNavigate();
@@ -28,28 +27,24 @@ const AddProjectPopup = ({ close }) => {
     initialValues: {
       title: "",
       description: "",
-      member: "",
+      member: [], // Array to store user IDs
     },
     validationSchema: Yup.object({
       title: Yup.string().required("Title is required"),
       description: Yup.string(), // Optional field
-      member: Yup.string()
-        .email("Invalid email format")
-        .required("Member email is required"),
+      member: Yup.array().min(1, "At least one member is required"), // Ensure at least one member is selected
     }),
     onSubmit: async (values, { resetForm }) => {
       try {
         const res = await requestServer("project/add", { ...values, userId });
         dispatch(setCurrentProject(res.data.newProject));
         dispatch(setProjects(res.data.projects));
-        console.log(res.message);
-
         showToast(res.message, "success");
+
         resetForm();
         close(false);
       } catch (error) {
         console.error("error", error);
-
         if (error.response?.data?.message === "Token not found") {
           showToast("Invalid token! Please login again.", "error");
           localStorage.removeItem("token");
@@ -65,22 +60,9 @@ const AddProjectPopup = ({ close }) => {
     },
   });
 
-  const handleClickOutside = (event) => {
-    if (dialogRef.current && !dialogRef.current.contains(event.target)) {
-      close(false);
-    }
-  };
-
-  useEffect(() => {
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
   return (
     <Dialog open={true} onOpenChange={() => close(false)}>
-      <DialogContent ref={dialogRef} className="sm:max-w-[500px] bg-white">
+      <DialogContent className="sm:max-w-[500px] bg-white">
         <DialogHeader>
           <DialogTitle>Create Project</DialogTitle>
           <DialogDescription>
@@ -135,14 +117,11 @@ const AddProjectPopup = ({ close }) => {
             <Label htmlFor="member">
               Add Member<sup className="text-red-500">*</sup>
             </Label>
-            <Input
-              id="member"
-              name="member"
-              type="email"
-              placeholder="Enter Member Email"
-              value={formik.values.member}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
+            <UserSearch
+              onSelectUser={(selectedUserIds) => {
+                formik.setFieldValue("member", selectedUserIds);
+              }}
+              defaultValue={formik.values.member}
             />
             {formik.touched.member && formik.errors.member && (
               <p className="text-red-500 text-xs">{formik.errors.member}</p>

@@ -195,7 +195,7 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
         transition={{ duration: 0.2, ease: "easeOut" }}
         className="fixed top-16 right-6 w-80 md:w-96 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden 
         ring-2 ring-slate-100 dark:ring-slate-800 backdrop-blur-sm
-        bg-opacity-95 dark:bg-opacity-95 z-50"
+        bg-opacity-95 dark:bg-opacity-95 z-[9999]"
       >
         {/* Close Button */}
         <TooltipProvider>

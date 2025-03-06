@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { CheckCircle2, Rocket, Zap, Users, ArrowRight } from "lucide-react";
 
 // Images (ensure these are imported correctly)
-import headImage from "../assets/header.jpg";
 import logo from "../assets/logo-black.png";
 
 const Navbar = () => {

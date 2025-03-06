@@ -7,7 +7,7 @@ const Status = require("../models/status.model.js");
 // Add a new project
 const addProject = async (req, res) => {
   try {
-    const { title, description } = req.body;
+    const { title, description, ...others } = req.body;
     const userId = req.user.id; // Assuming userId is set by authentication middleware
 
     // Check if title is provided
@@ -23,7 +23,7 @@ const addProject = async (req, res) => {
     }
 
     // Create new project with userId
-    const newProject = new Project({ title, description, userId });
+    const newProject = new Project({ title, description, userId, ...others });
     await newProject.save();
 
     // Fetch updated list of projects associated with the user

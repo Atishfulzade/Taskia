@@ -77,9 +77,9 @@ const Dashboard = () => {
         </Tabs>
 
         {/* Right Actions */}
-        <div className="flex items-center space-x-2 z-0">
+        <div className="flex items-center space-x-2 z-[1">
           {/* Search */}
-          <div className="relative z-0">
+          <div className="relative z-[1]">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search status..."

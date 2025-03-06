@@ -14,7 +14,7 @@ const validateUser = require("../middlewares/validateUser.middleware.js");
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/logout", verifyUser, logOutUser);
-router.post("/search/:term", verifyUser, getAllUser);
+router.post("/search", verifyUser, getAllUser);
 router.post("/validate", verifyUser, validateUser);
 router.post("/u/:id", verifyUser, getUserById);
 
