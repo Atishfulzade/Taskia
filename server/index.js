@@ -32,7 +32,7 @@ app.use(
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
-      mongoUrl: `${process.env.MONGO_URI}${process.env.MONGO_URI}`, // Your MongoDB connection string
+      mongoUrl: `${process.env.MONGO_URI}${process.env.DATABASE}`, // Your MongoDB connection string
       ttl: 14 * 24 * 60 * 60, // Session expiration in seconds (14 days)
     }),
     cookie: {
