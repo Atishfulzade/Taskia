@@ -21,7 +21,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@/components/ui/Popover";
 
 import { Search, Filter, ChevronsUpDown, Plus } from "lucide-react";
 import Column from "../component/Column";
