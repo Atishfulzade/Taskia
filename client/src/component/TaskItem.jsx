@@ -1,9 +1,7 @@
 import { useDraggable } from "@dnd-kit/core";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { formatDate } from "../utils/formatDate";
 import requestServer from "../utils/requestServer";
-import React from "react";
-
 import {
   FaRegCircleUser,
   FaRegCalendar,
@@ -17,7 +15,7 @@ import {
   MdOutlineCheckCircle,
   MdOutlineRadioButtonUnchecked,
 } from "react-icons/md";
-import { TaskModal } from "./AddTaskPopup";
+import { AddTaskPopup } from "./AddTaskPopup";
 
 const TaskItem = ({
   task,
@@ -36,16 +34,13 @@ const TaskItem = ({
   const [showSubTask, setShowSubTask] = useState(false);
   const [assignedUser, setAssignedUser] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [completedSubtasks, setCompletedSubtasks] = useState(0);
 
   // Calculate completed subtasks
-  useEffect(() => {
+  const completedSubtasks = useMemo(() => {
     if (Array.isArray(task?.subTask) && task.subTask.length > 0) {
-      const completed = task.subTask.filter(
-        (subtask) => subtask.completed
-      ).length;
-      setCompletedSubtasks(completed);
+      return task.subTask.filter((subtask) => subtask.completed).length;
     }
+    return 0;
   }, [task?.subTask]);
 
   // Fetch assigned user details (Only if task.assignedTo exists)
@@ -65,33 +60,58 @@ const TaskItem = ({
   }, [task?.assignedTo]);
 
   // Get initials of the assigned user
-  const getInitials = (name) =>
-    name
-      ?.split(" ")
-      .map((n) => n[0]?.toUpperCase())
-      .join("") ?? "?";
+  const getInitials = useCallback(
+    (name) =>
+      name
+        ?.split(" ")
+        .map((n) => n[0]?.toUpperCase())
+        .join("") ?? "?",
+    []
+  );
 
   // Priority badges with colors and styles
-  const priorityBadges = {
-    High: {
-      color: "bg-red-100 text-red-700 border-red-200",
-      icon: "text-red-500",
-    },
-    Medium: {
-      color: "bg-yellow-100 text-yellow-700 border-yellow-200",
-      icon: "text-yellow-500",
-    },
-    Low: {
-      color: "bg-slate-100 text-slate-700 border-slate-200",
-      icon: "text-slate-600",
-    },
-  };
+  const priorityBadges = useMemo(
+    () => ({
+      High: {
+        color: "bg-red-100 text-red-700 border-red-200",
+        icon: "text-red-500",
+      },
+      Medium: {
+        color: "bg-yellow-100 text-yellow-700 border-yellow-200",
+        icon: "text-yellow-500",
+      },
+      Low: {
+        color: "bg-slate-100 text-slate-700 border-slate-200",
+        icon: "text-slate-600",
+      },
+    }),
+    []
+  );
 
   // Check if due date is overdue
-  const isOverdue = () => {
+  const isOverdue = useMemo(() => {
     if (!task?.dueDate) return false;
     return new Date(task.dueDate) < new Date();
-  };
+  }, [task?.dueDate]);
+
+  // Memoized event handlers
+  const handleTaskClick = useCallback(
+    (e) => {
+      if (isDragging) return; // Don't trigger clicks while dragging
+      e.stopPropagation();
+      setTaskOpen(true);
+    },
+    [isDragging, setTaskOpen]
+  );
+
+  const toggleSubTaskVisibility = useCallback(
+    (e) => {
+      if (isDragging) return; // Don't trigger clicks while dragging
+      e.stopPropagation();
+      setShowSubTask((prev) => !prev);
+    },
+    [isDragging]
+  );
 
   return (
     <div
@@ -103,7 +123,6 @@ const TaskItem = ({
         transform: transform
           ? `translate(${transform.x}px, ${transform.y}px)`
           : undefined,
-        // Add additional styling for dragging state
         zIndex: isDragging ? 999 : 1,
       }}
     >
@@ -129,14 +148,7 @@ const TaskItem = ({
         )}
 
         {/* Task Title */}
-        <div
-          onClick={(e) => {
-            if (isDragging) return; // Don't trigger clicks while dragging
-            e.stopPropagation();
-            setTaskOpen(true);
-          }}
-          className="cursor-pointer"
-        >
+        <div onClick={handleTaskClick} className="cursor-pointer">
           <h4 className="text-slate-800 font-inter text-sm font-medium leading-5 line-clamp-2 hover:text-violet-700 transition-colors">
             {task?.title}
           </h4>
@@ -165,11 +177,11 @@ const TaskItem = ({
             <div className="flex border gap-1 justify-center border-slate-200 p-1 h-6 rounded-md items-center bg-slate-50">
               <FaRegCalendar
                 size={12}
-                className={isOverdue() ? "text-red-500" : "text-slate-500"}
+                className={isOverdue ? "text-red-500" : "text-slate-500"}
               />
               <p
                 className={`${
-                  isOverdue() ? "text-red-500 font-medium" : "text-slate-600"
+                  isOverdue ? "text-red-500 font-medium" : "text-slate-600"
                 } text-[11px] font-inter`}
               >
                 {formatDate(task.dueDate)}
@@ -198,11 +210,7 @@ const TaskItem = ({
           <div className="mt-3 border-t border-slate-100 pt-2">
             {/* Subtask Header */}
             <div
-              onClick={(e) => {
-                if (isDragging) return; // Don't trigger clicks while dragging
-                e.stopPropagation();
-                setShowSubTask((prev) => !prev);
-              }}
+              onClick={toggleSubTaskVisibility}
               className="flex cursor-pointer justify-between items-center group"
             >
               <div className="flex gap-1.5 items-center">
@@ -283,12 +291,13 @@ const TaskItem = ({
 
       {/* Don't render modal when it's a drag overlay */}
       {!isDragging && (
-        <TaskModal
+        <AddTaskPopup
           onOpenChange={setTaskOpen}
           currentStatus={status}
           isEdit={true}
           open={taskOpen}
           taskData={task}
+          isAdding={false}
         />
       )}
 
@@ -304,4 +313,4 @@ const TaskItem = ({
   );
 };
 
-export default React.memo(TaskItem);
+export default memo(TaskItem);

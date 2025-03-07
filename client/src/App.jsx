@@ -111,20 +111,98 @@ function App() {
 
       socket.emit("joinUserRoom", user._id);
 
+      // Handle new task assigned event
       socket.on("newTaskAssigned", async (data) => {
         if (data?.task?.title && data?.task?.assignedTo) {
-          showToast(data.task.title, "info");
+          showToast(
+            `A new task "${data.task.title}" has been assigned to you.`,
+            "info"
+          );
 
-          await requestServer(`notification/add`, {
+          await requestServer(`user/notification/add`, {
             userId: data.task.assignedTo, // Save the assigned user's ID
             title: data.task.title,
-            type: data.task.type,
-            createdAt: data.task.createdAt,
+            type: "info",
+            createdAt: new Date(),
           });
 
           dispatch(addAssignTask(data.task));
         } else {
           console.error("Invalid task assignment:", data);
+        }
+      });
+
+      // Handle task updated event
+      socket.on("taskUpdated", async (data) => {
+        if (data?.task?.title && data?.task?.assignedTo) {
+          showToast(`Task "${data.task.title}" has been updated.`, "info");
+
+          await requestServer(`user/notification/add`, {
+            userId: data.task.assignedTo,
+            title: data.task.title,
+            type: "info",
+            createdAt: new Date(),
+          });
+        } else {
+          console.error("Invalid task update:", data);
+        }
+      });
+
+      // Handle added to project event
+      socket.on("addedToProject", async (data) => {
+        if (data?.project?.title && data?.project?.member) {
+          showToast(
+            `You have been added to project: "${data.project.title}".`,
+            "info"
+          );
+          console.log("data notification", data);
+
+          await requestServer(`user/notification/add`, {
+            userId: user._id,
+            title: data.project.title,
+            type: "info",
+          });
+          console.log("notification senf", data);
+        } else {
+          console.error("Invalid project addition:", data);
+        }
+      });
+
+      // Handle project updated event
+      socket.on("projectUpdated", async (data) => {
+        if (data?.project?.title && data?.project?.members) {
+          showToast(
+            `Project "${data.project.title}" has been updated.`,
+            "info"
+          );
+
+          await requestServer(`user/notification/add`, {
+            userId: user._id,
+            title: data.project.title,
+            type: "info",
+            createdAt: new Date(),
+          });
+        } else {
+          console.error("Invalid project update:", data);
+        }
+      });
+
+      // Handle project deleted event
+      socket.on("projectDeleted", async (data) => {
+        if (data?.project?.title) {
+          showToast(
+            `Project "${data.project.title}" has been deleted.`,
+            "info"
+          );
+
+          await requestServer(`user/notification/add`, {
+            userId: user._id,
+            title: data.project.title,
+            type: "error",
+            createdAt: new Date(),
+          });
+        } else {
+          console.error("Invalid project deletion:", data);
         }
       });
 

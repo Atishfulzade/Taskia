@@ -1,5 +1,3 @@
-"use client";
-
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useState, useEffect, useRef } from "react";
@@ -31,7 +29,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu";
+} from "../components/ui/dropdown-menu"; // Corrected import path
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { Checkbox } from "../components/ui/Checkbox";
@@ -58,7 +56,7 @@ const PriorityFlag = ({ priority }) => {
   const colorMap = {
     High: "text-destructive",
     Medium: "text-amber-500",
-    Low: "text-slate-400",
+    No: "text-slate-400",
   };
 
   return (

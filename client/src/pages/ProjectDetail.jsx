@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   DndContext,
   closestCorners,
@@ -8,14 +8,12 @@ import {
   PointerSensor,
 } from "@dnd-kit/core";
 import { useDispatch, useSelector } from "react-redux";
-import { motion, AnimatePresence } from "framer-motion";
 import { setTasks, updateTask, addTask, deleteTask } from "../store/taskSlice";
 import { setStatuses } from "../store/statusSlice";
 import requestServer from "../utils/requestServer";
-import bgColors from "../utils/constant";
 
 // Shadcn UI Components
-import { CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
@@ -23,24 +21,22 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/Popover";
+} from "@/components/ui/popover";
 
 import { Search, Filter, ChevronsUpDown, Plus } from "lucide-react";
-import Column from "@/component/Column";
-import TaskItem from "@/component/TaskItem"; // Import TaskItem component
-import AddStatusPopup from "@/component/AddStatusPopup";
+import Column from "../component/Column";
+import TaskItem from "../component/TaskItem";
+import AddStatusPopup from "../component/AddStatusPopup";
 
 const ProjectDetail = () => {
   // State Management
   const [taskOpen, setTaskOpen] = useState(false);
-  const [editTaskOpen, setEditTaskOpen] = useState(false); // Add this for edit task popup
-  const [currentStatus, setCurrentStatus] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [editTaskOpen, setEditTaskOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState(null);
   const [activeTask, setActiveTask] = useState(null);
   const [viewMode, setViewMode] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [showSubtasks, setShowSubtasks] = useState(true);
   const [showStatusPopup, setShowStatusPopup] = useState(false);
 
   // Advanced Filtering States
@@ -50,15 +46,15 @@ const ProjectDetail = () => {
     dueDate: null,
   });
 
-  // Refs and Redux
+  // Redux
   const dispatch = useDispatch();
   const userId = useSelector((state) => state.user.user?._id);
   const projectId = useSelector((state) => state.project.currentProject?._id);
-  const statuses = useSelector((state) => state.status?.statuses);
-  const tasks = useSelector((state) => state.task?.tasks);
   const projectName = useSelector(
     (state) => state.project.currentProject?.name
   );
+  const tasks = useSelector((state) => state.task.tasks);
+  const statuses = useSelector((state) => state.status.statuses);
 
   // Sensors for drag and drop
   const sensors = useSensors(
@@ -99,7 +95,16 @@ const ProjectDetail = () => {
   // Fetch and Update Functions
   const fetchStatuses = async () => {
     try {
+      if (!projectId) {
+        console.log("No project ID available");
+        return;
+      }
+
+      console.log("Fetching statuses for project:", projectId);
       const res = await requestServer(`status/all/${projectId}`);
+      console.log("Fetched statuses:", res.data);
+
+      // Update Redux store with fresh data
       dispatch(setStatuses(res.data));
     } catch (error) {
       console.error("Error fetching statuses:", error);
@@ -108,7 +113,16 @@ const ProjectDetail = () => {
 
   const fetchTasks = async () => {
     try {
+      if (!projectId) {
+        console.log("No project ID available");
+        return;
+      }
+
+      console.log("Fetching tasks for project:", projectId);
       const res = await requestServer(`task/all/${projectId}`);
+      console.log("Fetched tasks:", res.data);
+
+      // Dispatch tasks to Redux store
       dispatch(setTasks(res.data));
     } catch (error) {
       console.error("Error fetching tasks:", error);
@@ -118,12 +132,13 @@ const ProjectDetail = () => {
   const updateCurrentTask = async (task) => {
     try {
       await requestServer(`task/update/${task._id}`, task);
+      // State update is handled in the drag handlers
     } catch (error) {
       console.error("Error updating task:", error);
     }
   };
 
-  // Advanced Drag and Drop Handlers
+  // Drag and Drop Handlers
   const handleDragStart = (event) => {
     const { active } = event;
     setActiveId(active.id);
@@ -144,16 +159,22 @@ const ProjectDetail = () => {
     const updatedTask = tasks.find((task) => task._id === taskId);
     if (updatedTask && updatedTask.status !== newStatus) {
       const taskWithNewStatus = { ...updatedTask, status: newStatus };
+
+      // Update Redux store
       dispatch(updateTask(taskWithNewStatus));
+
       updateCurrentTask(taskWithNewStatus);
     }
   };
 
-  // Advanced Task Management
+  // Task Management
   const handleAddTask = async (taskData) => {
     try {
       const newTask = await requestServer("task/create", taskData);
+
+      // Update Redux store
       dispatch(addTask(newTask.data));
+
       setTaskOpen(false);
     } catch (error) {
       console.error("Error adding task:", error);
@@ -163,13 +184,15 @@ const ProjectDetail = () => {
   const handleDeleteTask = async (taskId) => {
     try {
       await requestServer(`task/delete/${taskId}`);
+
+      // Update Redux store
       dispatch(deleteTask(taskId));
     } catch (error) {
       console.error("Error deleting task:", error);
     }
   };
 
-  // Task Counts and Analytics
+  // Task Counts
   const getTaskCounts = () => {
     const total = tasks.length;
     return { total };
@@ -177,13 +200,32 @@ const ProjectDetail = () => {
 
   const { total } = getTaskCounts();
 
-  // Load data on component mount
+  // Load data on component mount and when projectId changes
   useEffect(() => {
-    if (projectId) {
+    const loadData = async () => {
+      if (projectId) {
+        setLoading(true);
+        // Clear existing data first
+        dispatch(setStatuses([]));
+        dispatch(setTasks([]));
+
+        // Then fetch fresh data
+        await Promise.all([fetchStatuses(), fetchTasks()]);
+        setLoading(false);
+      } else {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [projectId, dispatch]);
+
+  // Refresh data when AddStatusPopup closes
+  useEffect(() => {
+    if (!showStatusPopup && projectId) {
       fetchStatuses();
-      fetchTasks();
     }
-  }, [projectId]);
+  }, [showStatusPopup, projectId]);
 
   return (
     <div className="h-full w-full px-6 z-10">
@@ -195,28 +237,34 @@ const ProjectDetail = () => {
           </CardTitle>
         </div>
         <div className="flex items-center space-x-2">
-          {/* View Mode */}
-          <Button
-            onClick={() => setShowStatusPopup(true)}
-            size="sm"
-            className="bg-violet-600 cursor-pointer text-white"
-          >
-            <Plus className="h-4 w-4" /> Add status
-          </Button>
+          {/* Add Status Button */}
+          {projectId && (
+            <Button
+              onClick={() => setShowStatusPopup(true)}
+              size="sm"
+              className="bg-violet-600 text-white"
+            >
+              <Plus className="h-4 w-4 mr-1" /> Add status
+            </Button>
+          )}
           <AddStatusPopup
             open={showStatusPopup}
             setOpen={setShowStatusPopup}
             isEdit={false}
+            onSuccess={fetchStatuses}
+            projectId={projectId}
           />
+
+          {/* Sort Button */}
           <Button
             size="sm"
             variant="outline"
-            className="border-slate-300 text-slate-800 cursor-pointer"
+            className="border-slate-300 text-slate-800"
           >
-            <ChevronsUpDown className="mr-0 h-4 w-4" /> Sort
+            <ChevronsUpDown className="mr-1 h-4 w-4" /> Sort
           </Button>
 
-          {/* Advanced Filtering */}
+          {/* Filter Button */}
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -224,18 +272,26 @@ const ProjectDetail = () => {
                 size="sm"
                 className="border-slate-300 text-slate-800"
               >
-                <Filter className="h-4 w-4" />
+                <Filter className="h-4 w-4 mr-1" />
                 Filter
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80 z-50">
               {/* Filter options implementation */}
+              <div className="space-y-2 p-2">
+                <h3 className="font-medium">Filter Options</h3>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">
+                    Filter implementation would go here
+                  </p>
+                </div>
+              </div>
             </PopoverContent>
           </Popover>
 
           {/* Search */}
-          <div className="relative z-[1]">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <div className="relative z-10">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Search tasks..."
               className="pl-8"
@@ -246,41 +302,62 @@ const ProjectDetail = () => {
         </div>
       </div>
 
-      {/* Columns */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex gap-4 overflow-x-auto">
-          {statuses.map((status) => (
-            <Column
-              key={status._id}
-              status={status}
-              tasks={filteredTasks.filter((task) => task.status === status._id)}
-              setTaskOpen={setTaskOpen}
-              taskOpen={taskOpen}
-              setEditTaskOpen={setEditTaskOpen}
-              isLoading={loading}
-            />
-          ))}
+      {/* Loading Indicator */}
+      {loading && (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+          <span className="ml-2">Loading...</span>
         </div>
+      )}
 
-        {/* Drag Overlay */}
-        <DragOverlay>
-          {activeTask ? (
-            <TaskItem
-              task={activeTask}
-              status={activeTaskStatus}
-              setTaskOpen={setTaskOpen}
-              taskOpen={false}
-              setEditTaskOpen={setEditTaskOpen}
-              isDragging={true} // Important flag to handle special drag state
-            />
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+      {/* Columns */}
+      {!loading && (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          {statuses.length === 0 ? (
+            <div className="flex justify-center items-center h-64">
+              <p>No statuses found. Add a status to get started.</p>
+            </div>
+          ) : (
+            <div className="flex gap-4 overflow-x-auto pb-4">
+              {statuses.map((status) => (
+                <Column
+                  key={status._id}
+                  status={status}
+                  tasks={filteredTasks.filter(
+                    (task) => task.status === status._id
+                  )}
+                  setTaskOpen={setTaskOpen}
+                  taskOpen={taskOpen}
+                  setEditTaskOpen={setEditTaskOpen}
+                  isLoading={loading}
+                  projectId={projectId}
+                  onDeleteTask={handleDeleteTask}
+                  onAddTask={handleAddTask}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Drag Overlay */}
+          <DragOverlay>
+            {activeTask ? (
+              <TaskItem
+                task={activeTask}
+                status={activeTaskStatus}
+                setTaskOpen={setTaskOpen}
+                taskOpen={false}
+                setEditTaskOpen={setEditTaskOpen}
+                isDragging={true}
+              />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      )}
     </div>
   );
 };

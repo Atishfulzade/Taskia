@@ -65,17 +65,27 @@ const Authentication = () => {
         // Store token and user data in localStorage
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("user", JSON.stringify(res.data.user));
+        console.log("token", res.data.token);
 
         // Update Redux store with user login state
         dispatch(login(res.data.user));
+        console.log("dispatch login");
 
         // Fetch and store additional data only on successful login
         if (!isRegistration) {
-          const projects = await requestServer("project/all");
-          const assignTask = await requestServer("task/assign");
+          console.log("Fetching project");
 
-          dispatch(setProjects(projects.data));
-          dispatch(setAssignTasks(assignTask?.data));
+          const projects = await requestServer("project/all");
+          console.log("projects", projects);
+
+          const assignTask = await requestServer("task/assign");
+          console.log("Project and assign tasks completed");
+          if (projects.data) {
+            dispatch(setProjects(projects.data));
+          }
+          if (assignTask?.data && projects.data) {
+            dispatch(setAssignTasks(assignTask?.data));
+          }
 
           if (projects.data && projects.data.length > 0) {
             dispatch(setCurrentProject(projects.data[0]));

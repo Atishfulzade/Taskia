@@ -99,8 +99,13 @@ const logOutUser = (req, res) => {
     if (err) {
       return handleError(res, msg.authentication.logoutFailure, err);
     }
-    res.clearCookie("connect.sid");
-    return handleResponse(res, 200, msg.authentication.logoutSuccess);
+
+    res.clearCookie("connect.sid", { path: "/" });
+
+    // Ensure the response is sent after clearing the session
+    setTimeout(() => {
+      return handleResponse(res, 200, msg.authentication.logoutSuccess);
+    }, 0);
   });
 };
 
@@ -148,10 +153,81 @@ const getAllUser = async (req, res) => {
   }
 };
 
+const addNotification = async (req, res) => {
+  try {
+    const { userId, title, type } = req.body;
+    console.log("Request Body:", req.body);
+
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required" });
+    }
+
+    // Validate if userId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid User ID" });
+    }
+
+    // Find user and push notification
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    console.log("User found:", user);
+
+    // Add notification to the user's notifications array
+    user.notifications.push({
+      message: title,
+      type,
+    });
+
+    console.log("Notification added, saving user...");
+
+    await user.save(); // Save the updated user document
+
+    console.log("User saved successfully");
+
+    res.status(200).json({
+      success: true,
+      message: "Notification added successfully!",
+      notifications: user.notifications, // Return updated notifications
+    });
+  } catch (error) {
+    console.error("Error saving notification:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+const getUserNotifications = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({ success: true, notifications: user.notifications });
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
 module.exports = {
   registerUser,
+  addNotification,
   loginUser,
   logOutUser,
+  getUserNotifications,
   getAllUser,
   getUserById,
 };

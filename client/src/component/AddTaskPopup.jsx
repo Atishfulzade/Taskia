@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import {
@@ -37,16 +38,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { addTask, updateTask } from "../store/taskSlice";
 import requestServer from "../utils/requestServer";
 import { showToast } from "../utils/showToast";
-import { DialogDescription } from "@radix-ui/react-dialog";
 
 // Define the form schema with Zod
 const taskSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().optional(),
   priority: z.string(),
-  assignedTo: z.string().nullable(),
+  assignedTo: z.string().min(1, { message: "Assignee is required" }), // Make it required
   dueDate: z.string().optional(),
   status: z.string(),
+  projectId: z.string(),
   subTask: z.array(
     z.object({
       title: z.string().min(1, { message: "Subtask title is required" }),
@@ -61,7 +62,7 @@ const taskSchema = z.object({
   ),
 });
 
-export function TaskModal({
+export function AddTaskPopup({
   open,
   onOpenChange,
   currentStatus,
@@ -74,12 +75,16 @@ export function TaskModal({
     taskData?.assignedTo || null
   );
   const [showSubtasks, setShowSubtasks] = useState(false);
+  const [members, setMembers] = useState([]);
   const fileInputRef = useRef(null);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const projectId = useSelector((state) => state.project.currentProject?._id);
   const userId = useSelector((state) => state.user.user._id);
+  const projectMembers = useSelector(
+    (state) => state.project.currentProject?.member
+  );
 
   // Initialize the form with default values
   const form = useForm({
@@ -90,6 +95,7 @@ export function TaskModal({
       priority: taskData?.priority || "No",
       status: currentStatus?._id || taskData?.status || "",
       assignedTo: taskData?.assignedTo || null,
+      projectId: projectId,
       dueDate: taskData?.dueDate
         ? new Date(taskData.dueDate).toISOString().split("T")[0]
         : "",
@@ -98,10 +104,15 @@ export function TaskModal({
     },
   });
 
+  console.log("projectId", projectId);
+  console.log("assignedTo", selectedUserId);
+  console.log("status", currentStatus?._id, "or", taskData?.status);
+  console.log("assignedBy", userId);
+
   // Update form values when dependencies change
   useEffect(() => {
     form.setValue("projectId", projectId);
-    form.setValue("assignedTo", selectedUserId);
+    form.setValue("assignedTo", selectedUserId || ""); // Ensure it's not null
     form.setValue("status", currentStatus?._id || taskData?.status);
     form.setValue("assignedBy", userId);
   }, [projectId, currentStatus, selectedUserId, userId, form, taskData]);
@@ -186,15 +197,12 @@ export function TaskModal({
     try {
       let res;
       if (isEdit) {
-        // Update task
-        res = await requestServer(`task/update/${taskData._id}`, values, "PUT");
+        res = await requestServer(`task/update/${taskData._id}`, values);
         dispatch(updateTask(res.data));
       } else {
-        // Add new task
         res = await requestServer("task/add", values);
         dispatch(addTask(res.data));
       }
-
       showToast(res.data.message, "success");
       onOpenChange(false);
     } catch (error) {
@@ -215,6 +223,32 @@ export function TaskModal({
     }
   };
 
+  // Fetch project members
+  const fetchMembers = useCallback(async () => {
+    try {
+      if (!projectMembers || projectMembers.length === 0) return;
+
+      const responses = await Promise.all(
+        projectMembers.map((member) => requestServer(`user/u/${member}`))
+      );
+
+      const membersData = responses.map((res) => res.data);
+
+      if (Array.isArray(membersData)) {
+        setMembers(membersData);
+      } else {
+        throw new Error("Invalid response format");
+      }
+    } catch (error) {
+      console.error("Error fetching members:", error);
+      showToast("Failed to fetch project members", "error");
+    }
+  }, [projectMembers]);
+
+  useEffect(() => {
+    fetchMembers();
+  }, [fetchMembers]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -224,7 +258,6 @@ export function TaskModal({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Task" : "Add Task"}</DialogTitle>
           <DialogDescription id="task-form-description">
-            {/* Add a description for screen readers */}
             Create a new task by filling out the form below.
           </DialogDescription>
         </DialogHeader>
@@ -302,8 +335,11 @@ export function TaskModal({
                 <FormItem>
                   <FormLabel>Assign To</FormLabel>
                   <Select
-                    onValueChange={handleUserSelect}
-                    defaultValue={taskData?.assignedTo || ""}
+                    onValueChange={(value) => {
+                      setSelectedUserId(value); // Update selected user ID
+                      form.setValue("assignedTo", value); // Update form value
+                    }}
+                    defaultValue={taskData?.assignedTo || ""} // Default to empty string if null
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -311,16 +347,9 @@ export function TaskModal({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent className="bg-white">
-                      {/* Random array of user names */}
-                      {[
-                        "John Doe",
-                        "Jane Smith",
-                        "Alice Johnson",
-                        "Bob Brown",
-                        "Charlie Davis",
-                      ].map((user, index) => (
-                        <SelectItem key={index} value={user}>
-                          {user}
+                      {members.map((user) => (
+                        <SelectItem key={user._id} value={user._id}>
+                          {user.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

@@ -29,7 +29,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import AddProjectPopup from "./AddProjectPopup";
-import { setCurrentProject } from "@/store/projectSlice"; // Import setCurrentProject
+import {
+  setCurrentProject,
+  setDeleteProject,
+  updateProject,
+} from "@/store/projectSlice"; // Import setCurrentProject
+import requestServer from "@/utils/requestServer";
 
 // Sample shared projects data
 const sharedProjects = [
@@ -46,8 +51,18 @@ const sharedProjects = [
     lastAccessed: null,
   },
 ];
+const handleSharedProject = async () => {
+  try {
+    const res = await requestServer("project/member");
+    console.log("shared projects", res);
+  } catch (error) {
+    console.log(error);
+  }
+};
 
 const ProjectItem = ({ project, isActive, onClick, onContextMenu }) => {
+  const dispatch = useDispatch();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 5 }}
@@ -108,7 +123,7 @@ const ProjectItem = ({ project, isActive, onClick, onContextMenu }) => {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-red-500 focus:text-red-500"
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.stopPropagation();
                 onContextMenu(e, project, "delete");
               }}
@@ -138,46 +153,73 @@ const Sidebar = ({ onCollapse }) => {
   const navigate = useNavigate(); // Initialize useNavigate
   const projects = useSelector((state) => state.project.projects);
   const currentProject = useSelector((state) => state.project.currentProject);
-
+  const [sharedProjects, setSharedProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState(
     currentProject?._id || null
   );
-
+  const handleSharedProject = async () => {
+    try {
+      const res = await requestServer("project/member");
+      setSharedProjects(res.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
   useEffect(() => {
     if (showSearch && searchInputRef.current) {
       searchInputRef.current.focus();
     }
+    handleSharedProject();
   }, [showSearch]);
 
   // Handle project selection
   const handleSelectProject = (project) => {
-    setSelectedProjectId(project._id); // Update local state
     dispatch(setCurrentProject(project)); // Update Redux state
+    setSelectedProjectId(project._id); // Update local state
   };
 
   // Handle context menu actions
-  const handleContextAction = (project, action) => {
+  const handleContextAction = async (project, action) => {
     switch (action) {
       case "star":
-        dispatch(
-          setCurrentProject((prevProjects) =>
-            prevProjects.map((p) =>
-              p._id === project._id ? { ...p, isStarred: !p.isStarred } : p
-            )
-          )
-        );
+        // Toggle the starred status of the project
+        const updatedProject = { ...project, isStarred: !project.isStarred };
+        await requestServer(`project/update/${project._id}`, updatedProject);
+        dispatch(updateProject(updatedProject)); // Update the project in the Redux store
         break;
 
       case "rename":
-        console.log(`Renaming project: ${project._id}`);
+        // Handle renaming the project
+        const newTitle = prompt(
+          "Enter a new name for the project:",
+          project.title
+        );
+        if (newTitle && newTitle !== project.title) {
+          const renamedProject = { ...project, title: newTitle };
+          await requestServer(`project/update/${project._id}`, renamedProject);
+          dispatch(updateProject(renamedProject)); // Update the project in the Redux store
+        }
         break;
 
       case "delete":
-        console.log(`Deleting project: ${project._id}`);
+        // Handle deleting the project
+        if (window.confirm("Are you sure you want to delete this project?")) {
+          await requestServer(`project/delete/${project._id}`);
+          dispatch(setDeleteProject(project._id)); // Remove the project from the Redux store
+          if (selectedProjectId === project._id) {
+            dispatch(setCurrentProject(null)); // Clear the active project if it was deleted
+            setSelectedProjectId(null); // Clear the local state
+          }
+        }
         break;
 
       case "share":
-        console.log(`Sharing project: ${project._id}`);
+        // Handle sharing the project
+        const email = prompt("Enter the email of the user to share with:");
+        if (email) {
+          await requestServer(`project/share/${project._id}`, { email });
+          alert(`Project shared with ${email}`);
+        }
         break;
 
       default:
@@ -211,7 +253,7 @@ const Sidebar = ({ onCollapse }) => {
 
   // Get recent projects
   const recentProjects = projects
-    .filter((p) => p.lastAccessed)
+    ?.filter((p) => p.lastAccessed)
     .sort((a, b) => new Date(b.lastAccessed) - new Date(a.lastAccessed))
     .slice(0, 5);
 
@@ -273,12 +315,14 @@ const Sidebar = ({ onCollapse }) => {
               </>
             )}
 
-            <button
-              className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md"
-              onClick={() => setShowAddProject(true)}
-            >
-              <Plus size={18} />
-            </button>
+            {!isCollapsed && (
+              <button
+                className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md"
+                onClick={() => setShowAddProject(true)}
+              >
+                <Plus size={18} />
+              </button>
+            )}
 
             {showAddProject && <AddProjectPopup close={setShowAddProject} />}
             <button
@@ -323,7 +367,7 @@ const Sidebar = ({ onCollapse }) => {
           <ScrollArea className="flex-1">
             <div className="px-3 py-2">
               {/* Recent Projects Section */}
-              {recentProjects.length > 0 && (
+              {recentProjects?.length > 0 && (
                 <div className="mb-4">
                   <div
                     className="flex items-center justify-between py-1 cursor-pointer hover:bg-slate-50 rounded px-1"
@@ -383,7 +427,7 @@ const Sidebar = ({ onCollapse }) => {
                       My Projects
                     </span>
                     <Badge className="ml-1 h-5 px-1.5 text-xs bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300">
-                      {filteredProjects.length}
+                      {filteredProjects?.length}
                     </Badge>
                   </div>
                   <button className="h-5 w-5 flex items-center justify-center text-slate-500">
@@ -404,8 +448,8 @@ const Sidebar = ({ onCollapse }) => {
                       transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
-                      {filteredProjects.length > 0 ? (
-                        filteredProjects.map((project) => (
+                      {filteredProjects?.length > 0 ? (
+                        filteredProjects?.map((project) => (
                           <ProjectItem
                             key={project._id}
                             project={project}

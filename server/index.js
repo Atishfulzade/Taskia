@@ -25,7 +25,6 @@ app.use(
 );
 app.use(express.json()); // JSON body parser
 
-// Session Middleware (Fixed: Only one session middleware)
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "your_secret_key",

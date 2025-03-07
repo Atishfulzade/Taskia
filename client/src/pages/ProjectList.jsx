@@ -39,6 +39,7 @@ import { IoSearch, IoAddCircleOutline } from "react-icons/io5";
 import { GoPeople, GoPerson } from "react-icons/go";
 import { LuRefreshCw } from "react-icons/lu";
 import { BiErrorCircle } from "react-icons/bi";
+import { Plus } from "lucide-react";
 
 const ProjectList = () => {
   // Redux hooks
@@ -97,7 +98,7 @@ const ProjectList = () => {
   // Load tasks when the component mounts or projectId changes
   useEffect(() => {
     fetchTasks();
-  }, [fetchTasks]);
+  }, []);
 
   // Update task priority in the backend & Redux store
   const updateCurrentTask = async (updatedTask) => {
@@ -151,7 +152,6 @@ const ProjectList = () => {
     setOpenDropdowns({
       High: value,
       Medium: value,
-      Low: value,
       No: value,
     });
   };
@@ -210,13 +210,12 @@ const ProjectList = () => {
     const mediumCount = filtered.filter(
       (task) => task.priority === "Medium"
     ).length;
-    const lowCount = filtered.filter((task) => task.priority === "Low").length;
     const noCount = filtered.filter((task) => task.priority === "No").length;
 
-    return { total, highCount, mediumCount, lowCount, noCount };
+    return { total, highCount, mediumCount, noCount };
   };
 
-  const { total, highCount, mediumCount, lowCount, noCount } = getTaskCounts();
+  const { total, highCount, mediumCount, noCount } = getTaskCounts();
   const filteredTasks = getFilteredTasks();
 
   // Handle adding a new task
@@ -246,7 +245,7 @@ const ProjectList = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => toggleAllDropdowns(true)}
-                className="h-8 text-xs sm:text-sm cursor-pointer border-slate-300 text-slate-800 "
+                className="h-8 text-xs sm:text-sm cursor-pointer border-slate-300 text-slate-700 "
               >
                 <PiGitMergeDuotone size={14} className="mr-1" />
                 <span className="hidden sm:inline">Expand All</span>
@@ -256,7 +255,7 @@ const ProjectList = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => toggleAllDropdowns(false)}
-                className="h-8 text-xs sm:text-sm cursor-pointer border-slate-300 text-slate-800 "
+                className="h-8 text-xs sm:text-sm cursor-pointer  border-slate-300 text-slate-700 "
               >
                 <TbStack2 size={14} className="mr-1" />
                 <span className="hidden sm:inline">Collapse All</span>
@@ -266,20 +265,6 @@ const ProjectList = () => {
 
           {/* Right controls */}
           <div className="flex items-center gap-2">
-            {/* Sort By */}
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[140px] h-8 text-xs sm:text-sm">
-                <RiExpandUpDownLine size={14} className="mr-1" />
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">Default</SelectItem>
-                <SelectItem value="dueDate">Due Date</SelectItem>
-                <SelectItem value="created">Created Date</SelectItem>
-                <SelectItem value="alphabetical">Alphabetical</SelectItem>
-              </SelectContent>
-            </Select>
-
             {/* Search */}
             <div className="relative">
               <IoSearch
@@ -295,29 +280,29 @@ const ProjectList = () => {
               />
             </div>
 
+            {/* Sort By */}
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[140px] h-8 text-xs sm:text-sm border-slate-300 text-slate-700">
+                <RiExpandUpDownLine size={14} className="mr-1" />
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent className="text-slate-700 border-slate-300 bg-white">
+                <SelectItem value="default">Default</SelectItem>
+                <SelectItem value="dueDate">Due Date</SelectItem>
+                <SelectItem value="created">Created Date</SelectItem>
+                <SelectItem value="alphabetical">Alphabetical</SelectItem>
+              </SelectContent>
+            </Select>
+
             {/* Add Task Button */}
             <Button
               size="sm"
               variant="default"
               onClick={() => handleAddTask("No")}
-              className="h-8 text-xs sm:text-sm"
+              className="h-8 text-xs sm:text-sm text-slate-50 cursor-pointer bg-violet-600"
             >
-              <IoAddCircleOutline size={16} className="mr-1" />
+              <Plus size={16} className="" />
               <span>New Task</span>
-            </Button>
-
-            {/* Refresh Button */}
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={fetchTasks}
-              disabled={loading}
-              className="h-8 w-8"
-            >
-              <LuRefreshCw
-                size={14}
-                className={loading ? "animate-spin" : ""}
-              />
             </Button>
           </div>
         </div>
@@ -374,15 +359,18 @@ const ProjectList = () => {
                         ? "No tasks match your search criteria. Try a different search term or clear the search."
                         : "Get started by creating your first task."}
                     </p>
-                    <Button onClick={() => handleAddTask("No")}>
+                    <Button
+                      onClick={() => handleAddTask("No")}
+                      className="text-slate-300"
+                    >
                       Create a task
                     </Button>
                   </div>
                 </div>
               ) : (
                 <AnimatePresence>
-                  {/* First display high, then medium, then low, then no priority */}
-                  {["High", "Medium", "Low", "No"].map((priority) => (
+                  {/* Render sections for High, Medium, and No priority */}
+                  {["High", "Medium", "No"].map((priority) => (
                     <motion.div
                       key={priority}
                       initial={{ opacity: 0, y: 10 }}

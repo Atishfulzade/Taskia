@@ -67,7 +67,7 @@ const Dashboard = () => {
               <TabsTrigger
                 key={item.id}
                 value={item.id.toString()}
-                className="space-x-2 rounded-sm px-3 py-2  flex items-center"
+                className=" rounded-sm px-4 py-2  flex items-center"
               >
                 <item.icon className="h-4 w-4" />
                 <span>{item.label}</span>

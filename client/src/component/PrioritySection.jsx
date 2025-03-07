@@ -21,7 +21,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu";
+} from "../components/ui/dropdown-menu"; // Corrected import path
 
 // Icons
 import { PiDotsThreeBold } from "react-icons/pi";
@@ -44,7 +44,6 @@ const priorityConfig = {
     hover: "hover:bg-amber-50",
     empty: "bg-amber-50",
   },
-
   No: {
     icon: <TbFlag3 className="text-slate-400" size={16} />,
     badge: "bg-slate-100 text-slate-700 border-slate-200",
@@ -69,15 +68,8 @@ const PrioritySection = ({
     data: { priority },
   });
 
-  // Filter tasks based on priority
-  const filteredTasks = tasks.filter((task) => task.priority === priority);
-
   // Memoize the list of task IDs for SortableContext
-  const sortableItems = useMemo(() => {
-    return filteredTasks.length > 0
-      ? filteredTasks.map((task) => task._id)
-      : [];
-  }, [filteredTasks]);
+  const sortableItems = useMemo(() => tasks.map((task) => task._id), [tasks]);
 
   // Get priority configuration
   const config = priorityConfig[priority] || priorityConfig.No;
@@ -127,7 +119,7 @@ const PrioritySection = ({
 
           {/* Task Count Badge */}
           <Badge variant="outline" className={`${config.badge} text-xs`}>
-            {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}
+            {tasks.length} task{tasks.length !== 1 ? "s" : ""}
           </Badge>
         </div>
 
@@ -194,32 +186,38 @@ const PrioritySection = ({
             className="overflow-hidden"
           >
             {/* Table Headers */}
-            <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+            <div className="grid grid-cols-16 gap-2 px-4 py-2 ms-14 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
               <div className="col-span-4 text-xs font-medium text-slate-500 dark:text-slate-400">
                 Task
               </div>
-              <div className="col-span-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <div className="col-span-2 text-xs ms-5 font-medium text-slate-500 dark:text-slate-400">
                 Status
               </div>
-              <div className="col-span-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <div className="col-span-2 text-xs ms-7 font-medium text-slate-500 dark:text-slate-400">
                 Created
               </div>
-              <div className="col-span-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <div className="col-span-2 text-xs ms-6 font-medium text-slate-500 dark:text-slate-400">
                 Assigned to
+              </div>
+              <div className="col-span-2 text-xs ms-10 font-medium text-slate-500 dark:text-slate-400">
+                Priority
               </div>
               <div className="col-span-2 text-xs font-medium text-slate-500 dark:text-slate-400">
                 Due date
               </div>
+              <div className="col-span-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                Attachments
+              </div>
             </div>
 
             {/* Task List */}
-            <div className="px-2 py-2 bg-white">
+            <div className="px-2 py-2 bg-white dark:bg-slate-800">
               <SortableContext
                 items={sortableItems}
                 strategy={verticalListSortingStrategy}
               >
-                {filteredTasks.length > 0 ? (
-                  filteredTasks.map((task) => (
+                {tasks.length > 0 ? (
+                  tasks.map((task) => (
                     <Task key={task._id} task={task} priority={priority} />
                   ))
                 ) : (

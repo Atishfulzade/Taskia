@@ -10,6 +10,13 @@ const userSchema = new mongoose.Schema(
       enum: ["light", "dark"],
       default: "light",
     },
+    notifications: [
+      {
+        message: String,
+        type: String,
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

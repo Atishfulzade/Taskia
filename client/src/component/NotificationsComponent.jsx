@@ -23,13 +23,18 @@ const NotificationsComponent = () => {
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const assignTask = useSelector((state) => state.assignTask.task);
+  const userId = useSelector((state) => state.user.user?._id);
   const handleNotifications = async () => {
-    const res = await requestServer("notification/get");
-    setNotifications(res.data);
+    if (userId) {
+      const res = await requestServer(`user/notification/get/${userId}`);
+      setNotifications(res.notifications);
+    }
   };
+  console.log("userId", userId);
+
   useEffect(() => {
     handleNotifications();
-  }, [assignTask]);
+  }, []);
 
   const removeNotification = (id) => {
     setNotifications((prev) =>
@@ -61,9 +66,9 @@ const NotificationsComponent = () => {
         className="relative p-2 rounded-full  hover:bg-violet-700 dark:hover:bg-slate-700 transition-colors"
       >
         <FiBell size={20} className="text-white" />
-        {notifications.length > 0 && (
+        {notifications?.length > 0 && (
           <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-            {notifications.length}
+            {notifications?.length}
           </span>
         )}
       </button>

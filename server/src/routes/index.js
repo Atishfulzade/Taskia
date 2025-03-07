@@ -8,7 +8,4 @@ router.use("/status", require("./status.route.js"));
 //User route
 router.use("/user", require("./user.route.js"));
 
-//Notification route
-router.use("/notification", require("./notification.route.js"));
-
 module.exports = router;

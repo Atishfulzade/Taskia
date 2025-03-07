@@ -72,39 +72,13 @@ export function UserSearch({
       }
     };
 
-    fetchUsers();
+    open && fetchUsers();
   }, [debouncedSearchTerm]);
 
   // Filter out already selected users from search results
   const filteredUsers = useMemo(() => {
     return users.filter((user) => !selectedUserIds.includes(user._id));
   }, [users, selectedUserIds]);
-
-  // Update selected users when IDs change
-  useEffect(() => {
-    const fetchSelectedUsers = async () => {
-      if (selectedUserIds.length === 0) {
-        setSelectedUsers([]);
-        return;
-      }
-
-      setLoadingSelectedUsers(true);
-      try {
-        // Assuming there's an endpoint to fetch user details by IDs
-        const response = await requestServer(
-          `user/details?ids=${selectedUserIds.join(",")}`
-        );
-        setSelectedUsers(response.users || []);
-      } catch (error) {
-        console.error("Error fetching selected users:", error);
-        showToast("Failed to load selected users", "error");
-      } finally {
-        setLoadingSelectedUsers(false);
-      }
-    };
-
-    fetchSelectedUsers();
-  }, [selectedUserIds]);
 
   const handleSelect = (userId, userName, userAvatar) => {
     if (

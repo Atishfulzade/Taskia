@@ -38,7 +38,7 @@ const AddProjectPopup = ({ close }) => {
       try {
         const res = await requestServer("project/add", { ...values, userId });
         dispatch(setCurrentProject(res.data.newProject));
-        dispatch(setProjects(res.data.projects));
+        dispatch(setProjects(res.data?.allProjects));
         showToast(res.message, "success");
 
         resetForm();
@@ -119,7 +119,7 @@ const AddProjectPopup = ({ close }) => {
             </Label>
             <UserSearch
               onSelectUser={(selectedUserIds) => {
-                formik.setFieldValue("member", selectedUserIds);
+                formik.setFieldValue("member", selectedUserIds); // This sets the member field to an array of user IDs
               }}
               defaultValue={formik.values.member}
             />
@@ -131,7 +131,7 @@ const AddProjectPopup = ({ close }) => {
           {/* Add Project Button */}
           <Button
             type="submit"
-            className="w-full"
+            className="w-full hover:bg-violet-700 text-white bg-violet-600"
             disabled={formik.isSubmitting}
           >
             {formik.isSubmitting ? "Adding..." : "Add Project"}
