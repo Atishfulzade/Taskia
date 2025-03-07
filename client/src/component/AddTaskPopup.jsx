@@ -48,6 +48,7 @@ const taskSchema = z.object({
   dueDate: z.string().optional(),
   status: z.string(),
   projectId: z.string(),
+  assignedBy: z.string(),
   subTask: z.array(
     z.object({
       title: z.string().min(1, { message: "Subtask title is required" }),
@@ -95,6 +96,7 @@ export function AddTaskPopup({
       priority: taskData?.priority || "No",
       status: currentStatus?._id || taskData?.status || "",
       assignedTo: taskData?.assignedTo || null,
+      assignedBy: taskData?.assignedBy || null,
       projectId: projectId,
       dueDate: taskData?.dueDate
         ? new Date(taskData.dueDate).toISOString().split("T")[0]
@@ -103,11 +105,6 @@ export function AddTaskPopup({
       attachedFile: taskData?.attachedFile || [],
     },
   });
-
-  console.log("projectId", projectId);
-  console.log("assignedTo", selectedUserId);
-  console.log("status", currentStatus?._id, "or", taskData?.status);
-  console.log("assignedBy", userId);
 
   // Update form values when dependencies change
   useEffect(() => {
@@ -205,6 +202,7 @@ export function AddTaskPopup({
       }
       showToast(res.data.message, "success");
       onOpenChange(false);
+      form.reset();
     } catch (error) {
       console.error("Error:", error);
       if (error.response?.data?.message === "Token not found") {

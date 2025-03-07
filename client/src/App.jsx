@@ -1,7 +1,7 @@
-import { Route, Routes, useNavigate } from "react-router-dom";
+import { Route, Routes, Navigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { Bounce, toast, ToastContainer } from "react-toastify";
-import { useEffect, Suspense, lazy } from "react";
+import { Bounce, ToastContainer } from "react-toastify";
+import { useEffect, Suspense, lazy, useRef } from "react";
 import { io } from "socket.io-client";
 
 import { setCurrentProject, setProjects } from "./store/projectSlice.js";
@@ -21,19 +21,20 @@ const Error = lazy(() => import("./pages/Error.jsx"));
 
 function App() {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
-
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
   const user = useSelector((state) => state.user.user);
   const projects = useSelector((state) => state.project.projects);
-  const token = localStorage.getItem("token");
   const assignedTask = useSelector((state) => state.assignTask.tasks);
+  const token = localStorage.getItem("token");
+
+  const socketRef = useRef(null); // Prevents unnecessary re-renders due to WebSocket
 
   // Validate User & Restore Data
   useEffect(() => {
+    if (!token) return;
+
     const validateUser = async () => {
       try {
-        // Check if there's a stored user in localStorage
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
           try {
@@ -45,170 +46,113 @@ function App() {
           }
         }
 
-        // Validate token with server
-        if (token) {
-          const res = await requestServer("user/validate");
-
-          if (res?.data) {
-            // Update user and token in store and localStorage
-            dispatch(login(res.data.data.user));
-            localStorage.setItem("user", JSON.stringify(res.data));
-          } else {
-            throw new Error("Invalid authentication response");
-          }
+        const res = await requestServer("user/validate");
+        if (res?.data) {
+          dispatch(login(res.data.data.user));
+          localStorage.setItem("user", JSON.stringify(res.data));
+        } else {
+          throw new Error("Invalid authentication response");
         }
 
-        // Fetch projects if not already loaded
-        if (!projects || (projects.length === 0 && token)) {
+        if (!projects.length) {
           const projectsRes = await requestServer("project/all");
-
-          if (projectsRes?.data && Array.isArray(projectsRes.data)) {
+          if (projectsRes?.data?.length) {
             dispatch(setProjects(projectsRes.data));
-            if (projectsRes.data.length > 0) {
-              dispatch(setCurrentProject(projectsRes.data[0]));
-            }
+            dispatch(setCurrentProject(projectsRes.data[0]));
           }
         }
 
-        // Fetch assigned tasks if not already loaded
-        if (!assignedTask || (assignedTask.length === 0 && token)) {
+        if (!assignedTask.length) {
           const assignTaskRes = await requestServer("task/assign");
-
-          if (assignTaskRes?.data && Array.isArray(assignTaskRes.data)) {
+          if (assignTaskRes?.data?.length) {
             dispatch(addAssignTask(assignTaskRes.data));
           }
         }
       } catch (error) {
         console.error("Authentication validation failed:", error);
-
-        // Clear authentication state
         dispatch(logout());
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-
-        // Navigate to authentication page
-        navigate("/authenticate");
+        showToast("Session expired. Please log in again.", "error");
       }
     };
 
-    // Only run validation if user is not authenticated but has a token,
-    // or if user is authenticated but no user object exists
-    token && validateUser();
-  }, []);
+    validateUser();
+  }, [token, dispatch]);
 
   // Connect to WebSocket
   useEffect(() => {
-    if (isAuthenticated && user?._id) {
-      const socket = io(import.meta.env.VITE_SERVER_URL, {
-        transports: ["websocket"],
-        reconnection: true,
-      });
+    if (!isAuthenticated || !user?._id || socketRef.current) return;
 
-      socket.on("connect", () => console.log("Socket connected:", socket.id));
-      socket.on("connect_error", (error) =>
-        console.error("Socket connection error:", error)
+    const socket = io(import.meta.env.VITE_SERVER_URL, {
+      transports: ["websocket"],
+      reconnection: true,
+    });
+
+    socketRef.current = socket;
+
+    socket.on("connect", () => console.log("Socket connected:", socket.id));
+    socket.on("connect_error", (error) =>
+      console.error("Socket connection error:", error)
+    );
+
+    socket.emit("joinUserRoom", user._id);
+
+    // Listen for new task assigned
+    socket.on("newTaskAssigned", async (data) => {
+      if (data?.task?.title && data?.task?.assignedTo) {
+        showToast(
+          ` A new task "${data.task.title}" has been assigned to you.`,
+          "info"
+        );
+
+        await requestServer("user/notification/add", {
+          userId: data.task.assignedTo,
+          title: data.task.title,
+          type: "info",
+          createdAt: new Date(),
+        });
+
+        dispatch(addAssignTask(data.task));
+      }
+    });
+
+    // Listen for project updates
+    socket.on("projectUpdated", (data) => {
+      showToast(`Project "${data.project.title}" has been updated.`, "info");
+      // Update the project in the Redux store or refetch the project list
+      dispatch(setProjects([...projects, data.project]));
+    });
+
+    // Listen for project deletion
+    socket.on("projectDeleted", (data) => {
+      showToast(`Project "${data.project.title}" has been deleted.`, "info");
+      // Remove the project from the Redux store or refetch the project list
+      dispatch(setProjects(projects.filter((p) => p._id !== data.project._id)));
+    });
+
+    // Listen for being added to a project
+    socket.on("addedToProject", (data) => {
+      showToast(
+        `You have been added to project: "${data.project.title}".`,
+        "info"
       );
+      // Add the project to the Redux store or refetch the project list
+      dispatch(setProjects([...projects, data.project]));
+    });
 
-      socket.emit("joinUserRoom", user._id);
+    // Listen for task updates
+    socket.on("taskUpdated", (data) => {
+      showToast(`Task "${data.task.title}" has been updated.`, "info");
+      // Update the task in the Redux store or refetch the task list
+      dispatch(addAssignTask(data.task));
+    });
 
-      // Handle new task assigned event
-      socket.on("newTaskAssigned", async (data) => {
-        if (data?.task?.title && data?.task?.assignedTo) {
-          showToast(
-            `A new task "${data.task.title}" has been assigned to you.`,
-            "info"
-          );
-
-          await requestServer(`user/notification/add`, {
-            userId: data.task.assignedTo, // Save the assigned user's ID
-            title: data.task.title,
-            type: "info",
-            createdAt: new Date(),
-          });
-
-          dispatch(addAssignTask(data.task));
-        } else {
-          console.error("Invalid task assignment:", data);
-        }
-      });
-
-      // Handle task updated event
-      socket.on("taskUpdated", async (data) => {
-        if (data?.task?.title && data?.task?.assignedTo) {
-          showToast(`Task "${data.task.title}" has been updated.`, "info");
-
-          await requestServer(`user/notification/add`, {
-            userId: data.task.assignedTo,
-            title: data.task.title,
-            type: "info",
-            createdAt: new Date(),
-          });
-        } else {
-          console.error("Invalid task update:", data);
-        }
-      });
-
-      // Handle added to project event
-      socket.on("addedToProject", async (data) => {
-        if (data?.project?.title && data?.project?.member) {
-          showToast(
-            `You have been added to project: "${data.project.title}".`,
-            "info"
-          );
-          console.log("data notification", data);
-
-          await requestServer(`user/notification/add`, {
-            userId: user._id,
-            title: data.project.title,
-            type: "info",
-          });
-          console.log("notification senf", data);
-        } else {
-          console.error("Invalid project addition:", data);
-        }
-      });
-
-      // Handle project updated event
-      socket.on("projectUpdated", async (data) => {
-        if (data?.project?.title && data?.project?.members) {
-          showToast(
-            `Project "${data.project.title}" has been updated.`,
-            "info"
-          );
-
-          await requestServer(`user/notification/add`, {
-            userId: user._id,
-            title: data.project.title,
-            type: "info",
-            createdAt: new Date(),
-          });
-        } else {
-          console.error("Invalid project update:", data);
-        }
-      });
-
-      // Handle project deleted event
-      socket.on("projectDeleted", async (data) => {
-        if (data?.project?.title) {
-          showToast(
-            `Project "${data.project.title}" has been deleted.`,
-            "info"
-          );
-
-          await requestServer(`user/notification/add`, {
-            userId: user._id,
-            title: data.project.title,
-            type: "error",
-            createdAt: new Date(),
-          });
-        } else {
-          console.error("Invalid project deletion:", data);
-        }
-      });
-
-      return () => socket.disconnect();
-    }
-  }, [isAuthenticated, user?._id, dispatch]);
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [isAuthenticated, user?._id, dispatch, projects]);
 
   return (
     <>
@@ -219,8 +163,9 @@ function App() {
         closeOnClick
         pauseOnHover
         transition={Bounce}
+        limit={3}
       />
-      <Suspense fallback={<Loader />}>
+      <Suspense fallback={<Loader message="Loading application..." />}>
         <Routes>
           <Route path="/" element={<Welcome />} />
           <Route path="authenticate" element={<Authentication />} />
@@ -230,10 +175,11 @@ function App() {
               <Route index element={<Dashboard />} />
             </Route>
           ) : (
-            <Route path="*" element={<NotFound />} />
+            <Route path="*" element={<Navigate to="/authenticate" replace />} />
           )}
 
-          <Route path="*" element={<Error />} />
+          <Route path="error" element={<Error />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </>

@@ -4,6 +4,7 @@ const msg = require("../utils/message-constant.json");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const { default: mongoose } = require("mongoose");
 
 // Register a new user
 const registerUser = async (req, res) => {
@@ -155,7 +156,7 @@ const getAllUser = async (req, res) => {
 
 const addNotification = async (req, res) => {
   try {
-    const { userId, title, type } = req.body;
+    const { userId, title, type, createdAt } = req.body;
     console.log("Request Body:", req.body);
 
     if (!userId) {

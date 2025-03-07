@@ -23,6 +23,7 @@ const addTask = async (req, res) => {
     if (isAlreadyExist) {
       return handleResponse(res, 400, msg.task.taskTitleAlreadyExists);
     }
+    console.log("error not found");
 
     // Validate assignedTo field (Convert empty string to null)
     const validAssignedTo =
