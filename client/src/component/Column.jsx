@@ -1,5 +1,5 @@
 import { useDroppable } from "@dnd-kit/core";
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import TaskItem from "./TaskItem";
@@ -17,14 +17,18 @@ const Column = React.memo(
     status,
     tasks = [],
     setEditTaskOpen,
-    isLoading = false, // Loading prop passed from parent
+    isLoading = false,
+    isTaskOpen, // Changed from using local state to prop from parent
+    setTaskOpen, // This will now toggle the specific column's popup
+    onAddTask, // Optional callback when task is added
+    projectId, // Project ID for new tasks
+    onDeleteTask, // Optional callback when task is deleted
   }) => {
     const { setNodeRef, isOver } = useDroppable({
       id: status?._id || "default-status",
     });
 
     const [showMore, setShowMore] = useState(false);
-    const [taskOpen, setTaskOpen] = useState(false); // Local state for task popup
     const dropdownRef = useRef(null);
 
     const currentProjectUserId = useSelector(
@@ -49,9 +53,19 @@ const Column = React.memo(
       };
     }, []);
 
+    // Handle opening task popup for this specific column
+    const handleOpenTaskPopup = () => {
+      setTaskOpen(true); // This now calls the parent function which sets activeTaskStatusId
+    };
+
+    // Handle closing task popup
+    const handleCloseTaskPopup = () => {
+      setTaskOpen(false);
+    };
+
     const renderAddTaskButton = () => (
       <button
-        onClick={() => setTaskOpen(true)}
+        onClick={handleOpenTaskPopup}
         className="p-1.5 rounded-full hover:bg-slate-100 transition-colors text-slate-600"
         title="Add a new task"
         aria-label="Add task"
@@ -72,12 +86,22 @@ const Column = React.memo(
       >
         {/* Add Task Popup */}
         <AddTaskPopup
-          open={taskOpen}
+          open={isTaskOpen} // Use the prop passed from parent
           task={null}
-          onOpenChange={setTaskOpen}
+          onOpenChange={handleCloseTaskPopup} // Close only this column's popup
           currentStatus={status}
           isEdit={false}
           isAdding={true}
+          onSuccess={(taskData) => {
+            if (onAddTask) {
+              onAddTask({
+                ...taskData,
+                status: status._id,
+                projectId: projectId,
+              });
+            }
+            handleCloseTaskPopup();
+          }}
         />
 
         {/* Column Header */}
@@ -159,8 +183,8 @@ const Column = React.memo(
                 task={task}
                 status={status}
                 setEditTaskOpen={setEditTaskOpen}
-                taskOpen={taskOpen}
-                setTaskOpen={setTaskOpen}
+                taskOpen={false} // Don't pass isTaskOpen here
+                setTaskOpen={setTaskOpen} // Pass the parent function
               />
             ))
           ) : (
@@ -177,7 +201,7 @@ const Column = React.memo(
         {isProjectOwner && (
           <div className="p-2 border-t border-slate-200">
             <button
-              onClick={() => setTaskOpen(true)}
+              onClick={handleOpenTaskPopup}
               className="w-full py-2 px-3 rounded-md bg-white hover:bg-violet-50 border border-slate-200 hover:border-violet-200 transition-colors flex items-center justify-center gap-1 text-slate-600 hover:text-violet-600 group"
               aria-label="Add task"
             >

@@ -30,7 +30,7 @@ import AddStatusPopup from "../component/AddStatusPopup";
 
 const ProjectDetail = () => {
   // State Management
-  const [taskOpen, setTaskOpen] = useState(false);
+  const [activeTaskStatusId, setActiveTaskStatusId] = useState(null); // Track which column has an open task popup
   const [editTaskOpen, setEditTaskOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState(null);
@@ -175,7 +175,8 @@ const ProjectDetail = () => {
       // Update Redux store
       dispatch(addTask(newTask.data));
 
-      setTaskOpen(false);
+      // Close the task popup for the specific status
+      setActiveTaskStatusId(null);
     } catch (error) {
       console.error("Error adding task:", error);
     }
@@ -331,8 +332,10 @@ const ProjectDetail = () => {
                   tasks={filteredTasks.filter(
                     (task) => task.status === status._id
                   )}
-                  setTaskOpen={setTaskOpen}
-                  taskOpen={taskOpen}
+                  isTaskOpen={activeTaskStatusId === status._id}
+                  setTaskOpen={(isOpen) => {
+                    setActiveTaskStatusId(isOpen ? status._id : null);
+                  }}
                   setEditTaskOpen={setEditTaskOpen}
                   isLoading={loading}
                   projectId={projectId}
@@ -349,7 +352,7 @@ const ProjectDetail = () => {
               <TaskItem
                 task={activeTask}
                 status={activeTaskStatus}
-                setTaskOpen={setTaskOpen}
+                setTaskOpen={() => {}}
                 taskOpen={false}
                 setEditTaskOpen={setEditTaskOpen}
                 isDragging={true}
