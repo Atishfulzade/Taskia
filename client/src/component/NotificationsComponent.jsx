@@ -30,16 +30,19 @@ const NotificationsComponent = () => {
       setNotifications(res.notifications);
     }
   };
-  console.log("userId", userId);
 
   useEffect(() => {
     handleNotifications();
-  }, []);
+  }, [assignTask]);
 
-  const removeNotification = (id) => {
+  const removeNotification = async (id) => {
     setNotifications((prev) =>
       prev.filter((notification) => notification.id !== id)
     );
+    await requestServer(`user/notification/delete`, {
+      notificationId: id,
+      userId: userId,
+    });
   };
 
   const clearAllNotifications = () => {
@@ -149,7 +152,7 @@ const NotificationsComponent = () => {
 
                       {/* Delete Button */}
                       <button
-                        onClick={() => removeNotification(notification.id)}
+                        onClick={() => removeNotification(notification._id)}
                         className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all ml-2"
                       >
                         <X size={16} />

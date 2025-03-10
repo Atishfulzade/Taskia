@@ -9,6 +9,7 @@ const {
   getUserNotifications,
   addNotification,
   getUserById,
+  deleteNotification,
 } = require("../controllers/user.controller.js");
 const validateUser = require("../middlewares/validateUser.middleware.js");
 
@@ -21,5 +22,6 @@ router.post("/validate", verifyUser, validateUser);
 router.post("/u/:id", verifyUser, getUserById);
 router.post("/notification/get/:userId", verifyUser, getUserNotifications);
 router.post("/notification/add", verifyUser, addNotification);
+router.post("/notification/delete", verifyUser, deleteNotification);
 
 module.exports = router;

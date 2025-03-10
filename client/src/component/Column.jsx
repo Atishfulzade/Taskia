@@ -18,11 +18,10 @@ const Column = React.memo(
     tasks = [],
     setEditTaskOpen,
     isLoading = false,
-    isTaskOpen, // Changed from using local state to prop from parent
+    isTaskOpen,
     setTaskOpen, // This will now toggle the specific column's popup
     onAddTask, // Optional callback when task is added
-    projectId, // Project ID for new tasks
-    onDeleteTask, // Optional callback when task is deleted
+    projectId,
   }) => {
     const { setNodeRef, isOver } = useDroppable({
       id: status?._id || "default-status",
@@ -91,17 +90,6 @@ const Column = React.memo(
           onOpenChange={handleCloseTaskPopup} // Close only this column's popup
           currentStatus={status}
           isEdit={false}
-          isAdding={true}
-          onSuccess={(taskData) => {
-            if (onAddTask) {
-              onAddTask({
-                ...taskData,
-                status: status._id,
-                projectId: projectId,
-              });
-            }
-            handleCloseTaskPopup();
-          }}
         />
 
         {/* Column Header */}

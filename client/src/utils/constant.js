@@ -63,10 +63,6 @@ const bgColors = [
     primaryColor: "#A5F3FC", // bg-cyan-200
     secondaryColor: "#ECFEFF", // bg-cyan-50
   },
-  {
-    primaryColor: "#FBCFE8", // bg-pink-200
-    secondaryColor: "#FDF2F8", // bg-pink-50
-  },
 ];
 
 export default bgColors;

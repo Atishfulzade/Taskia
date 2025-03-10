@@ -44,7 +44,7 @@ const taskSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().optional(),
   priority: z.string(),
-  assignedTo: z.string().min(1, { message: "Assignee is required" }), // Make it required
+  assignedTo: z.string().min(1, { message: "Assignee is required" }),
   dueDate: z.string().optional(),
   status: z.string(),
   projectId: z.string(),
@@ -68,15 +68,14 @@ export function AddTaskPopup({
   onOpenChange,
   currentStatus,
   taskData,
-  isEdit = false,
+  isEdit,
 }) {
   const [loading, setLoading] = useState(false);
   const [fileLoading, setFileLoading] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState(
-    taskData?.assignedTo || null
-  );
+  const [membersLoading, setMembersLoading] = useState(false);
   const [showSubtasks, setShowSubtasks] = useState(false);
   const [members, setMembers] = useState([]);
+  const [isFormDisabled, setIsFormDisabled] = useState(isEdit); // Disable form initially in edit mode
   const fileInputRef = useRef(null);
 
   const dispatch = useDispatch();
@@ -87,41 +86,61 @@ export function AddTaskPopup({
     (state) => state.project.currentProject?.member
   );
 
+  // Get default values based on edit mode
+  const getDefaultValues = () => {
+    if (isEdit) {
+      return {
+        title: taskData?.title || "",
+        description: taskData?.description || "",
+        priority: taskData?.priority || "No",
+        status: currentStatus?._id || taskData?.status || "",
+        assignedTo: taskData?.assignedTo || "",
+        assignedBy: taskData?.assignedBy || userId,
+        projectId: projectId || "",
+        dueDate: taskData?.dueDate || "",
+        subTask: taskData?.subTask || [],
+        attachedFile: taskData?.attachedFile || [],
+      };
+    }
+
+    return {
+      title: "",
+      description: "",
+      priority: "No",
+      status: currentStatus?._id || "",
+      assignedTo: "",
+      assignedBy: userId,
+      projectId: projectId || "",
+      dueDate: "",
+      subTask: [],
+      attachedFile: [],
+    };
+  };
+
   // Initialize the form with default values
   const form = useForm({
     resolver: zodResolver(taskSchema),
-    defaultValues: {
-      title: taskData?.title || "",
-      description: taskData?.description || "",
-      priority: taskData?.priority || "No",
-      status: currentStatus?._id || taskData?.status || "",
-      assignedTo: taskData?.assignedTo || null,
-      assignedBy: taskData?.assignedBy || null,
-      projectId: projectId,
-      dueDate: taskData?.dueDate
-        ? new Date(taskData.dueDate).toISOString().split("T")[0]
-        : "",
-      subTask: taskData?.subTask || [],
-      attachedFile: taskData?.attachedFile || [],
-    },
+    defaultValues: getDefaultValues(),
   });
 
-  // Update form values when dependencies change
+  // Update required form values when dependencies change
   useEffect(() => {
-    form.setValue("projectId", projectId);
-    form.setValue("assignedTo", selectedUserId || ""); // Ensure it's not null
-    form.setValue("status", currentStatus?._id || taskData?.status);
-    form.setValue("assignedBy", userId);
-  }, [projectId, currentStatus, selectedUserId, userId, form, taskData]);
+    // Only update these if they changed and are not already set
+    if (projectId && !form.getValues("projectId")) {
+      form.setValue("projectId", projectId);
+    }
 
-  // Handle user selection
-  const handleUserSelect = (user) => {
-    setSelectedUserId(user ? user._id : null);
-  };
+    if (currentStatus?._id && !form.getValues("status")) {
+      form.setValue("status", currentStatus._id);
+    }
 
-  // Function to upload files to Cloudinary
+    if (userId && !form.getValues("assignedBy")) {
+      form.setValue("assignedBy", userId);
+    }
+  }, [projectId, currentStatus, userId, form]);
+
+  // Function to upload a file to Cloudinary
   const uploadFileToCloudinary = async (file) => {
-    setFileLoading(true);
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", "Taskia"); // Replace with your Cloudinary upload preset
@@ -134,30 +153,46 @@ export function AddTaskPopup({
           body: formData,
         }
       );
+
+      if (!response.ok) {
+        throw new Error(`Upload failed with status: ${response.status}`);
+      }
+
       const data = await response.json();
       return data.secure_url; // Return the uploaded file URL
     } catch (error) {
       console.error("Error uploading file:", error);
-      showToast("Failed to upload file", "error");
       return null;
-    } finally {
-      setFileLoading(false);
     }
   };
 
-  // Handle file input change
+  // Handle multiple file uploads in parallel
   const handleFileChange = async (event) => {
     const files = event.target.files;
     if (files && files.length > 0) {
+      setFileLoading(true);
       const fileUrls = [...form.getValues("attachedFile")];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const url = await uploadFileToCloudinary(file);
-        if (url) {
-          fileUrls.push({ fileName: file.name, link: url });
-        }
+
+      try {
+        // Process files in parallel
+        const uploadPromises = Array.from(files).map(async (file) => {
+          const url = await uploadFileToCloudinary(file);
+          if (url) {
+            return { fileName: file.name, link: url };
+          }
+          return null;
+        });
+
+        const results = await Promise.all(uploadPromises);
+        const validUploads = results.filter(Boolean);
+
+        form.setValue("attachedFile", [...fileUrls, ...validUploads]);
+      } catch (error) {
+        console.error("Error uploading files:", error);
+        showToast("Failed to upload files", "error");
+      } finally {
+        setFileLoading(false);
       }
-      form.setValue("attachedFile", fileUrls);
     }
   };
 
@@ -200,9 +235,9 @@ export function AddTaskPopup({
         res = await requestServer("task/add", values);
         dispatch(addTask(res.data));
       }
-      showToast(res.data.message, "success");
+      showToast(res.data.message || "Task saved successfully", "success");
       onOpenChange(false);
-      form.reset();
+      form.reset(getDefaultValues()); // Reset with proper default values
     } catch (error) {
       console.error("Error:", error);
       if (error.response?.data?.message === "Token not found") {
@@ -223,9 +258,10 @@ export function AddTaskPopup({
 
   // Fetch project members
   const fetchMembers = useCallback(async () => {
-    try {
-      if (!projectMembers || projectMembers.length === 0) return;
+    if (!projectMembers || projectMembers.length === 0) return;
 
+    setMembersLoading(true);
+    try {
       const responses = await Promise.all(
         projectMembers.map((member) => requestServer(`user/u/${member}`))
       );
@@ -240,12 +276,16 @@ export function AddTaskPopup({
     } catch (error) {
       console.error("Error fetching members:", error);
       showToast("Failed to fetch project members", "error");
+    } finally {
+      setMembersLoading(false);
     }
   }, [projectMembers]);
 
   useEffect(() => {
-    fetchMembers();
-  }, [fetchMembers]);
+    if (open && projectMembers && projectMembers.length > 0) {
+      fetchMembers();
+    }
+  }, [open, projectMembers, fetchMembers]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -256,11 +296,24 @@ export function AddTaskPopup({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Task" : "Add Task"}</DialogTitle>
           <DialogDescription id="task-form-description">
-            Create a new task by filling out the form below.
+            {isEdit
+              ? "Update this task by modifying the form fields."
+              : "Create a new task by filling out the form below."}
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(90vh-120px)] pr-4 ">
+        {isEdit && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsFormDisabled(!isFormDisabled)}
+            className="mb-4"
+          >
+            {isFormDisabled ? "Enable Editing" : "Disable Editing"}
+          </Button>
+        )}
+
+        <ScrollArea className="max-h-[calc(90vh-120px)] pr-4">
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit)}
@@ -276,7 +329,11 @@ export function AddTaskPopup({
                       Title<span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter task title" {...field} />
+                      <Input
+                        placeholder="Enter task title"
+                        {...field}
+                        disabled={isFormDisabled}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -295,6 +352,7 @@ export function AddTaskPopup({
                         placeholder="Enter description"
                         className="resize-none"
                         {...field}
+                        disabled={isFormDisabled}
                       />
                     </FormControl>
                     <FormMessage />
@@ -313,6 +371,7 @@ export function AddTaskPopup({
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
+                        disabled={isFormDisabled}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -330,29 +389,43 @@ export function AddTaskPopup({
                   )}
                 />
 
-                <FormItem>
-                  <FormLabel>Assign To</FormLabel>
-                  <Select
-                    onValueChange={(value) => {
-                      setSelectedUserId(value); // Update selected user ID
-                      form.setValue("assignedTo", value); // Update form value
-                    }}
-                    defaultValue={taskData?.assignedTo || ""} // Default to empty string if null
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a user" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="bg-white">
-                      {members.map((user) => (
-                        <SelectItem key={user._id} value={user._id}>
-                          {user.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormItem>
+                <FormField
+                  control={form.control}
+                  name="assignedTo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Assign To<span className="text-destructive">*</span>
+                      </FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || ""}
+                        disabled={isFormDisabled || membersLoading}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            {membersLoading ? (
+                              <div className="flex items-center">
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                <span>Loading...</span>
+                              </div>
+                            ) : (
+                              <SelectValue placeholder="Select a user" />
+                            )}
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-white">
+                          {members.map((user) => (
+                            <SelectItem key={user._id} value={user._id}>
+                              {user.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               {/* Due Date */}
@@ -363,7 +436,7 @@ export function AddTaskPopup({
                   <FormItem>
                     <FormLabel>Due Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} disabled={isFormDisabled} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -379,14 +452,14 @@ export function AddTaskPopup({
                     variant="outline"
                     size="sm"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={fileLoading}
+                    disabled={fileLoading || isFormDisabled}
                   >
                     {fileLoading ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
                       <Paperclip className="h-4 w-4 mr-2" />
                     )}
-                    Attach Files
+                    {fileLoading ? "Uploading..." : "Attach Files"}
                   </Button>
                   <input
                     type="file"
@@ -394,6 +467,7 @@ export function AddTaskPopup({
                     className="hidden"
                     onChange={handleFileChange}
                     multiple
+                    disabled={isFormDisabled}
                   />
                 </div>
 
@@ -404,14 +478,20 @@ export function AddTaskPopup({
                         key={index}
                         className="flex items-center justify-between p-2 bg-muted rounded-md"
                       >
-                        <span className="text-sm truncate max-w-[300px]">
+                        <a
+                          href={file.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm truncate max-w-[300px] hover:underline"
+                        >
                           {file.fileName}
-                        </span>
+                        </a>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => removeFile(index)}
+                          disabled={isFormDisabled}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -444,6 +524,7 @@ export function AddTaskPopup({
                       variant="outline"
                       size="sm"
                       onClick={addSubtask}
+                      disabled={isFormDisabled}
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Add Subtask
@@ -463,6 +544,7 @@ export function AddTaskPopup({
                               variant="ghost"
                               size="sm"
                               onClick={() => removeSubtask(index)}
+                              disabled={isFormDisabled}
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -481,6 +563,7 @@ export function AddTaskPopup({
                                   <Input
                                     placeholder="Subtask title"
                                     {...field}
+                                    disabled={isFormDisabled}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -500,6 +583,7 @@ export function AddTaskPopup({
                                     placeholder="Subtask description"
                                     className="resize-none"
                                     {...field}
+                                    disabled={isFormDisabled}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -517,7 +601,7 @@ export function AddTaskPopup({
               <Button
                 type="submit"
                 className="w-full bg-violet-600 text-white"
-                disabled={loading || fileLoading}
+                disabled={loading || fileLoading || isFormDisabled}
               >
                 {loading ? (
                   <>

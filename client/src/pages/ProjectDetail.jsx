@@ -245,7 +245,7 @@ const ProjectDetail = () => {
               size="sm"
               className="bg-violet-600 text-white"
             >
-              <Plus className="h-4 w-4 mr-1" /> Add status
+              <Plus className="h-4 w-4 " /> Add status
             </Button>
           )}
           <AddStatusPopup
@@ -273,7 +273,7 @@ const ProjectDetail = () => {
                 size="sm"
                 className="border-slate-300 text-slate-800"
               >
-                <Filter className="h-4 w-4 mr-1" />
+                <Filter className="h-4 w-4 " />
                 Filter
               </Button>
             </PopoverTrigger>

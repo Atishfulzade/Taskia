@@ -133,8 +133,10 @@ const getUserById = async (req, res) => {
 const getAllUser = async (req, res) => {
   console.log("Query Parameters:", req.query);
   try {
-    const term = req.query.name || ""; // Ensure term is not undefined
-    const query = term ? { name: { $regex: term, $options: "i" } } : {};
+    const term = req.query.name?.trim() || ""; // Ensure term is not undefined and remove spaces
+    const query = term
+      ? { name: { $regex: `.*${term}.*`, $options: "i" } }
+      : {};
 
     console.log("MongoDB Query:", query);
 
@@ -156,7 +158,7 @@ const getAllUser = async (req, res) => {
 
 const addNotification = async (req, res) => {
   try {
-    const { userId, title, type, createdAt } = req.body;
+    const { userId, title, type } = req.body;
     console.log("Request Body:", req.body);
 
     if (!userId) {
@@ -165,43 +167,104 @@ const addNotification = async (req, res) => {
         .json({ success: false, message: "User ID is required" });
     }
 
-    // Validate if userId is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res
         .status(400)
         .json({ success: false, message: "Invalid User ID" });
     }
 
-    // Find user and push notification
-    const user = await User.findById(userId);
-    if (!user) {
+    // Construct the notification object
+    const notification = {
+      message: String(title || ""),
+      type: String(type || "info"),
+      createdAt: new Date(),
+    };
+
+    // Update user document: Push notification into the array
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $push: { notifications: notification } }, // 🛠 Correctly pushing an object
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
     }
 
-    console.log("User found:", user);
-
-    // Add notification to the user's notifications array
-    user.notifications.push({
-      message: title,
-      type,
-    });
-
-    console.log("Notification added, saving user...");
-
-    await user.save(); // Save the updated user document
-
-    console.log("User saved successfully");
+    console.log("Notification added:", notification);
 
     res.status(200).json({
       success: true,
       message: "Notification added successfully!",
-      notifications: user.notifications, // Return updated notifications
+      notifications: updatedUser.notifications,
     });
   } catch (error) {
     console.error("Error saving notification:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+const deleteNotification = async (req, res) => {
+  try {
+    const { userId, notificationId } = req.body;
+    console.log("Request Body:", req.body);
+
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required" });
+    }
+
+    if (!notificationId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Notification ID is required" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid User ID" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(notificationId)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid Notification ID" });
+    }
+
+    // Update the user document: Pull the specific notification out of the notifications array
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $pull: { notifications: { _id: notificationId } } }, // 🛠 Correctly pulling the notification by its ID
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    console.log("Notification deleted:", notificationId);
+
+    res.status(200).json({
+      success: true,
+      message: "Notification deleted successfully!",
+      notifications: updatedUser.notifications,
+    });
+  } catch (error) {
+    console.error("Error deleting notification:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
   }
 };
 
@@ -231,4 +294,5 @@ module.exports = {
   getUserNotifications,
   getAllUser,
   getUserById,
+  deleteNotification,
 };

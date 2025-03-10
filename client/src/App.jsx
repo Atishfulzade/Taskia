@@ -91,66 +91,149 @@ function App() {
 
     socketRef.current = socket;
 
-    socket.on("connect", () => console.log("Socket connected:", socket.id));
+    socket.on("connect", () =>
+      console.log("✅ WebSocket connected:", socket.id)
+    );
     socket.on("connect_error", (error) =>
-      console.error("Socket connection error:", error)
+      console.error("❌ WebSocket connection error:", error)
     );
 
     socket.emit("joinUserRoom", user._id);
 
-    // Listen for new task assigned
-    socket.on("newTaskAssigned", async (data) => {
-      if (data?.task?.title && data?.task?.assignedTo) {
-        showToast(
-          ` A new task "${data.task.title}" has been assigned to you.`,
-          "info"
-        );
-
+    // 🛠 Function to add notifications to the server
+    const addNotification = async (userId, title, message, type = "info") => {
+      try {
         await requestServer("user/notification/add", {
-          userId: data.task.assignedTo,
-          title: data.task.title,
-          type: "info",
-          createdAt: new Date(),
+          userId,
+          title,
+          message,
+          type,
         });
-
-        dispatch(addAssignTask(data.task));
+      } catch (error) {
+        console.error("⚠️ Failed to add notification:", error);
       }
-    });
+    };
 
-    // Listen for project updates
-    socket.on("projectUpdated", (data) => {
-      showToast(`Project "${data.project.title}" has been updated.`, "info");
-      // Update the project in the Redux store or refetch the project list
-      dispatch(setProjects([...projects, data.project]));
-    });
+    // 📌 Listen for New Task Assignment
+    socket.on("newTaskAssigned", async (data) => {
+      if (!data?.task?.title || !data?.task?.assignedTo) {
+        console.error("❌ Invalid task data received:", data);
+        return;
+      }
 
-    // Listen for project deletion
-    socket.on("projectDeleted", (data) => {
-      showToast(`Project "${data.project.title}" has been deleted.`, "info");
-      // Remove the project from the Redux store or refetch the project list
-      dispatch(setProjects(projects.filter((p) => p._id !== data.project._id)));
-    });
+      const message = `A new task "${data.task.title}" has been assigned to you.`;
+      showToast(message, "info");
 
-    // Listen for being added to a project
-    socket.on("addedToProject", (data) => {
-      showToast(
-        `You have been added to project: "${data.project.title}".`,
+      await addNotification(
+        data.task.assignedTo,
+        "New Task Assigned",
+        message,
         "info"
       );
-      // Add the project to the Redux store or refetch the project list
-      dispatch(setProjects([...projects, data.project]));
-    });
 
-    // Listen for task updates
-    socket.on("taskUpdated", (data) => {
-      showToast(`Task "${data.task.title}" has been updated.`, "info");
-      // Update the task in the Redux store or refetch the task list
       dispatch(addAssignTask(data.task));
     });
 
+    // 📌 Listen for Project Updates
+    socket.on("projectUpdated", async (data) => {
+      if (!data?.project?.title || !data?.project?._id) {
+        console.error("❌ Invalid project data received:", data);
+        return;
+      }
+
+      const message = `The project "${data.project.title}" has been updated. Check the latest changes.`;
+      showToast(message, "info");
+
+      await addNotification(
+        data.project.member[0],
+        "Project Updated",
+        message,
+        "info"
+      );
+
+      // Update project in Redux store
+      const updatedProjects = projects.map((p) =>
+        p._id === data.project._id ? data.project : p
+      );
+      dispatch(setProjects(updatedProjects));
+    });
+
+    // 📌 Listen for Project Deletion
+    socket.on("projectDeleted", async (data) => {
+      if (!data?.project?._id) {
+        console.error("❌ Invalid project data received:", data);
+        return;
+      }
+
+      const message = `The project "${data.project.title}" has been deleted.`;
+      showToast(message, "info");
+
+      await addNotification(
+        data.project.member[0],
+        "Project Deleted",
+        message,
+        "warning"
+      );
+
+      // Remove project from Redux store
+      const updatedProjects = projects.filter(
+        (p) => p._id !== data.project._id
+      );
+      dispatch(setProjects(updatedProjects));
+    });
+
+    // 📌 Listen for Being Added to a Project
+    socket.on("addedToProject", async (data) => {
+      if (!data?.project?.title || !data?.project?._id) {
+        console.error("❌ Invalid project data received:", data);
+        return;
+      }
+
+      const message = `You have been added to the project "${data.project.title}".`;
+      showToast(message, "success");
+
+      await addNotification(
+        data.project.member[0],
+        "Added to Project",
+        message,
+        "success"
+      );
+
+      dispatch(setProjects([...projects, data.project]));
+    });
+
+    // 📌 Listen for Task Updates
+    socket.on("taskUpdated", async (data) => {
+      if (!data?.task?.title || !data?.task?._id) {
+        console.error("❌ Invalid task data received:", data);
+        return;
+      }
+
+      const message = `The task "${data.task.title}" has been updated. Check the latest modifications.`;
+      showToast(message, "info");
+
+      await addNotification(
+        data.task.assignedTo,
+        "Task Updated",
+        message,
+        "info"
+      );
+
+      dispatch(addAssignTask(data.task));
+    });
+
+    // 📌 Handle WebSocket Errors
+    socket.on("error", (error) => {
+      console.error("❌ WebSocket error:", error);
+      showToast("An error occurred with the WebSocket connection.", "error");
+    });
+
+    // 🔄 Cleanup WebSocket on Unmount
     return () => {
-      socket.disconnect();
-      socketRef.current = null;
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
     };
   }, [isAuthenticated, user?._id, dispatch, projects]);
 

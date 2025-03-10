@@ -22,7 +22,6 @@ const TaskItem = ({
   status,
   setTaskOpen,
   taskOpen,
-  setEditTaskOpen,
   isDragging = false,
 }) => {
   // Only use useDraggable if not being used as a drag overlay
@@ -290,14 +289,13 @@ const TaskItem = ({
       </div>
 
       {/* Don't render modal when it's a drag overlay */}
-      {!isDragging && (
+      {!isDragging && setTaskOpen && (
         <AddTaskPopup
           onOpenChange={setTaskOpen}
           currentStatus={status}
           isEdit={true}
           open={taskOpen}
           taskData={task}
-          isAdding={false}
         />
       )}
 

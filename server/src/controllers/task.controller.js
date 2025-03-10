@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+const { isValidObjectId } = mongoose;
+const User = require("../models/user.model.js");
 const { handleError, handleResponse } = require("../utils/common-functions.js");
 const Task = require("../models/task.model.js");
 const msg = require("../utils/message-constant.json");
@@ -14,7 +16,7 @@ const addTask = async (req, res) => {
     }
 
     // Validate projectId format
-    if (!mongoose.Types.ObjectId.isValid(projectId)) {
+    if (!isValidObjectId(projectId)) {
       return handleResponse(res, 400, msg.task.invalidProjectId);
     }
 
@@ -23,13 +25,16 @@ const addTask = async (req, res) => {
     if (isAlreadyExist) {
       return handleResponse(res, 400, msg.task.taskTitleAlreadyExists);
     }
-    console.log("error not found");
 
     // Validate assignedTo field (Convert empty string to null)
-    const validAssignedTo =
-      assignedTo && mongoose.Types.ObjectId.isValid(assignedTo)
-        ? assignedTo
-        : null;
+    let validAssignedTo = null;
+    if (assignedTo && isValidObjectId(assignedTo)) {
+      const userExists = await User.findById(assignedTo); // Assuming you have a User model
+      if (!userExists) {
+        return handleResponse(res, 400, msg.user.userNotExists);
+      }
+      validAssignedTo = assignedTo;
+    }
 
     // Create a new task
     const newTask = new Task({
