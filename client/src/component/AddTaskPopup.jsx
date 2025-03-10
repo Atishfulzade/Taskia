@@ -85,6 +85,7 @@ export function AddTaskPopup({
   const projectMembers = useSelector(
     (state) => state.project.currentProject?.member
   );
+  console.log(taskData);
 
   // Get default values based on edit mode
   const getDefaultValues = () => {
