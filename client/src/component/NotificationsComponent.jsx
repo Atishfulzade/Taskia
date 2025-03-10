@@ -24,6 +24,7 @@ const NotificationsComponent = () => {
   const [isOpen, setIsOpen] = useState(false);
   const assignTask = useSelector((state) => state.assignTask.task);
   const userId = useSelector((state) => state.user.user?._id);
+
   const handleNotifications = async () => {
     if (userId) {
       const res = await requestServer(`user/notification/get/${userId}`);
@@ -66,9 +67,9 @@ const NotificationsComponent = () => {
       {/* Notification Bell */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-full  hover:bg-violet-700 dark:hover:bg-slate-700 transition-colors"
+        className="relative p-2 rounded-full hover:bg-violet-700 dark:hover:bg-slate-700 transition-colors"
       >
-        <FiBell size={20} className="text-white" />
+        <FiBell size={20} className="text-white dark:text-gray-300" />
         {notifications?.length > 0 && (
           <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
             {notifications?.length}
@@ -83,7 +84,7 @@ const NotificationsComponent = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute right-0 top-full mt-2 z-10 w-80 max-h-[500px] overflow-y-auto bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700"
+            className="absolute right-0 top-full mt-2 z-10 w-80 max-h-[500px] overflow-y-auto bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700"
           >
             {/* Header */}
             <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700">
@@ -93,7 +94,7 @@ const NotificationsComponent = () => {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={clearAllNotifications}
-                  className="text-sm text-red-500 hover:bg-red-50 px-2 py-1 rounded"
+                  className="text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded"
                 >
                   Clear All
                 </button>
@@ -101,7 +102,7 @@ const NotificationsComponent = () => {
                   onClick={() => setIsOpen(false)}
                   className="text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 p-1 rounded"
                 >
-                  <X size={18} />
+                  <X size={18} className="dark:text-gray-300" />
                 </button>
               </div>
             </div>
@@ -122,7 +123,7 @@ const NotificationsComponent = () => {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
-                      className="flex items-start p-4 border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors group"
+                      className="flex items-start p-4 border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
                     >
                       {/* Notification Icon */}
                       <div
@@ -155,7 +156,7 @@ const NotificationsComponent = () => {
                         onClick={() => removeNotification(notification._id)}
                         className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all ml-2"
                       >
-                        <X size={16} />
+                        <X size={16} className="dark:text-gray-300" />
                       </button>
                     </motion.li>
                   );

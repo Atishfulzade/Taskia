@@ -34,21 +34,24 @@ import { LuClipboardList } from "react-icons/lu";
 const priorityConfig = {
   High: {
     icon: <TbFlag3 className="text-red-500" size={16} />,
-    badge: "bg-red-100 text-red-700 border-red-200",
-    hover: "hover:bg-red-50",
-    empty: "bg-red-50",
+    badge:
+      "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800",
+    hover: "hover:bg-red-50 dark:hover:bg-red-900/30",
+    empty: "bg-red-50 dark:bg-red-900/20",
   },
   Medium: {
     icon: <TbFlag3 className="text-amber-500" size={16} />,
-    badge: "bg-amber-100 text-amber-700 border-amber-200",
-    hover: "hover:bg-amber-50",
-    empty: "bg-amber-50",
+    badge:
+      "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800",
+    hover: "hover:bg-amber-50 dark:hover:bg-amber-900/30",
+    empty: "bg-amber-50 dark:bg-amber-900/20",
   },
   No: {
     icon: <TbFlag3 className="text-slate-400" size={16} />,
-    badge: "bg-slate-100 text-slate-700 border-slate-200",
-    hover: "hover:bg-slate-50",
-    empty: "bg-slate-50",
+    badge:
+      "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-700/20 dark:text-slate-300 dark:border-slate-600",
+    hover: "hover:bg-slate-50 dark:hover:bg-slate-700/30",
+    empty: "bg-slate-50 dark:bg-slate-700/20",
   },
 };
 
@@ -148,7 +151,9 @@ const PrioritySection = ({
                       <span className="hidden sm:inline">Add task</span>
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Add a new task</TooltipContent>
+                  <TooltipContent className="dark:bg-slate-800 dark:text-slate-200">
+                    Add a new task
+                  </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
 
@@ -164,10 +169,19 @@ const PrioritySection = ({
                     />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>Sort tasks</DropdownMenuItem>
-                  <DropdownMenuItem>Filter tasks</DropdownMenuItem>
-                  <DropdownMenuItem>Collapse all</DropdownMenuItem>
+                <DropdownMenuContent
+                  align="end"
+                  className="dark:bg-slate-800 dark:text-slate-200"
+                >
+                  <DropdownMenuItem className="dark:hover:bg-slate-700">
+                    Sort tasks
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="dark:hover:bg-slate-700">
+                    Filter tasks
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="dark:hover:bg-slate-700">
+                    Collapse all
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </motion.div>
@@ -240,7 +254,7 @@ const PrioritySection = ({
                         e.stopPropagation();
                         onAddTask(priority);
                       }}
-                      className="mt-3 flex items-center gap-1"
+                      className="mt-3 flex items-center gap-1 dark:bg-slate-700 dark:text-slate-200"
                     >
                       <IoAdd size={14} />
                       Add task

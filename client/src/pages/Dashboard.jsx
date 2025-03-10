@@ -2,7 +2,6 @@ import React, { useState, useMemo } from "react";
 import { Search, Columns, List } from "lucide-react";
 
 // Shadcn UI Components
-
 import { Input } from "@/components/ui/Input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 
@@ -54,20 +53,20 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="w-full h-screen   flex flex-col bg-background">
+    <div className="w-full h-screen flex flex-col bg-background dark:bg-gray-900">
       {/* Top Navigation Bar */}
-      <div className="flex  px-4 h-12 justify-between  border-b  border-slate-300 items-center">
+      <div className="flex px-4 h-12 justify-between border-b border-slate-300 dark:border-gray-700 items-center">
         {/* Left Navigation */}
         <Tabs
           value={selectedSubBoard.toString()}
           onValueChange={(value) => setSelectedSubBoard(Number(value))}
         >
-          <TabsList>
+          <TabsList className="bg-gray-100 dark:bg-gray-800">
             {navItems.map((item) => (
               <TabsTrigger
                 key={item.id}
                 value={item.id.toString()}
-                className=" rounded-sm px-4 py-2  flex items-center"
+                className="rounded-sm px-4 py-2 flex items-center dark:text-gray-300 dark:hover:bg-gray-700"
               >
                 <item.icon className="h-4 w-4" />
                 <span>{item.label}</span>
@@ -77,13 +76,13 @@ const Dashboard = () => {
         </Tabs>
 
         {/* Right Actions */}
-        <div className="flex items-center space-x-2 z-[1">
+        <div className="flex items-center space-x-2 z-[1]">
           {/* Search */}
           <div className="relative z-[1]">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground dark:text-gray-400" />
             <Input
               placeholder="Search status..."
-              className="pl-8 w-64 z-0"
+              className="pl-8 w-64 z-0 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700"
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
             />

@@ -100,9 +100,7 @@ const ProjectDetail = () => {
         return;
       }
 
-      console.log("Fetching statuses for project:", projectId);
       const res = await requestServer(`status/all/${projectId}`);
-      console.log("Fetched statuses:", res.data);
 
       // Update Redux store with fresh data
       dispatch(setStatuses(res.data));
@@ -118,9 +116,7 @@ const ProjectDetail = () => {
         return;
       }
 
-      console.log("Fetching tasks for project:", projectId);
       const res = await requestServer(`task/all/${projectId}`);
-      console.log("Fetched tasks:", res.data);
 
       // Dispatch tasks to Redux store
       dispatch(setTasks(res.data));
@@ -229,11 +225,11 @@ const ProjectDetail = () => {
   }, [showStatusPopup, projectId]);
 
   return (
-    <div className="h-full w-full px-6 z-10">
+    <div className="h-full w-full px-6 z-10 dark:bg-slate-900">
       {/* Project Header */}
       <div className="flex justify-between items-center mb-2 p-2">
         <div>
-          <CardTitle className="text-xl font-semibold flex gap-3.5 text-slate-800">
+          <CardTitle className="text-xl font-semibold flex gap-3.5 text-slate-800 dark:text-white">
             {projectName || "Project Dashboard"} <Badge>{total} Tasks</Badge>
           </CardTitle>
         </div>
@@ -243,9 +239,9 @@ const ProjectDetail = () => {
             <Button
               onClick={() => setShowStatusPopup(true)}
               size="sm"
-              className="bg-violet-600 text-white"
+              className="bg-violet-600 text-white dark:bg-violet-700"
             >
-              <Plus className="h-4 w-4 " /> Add status
+              <Plus className="h-4 w-4" /> Add status
             </Button>
           )}
           <AddStatusPopup
@@ -260,7 +256,7 @@ const ProjectDetail = () => {
           <Button
             size="sm"
             variant="outline"
-            className="border-slate-300 text-slate-800"
+            className="border-slate-300 text-slate-800 dark:border-gray-700 dark:text-gray-300"
           >
             <ChevronsUpDown className="mr-1 h-4 w-4" /> Sort
           </Button>
@@ -271,18 +267,18 @@ const ProjectDetail = () => {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-slate-300 text-slate-800"
+                className="border-slate-300 text-slate-800 dark:border-gray-700 dark:text-gray-300"
               >
-                <Filter className="h-4 w-4 " />
+                <Filter className="h-4 w-4" />
                 Filter
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 z-50">
+            <PopoverContent className="w-80 z-50 dark:bg-gray-800 dark:border-gray-700">
               {/* Filter options implementation */}
               <div className="space-y-2 p-2">
-                <h3 className="font-medium">Filter Options</h3>
+                <h3 className="font-medium dark:text-white">Filter Options</h3>
                 <div className="space-y-1">
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     Filter implementation would go here
                   </p>
                 </div>
@@ -292,10 +288,10 @@ const ProjectDetail = () => {
 
           {/* Search */}
           <div className="relative z-10">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400 dark:text-gray-500" />
             <Input
               placeholder="Search tasks..."
-              className="pl-8"
+              className="pl-8 dark:bg-gray-800 dark:text-white dark:border-gray-700"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -306,8 +302,8 @@ const ProjectDetail = () => {
       {/* Loading Indicator */}
       {loading && (
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-          <span className="ml-2">Loading...</span>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-gray-300"></div>
+          <span className="ml-2 dark:text-white">Loading...</span>
         </div>
       )}
 
@@ -321,7 +317,9 @@ const ProjectDetail = () => {
         >
           {statuses.length === 0 ? (
             <div className="flex justify-center items-center h-64">
-              <p>No statuses found. Add a status to get started.</p>
+              <p className="dark:text-white">
+                No statuses found. Add a status to get started.
+              </p>
             </div>
           ) : (
             <div className="flex gap-4 overflow-x-auto pb-4">

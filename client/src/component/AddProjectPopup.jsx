@@ -62,10 +62,12 @@ const AddProjectPopup = ({ close }) => {
 
   return (
     <Dialog open={true} onOpenChange={() => close(false)}>
-      <DialogContent className="sm:max-w-[500px] bg-white">
+      <DialogContent className="sm:max-w-[500px] bg-white dark:bg-gray-800">
         <DialogHeader>
-          <DialogTitle>Create Project</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-gray-900 dark:text-gray-100">
+            Create Project
+          </DialogTitle>
+          <DialogDescription className="text-gray-600 dark:text-gray-300">
             A project refers to a planned effort to achieve a specific goal
             within a set timeline.
           </DialogDescription>
@@ -74,7 +76,7 @@ const AddProjectPopup = ({ close }) => {
         <form onSubmit={formik.handleSubmit} className="space-y-4">
           {/* Project Title */}
           <div className="space-y-2">
-            <Label htmlFor="title">
+            <Label htmlFor="title" className="text-gray-900 dark:text-gray-100">
               Project Title<sup className="text-red-500">*</sup>
             </Label>
             <Input
@@ -85,6 +87,7 @@ const AddProjectPopup = ({ close }) => {
               value={formik.values.title}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
+              className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
             />
             {formik.touched.title && formik.errors.title && (
               <p className="text-red-500 text-xs">{formik.errors.title}</p>
@@ -93,7 +96,10 @@ const AddProjectPopup = ({ close }) => {
 
           {/* Project Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">
+            <Label
+              htmlFor="description"
+              className="text-gray-900 dark:text-gray-100"
+            >
               Description <span className="text-xs">(Optional)</span>
             </Label>
             <Input
@@ -104,6 +110,7 @@ const AddProjectPopup = ({ close }) => {
               value={formik.values.description}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
+              className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
             />
             {formik.touched.description && formik.errors.description && (
               <p className="text-red-500 text-xs">
@@ -114,7 +121,10 @@ const AddProjectPopup = ({ close }) => {
 
           {/* Add Member */}
           <div className="space-y-2">
-            <Label htmlFor="member">
+            <Label
+              htmlFor="member"
+              className="text-gray-900 dark:text-gray-100"
+            >
               Add Member<sup className="text-red-500">*</sup>
             </Label>
             <UserSearch
@@ -131,7 +141,7 @@ const AddProjectPopup = ({ close }) => {
           {/* Add Project Button */}
           <Button
             type="submit"
-            className="w-full hover:bg-violet-700 text-white bg-violet-600"
+            className="w-full hover:bg-violet-700 text-white bg-violet-600 dark:bg-violet-700 dark:hover:bg-violet-800"
             disabled={formik.isSubmitting}
           >
             {formik.isSubmitting ? "Adding..." : "Add Project"}

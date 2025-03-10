@@ -15,7 +15,7 @@ import {
   MdOutlineCheckCircle,
   MdOutlineRadioButtonUnchecked,
 } from "react-icons/md";
-import { AddTaskPopup } from "./AddTaskPopup";
+import AddTaskPopup from "./AddTaskPopup";
 
 const TaskItem = ({
   task,
@@ -72,16 +72,19 @@ const TaskItem = ({
   const priorityBadges = useMemo(
     () => ({
       High: {
-        color: "bg-red-100 text-red-700 border-red-200",
-        icon: "text-red-500",
+        color:
+          "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800",
+        icon: "text-red-500 dark:text-red-400",
       },
       Medium: {
-        color: "bg-yellow-100 text-yellow-700 border-yellow-200",
-        icon: "text-yellow-500",
+        color:
+          "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800",
+        icon: "text-yellow-500 dark:text-yellow-400",
       },
       Low: {
-        color: "bg-slate-100 text-slate-700 border-slate-200",
-        icon: "text-slate-600",
+        color:
+          "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-700/20 dark:text-slate-300 dark:border-slate-600",
+        icon: "text-slate-600 dark:text-slate-400",
       },
     }),
     []
@@ -115,7 +118,7 @@ const TaskItem = ({
   return (
     <div
       ref={!isDragging ? setNodeRef : undefined}
-      className={`border my-2 select-none h-fit border-slate-200 bg-white rounded-lg shadow-sm ${
+      className={`border my-2 select-none h-fit dark:bg-slate-800 border-slate-200 dark:border-slate-700 bg-white rounded-lg shadow-sm ${
         isDragging ? "shadow-xl opacity-90 scale-105" : "hover:shadow-md"
       } transition-all duration-200`}
       style={{
@@ -133,12 +136,13 @@ const TaskItem = ({
             <span
               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                 priorityBadges[task.priority]?.color ||
-                "bg-slate-100 text-slate-700"
+                "bg-slate-100 text-slate-700 dark:bg-slate-700/20 dark:text-slate-300"
               }`}
             >
               <TbFlag3
                 className={
-                  priorityBadges[task.priority]?.icon || "text-slate-600"
+                  priorityBadges[task.priority]?.icon ||
+                  "text-slate-600 dark:text-slate-400"
                 }
               />
               {task.priority}
@@ -148,7 +152,7 @@ const TaskItem = ({
 
         {/* Task Title */}
         <div onClick={handleTaskClick} className="cursor-pointer">
-          <h4 className="text-slate-800 font-inter text-sm font-medium leading-5 line-clamp-2 hover:text-violet-700 transition-colors">
+          <h4 className="text-slate-800 dark:text-slate-200 font-inter text-sm font-medium leading-5 line-clamp-2 hover:text-violet-700 dark:hover:text-violet-500 transition-colors">
             {task?.title}
           </h4>
         </div>
@@ -161,26 +165,32 @@ const TaskItem = ({
             title={assignedUser || "Unassigned"}
           >
             {isLoading ? (
-              <div className="animate-pulse bg-slate-200 rounded-full w-6 h-6"></div>
+              <div className="animate-pulse bg-slate-200 dark:bg-slate-700 rounded-full w-6 h-6"></div>
             ) : task?.assignedTo ? (
-              <span className="border text-white flex items-center justify-center bg-violet-600 rounded-full border-violet-300 w-6 h-6 text-[11px] shadow-sm">
+              <span className="border text-white flex items-center justify-center bg-violet-600 dark:bg-violet-700 rounded-full border-violet-300 dark:border-violet-600 w-6 h-6 text-[11px] shadow-sm">
                 {getInitials(assignedUser)}
               </span>
             ) : (
-              <FaRegCircleUser className="text-slate-400 border border-slate-200 p-1 w-6 h-6 rounded-full" />
+              <FaRegCircleUser className="text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 p-1 w-6 h-6 rounded-full" />
             )}
           </div>
 
           {/* Due Date */}
           {task?.dueDate && (
-            <div className="flex border gap-1 justify-center border-slate-200 p-1 h-6 rounded-md items-center bg-slate-50">
+            <div className="flex border gap-1 justify-center border-slate-200 dark:border-slate-700 p-1 h-6 rounded-md items-center bg-slate-50 dark:bg-slate-700">
               <FaRegCalendar
                 size={12}
-                className={isOverdue ? "text-red-500" : "text-slate-500"}
+                className={
+                  isOverdue
+                    ? "text-red-500"
+                    : "text-slate-500 dark:text-slate-400"
+                }
               />
               <p
                 className={`${
-                  isOverdue ? "text-red-500 font-medium" : "text-slate-600"
+                  isOverdue
+                    ? "text-red-500 font-medium"
+                    : "text-slate-600 dark:text-slate-300"
                 } text-[11px] font-inter`}
               >
                 {formatDate(task.dueDate)}
@@ -194,10 +204,13 @@ const TaskItem = ({
               title={`${task.attachedFile.length} attachment${
                 task.attachedFile.length > 1 ? "s" : ""
               }`}
-              className="flex border gap-1 justify-center border-slate-200 p-1 h-6 rounded-md items-center bg-slate-50"
+              className="flex border gap-1 justify-center border-slate-200 dark:border-slate-700 p-1 h-6 rounded-md items-center bg-slate-50 dark:bg-slate-700"
             >
-              <IoAttachSharp size={12} className="text-slate-500" />
-              <span className="text-[11px] text-slate-600">
+              <IoAttachSharp
+                size={12}
+                className="text-slate-500 dark:text-slate-400"
+              />
+              <span className="text-[11px] text-slate-600 dark:text-slate-300">
                 {task.attachedFile.length}
               </span>
             </div>
@@ -206,22 +219,22 @@ const TaskItem = ({
 
         {/* Subtasks Section */}
         {Array.isArray(task.subTask) && task.subTask.length > 0 && (
-          <div className="mt-3 border-t border-slate-100 pt-2">
+          <div className="mt-3 border-t border-slate-100 dark:border-slate-700 pt-2">
             {/* Subtask Header */}
             <div
               onClick={toggleSubTaskVisibility}
               className="flex cursor-pointer justify-between items-center group"
             >
               <div className="flex gap-1.5 items-center">
-                <PiGitMergeDuotone className="text-violet-500" />
-                <p className="text-slate-700 text-xs font-medium">
+                <PiGitMergeDuotone className="text-violet-500 dark:text-violet-400" />
+                <p className="text-slate-700 dark:text-slate-300 text-xs font-medium">
                   Subtasks ({completedSubtasks}/{task.subTask.length})
                 </p>
               </div>
 
               {/* Progress bar */}
               <div className="flex items-center gap-2">
-                <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                <div className="w-16 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-violet-500 rounded-full"
                     style={{
@@ -234,12 +247,12 @@ const TaskItem = ({
                 {showSubTask ? (
                   <FaChevronDown
                     size={12}
-                    className="text-slate-400 group-hover:text-slate-700 transition-colors"
+                    className="text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors"
                   />
                 ) : (
                   <FaChevronRight
                     size={12}
-                    className="text-slate-400 group-hover:text-slate-700 transition-colors"
+                    className="text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors"
                   />
                 )}
               </div>
@@ -247,11 +260,11 @@ const TaskItem = ({
 
             {/* Subtask List */}
             {showSubTask && !isDragging && (
-              <div className="mt-2 space-y-2 pl-2 pr-1 py-1 bg-slate-50 rounded-md max-h-40 overflow-y-auto">
+              <div className="mt-2 space-y-2 pl-2 pr-1 py-1 bg-slate-50 dark:bg-slate-700 rounded-md max-h-40 overflow-y-auto">
                 {task.subTask.map((subtask) => (
                   <div
                     key={subtask._id}
-                    className="flex gap-2 items-start py-1 px-1 hover:bg-slate-100 rounded transition-colors"
+                    className="flex gap-2 items-start py-1 px-1 hover:bg-slate-100 dark:hover:bg-slate-600 rounded transition-colors"
                   >
                     {subtask.completed ? (
                       <MdOutlineCheckCircle
@@ -260,7 +273,7 @@ const TaskItem = ({
                       />
                     ) : (
                       <MdOutlineRadioButtonUnchecked
-                        className="text-slate-400 min-w-[16px] mt-0.5"
+                        className="text-slate-400 dark:text-slate-500 min-w-[16px] mt-0.5"
                         size={16}
                       />
                     )}
@@ -268,14 +281,14 @@ const TaskItem = ({
                       <p
                         className={`text-xs font-medium ${
                           subtask.completed
-                            ? "text-slate-500 line-through"
-                            : "text-slate-700"
+                            ? "text-slate-500 dark:text-slate-400 line-through"
+                            : "text-slate-700 dark:text-slate-200"
                         }`}
                       >
                         {subtask.title}
                       </p>
                       {subtask.description && (
-                        <p className="text-[10px] line-clamp-2 text-slate-500 mt-0.5">
+                        <p className="text-[10px] line-clamp-2 text-slate-500 dark:text-slate-400 mt-0.5">
                           {subtask.description}
                         </p>
                       )}
@@ -293,7 +306,7 @@ const TaskItem = ({
         <AddTaskPopup
           onOpenChange={setTaskOpen}
           currentStatus={status}
-          isEdit={true}
+          isEdit={false}
           open={taskOpen}
           taskData={task}
         />
@@ -304,7 +317,7 @@ const TaskItem = ({
         <div
           {...listeners}
           {...attributes}
-          className="h-1.5 bg-slate-100 rounded-b-lg cursor-grab active:cursor-grabbing hover:bg-violet-100 transition-colors"
+          className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-b-lg cursor-grab active:cursor-grabbing hover:bg-violet-100 dark:hover:bg-violet-700/50 transition-colors"
         />
       )}
     </div>

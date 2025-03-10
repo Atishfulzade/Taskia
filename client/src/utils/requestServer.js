@@ -11,7 +11,7 @@ const requestServer = async (path, data = {}) => {
       .replace(/^\//, "")
       .replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
 
-    console.log("Request URL:", formattedURL);
+    // console.log("Request URL:", formattedURL);
 
     const res = await axios({
       url: formattedURL,

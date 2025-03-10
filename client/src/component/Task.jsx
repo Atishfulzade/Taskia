@@ -56,7 +56,7 @@ const PriorityFlag = ({ priority }) => {
   const colorMap = {
     High: "text-destructive",
     Medium: "text-amber-500",
-    No: "text-slate-400",
+    No: "text-slate-400 dark:text-slate-500",
   };
 
   return (
@@ -66,13 +66,13 @@ const PriorityFlag = ({ priority }) => {
           <div className="flex items-center gap-1.5">
             <Flag
               className={`h-3.5 w-3.5 ${
-                colorMap[priority] || "text-slate-400"
+                colorMap[priority] || "text-slate-400 dark:text-slate-500"
               }`}
             />
             <span className="text-xs font-medium">{priority || "None"}</span>
           </div>
         </TooltipTrigger>
-        <TooltipContent>
+        <TooltipContent className="dark:bg-slate-800 dark:text-slate-200">
           <p>Priority: {priority || "Not set"}</p>
         </TooltipContent>
       </Tooltip>
@@ -184,8 +184,8 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.2 }}
-      className={`group flex items-center w-full border-b border-slate-200 dark:border-slate-600 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${
-        isCompleted ? "bg-muted/50" : ""
+      className={`group flex items-center w-full border-b border-slate-200 dark:border-slate-700 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${
+        isCompleted ? "bg-muted/50 dark:bg-slate-700/50" : ""
       }`}
     >
       {/* Drag Handle */}
@@ -193,7 +193,7 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
         {...listeners}
         className="touch-none cursor-grab opacity-0 group-hover:opacity-100 transition-opacity px-2"
       >
-        <Grip className="h-3.5 w-3.5 text-muted-foreground" />
+        <Grip className="h-3.5 w-3.5 text-muted-foreground dark:text-slate-400" />
       </div>
 
       {/* Checkbox */}
@@ -216,7 +216,7 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
               onChange={(e) => setEditedTitle(e.target.value)}
               onBlur={saveTitle}
               onKeyDown={handleKeyDown}
-              className="flex-1 bg-background border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-1 bg-background dark:bg-slate-800 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <Button
               size="icon"
@@ -271,11 +271,11 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground dark:text-slate-400">
                 {getRelativeDate(task?.createdAt)}
               </div>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent className="dark:bg-slate-800 dark:text-slate-200">
               <p>Created: {formatDate(task?.createdAt)}</p>
             </TooltipContent>
           </Tooltip>
@@ -296,7 +296,7 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
                   </AvatarFallback>
                 </Avatar>
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent className="dark:bg-slate-800 dark:text-slate-200">
                 <p>Assigned to: {assignedUser}</p>
               </TooltipContent>
             </Tooltip>
@@ -313,7 +313,7 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
                   <User className="h-3 w-3" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent className="dark:bg-slate-800 dark:text-slate-200">
                 <p>Not assigned</p>
               </TooltipContent>
             </Tooltip>
@@ -331,11 +331,11 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground dark:text-slate-400">
                 {getRelativeDate(task?.dueDate)}
               </div>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent className="dark:bg-slate-800 dark:text-slate-200">
               <p>Due: {formatDate(task?.dueDate)}</p>
             </TooltipContent>
           </Tooltip>
@@ -353,7 +353,7 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
                   <span>{task.attachedFile?.length ?? 0}</span>
                 </Badge>
               </TooltipTrigger>
-              <TooltipContent role="tooltip">
+              <TooltipContent className="dark:bg-slate-800 dark:text-slate-200">
                 <p>Has {task.attachedFile?.length ?? 0} attachment(s)</p>
               </TooltipContent>
             </Tooltip>
@@ -373,22 +373,31 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
               <MoreHorizontal className="h-3.5 w-3.5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleEditTitle}>
+          <DropdownMenuContent
+            align="end"
+            className="dark:bg-slate-800 dark:text-slate-200"
+          >
+            <DropdownMenuItem
+              onClick={handleEditTitle}
+              className="dark:hover:bg-slate-700"
+            >
               <Edit className="h-3.5 w-3.5 mr-2" />
               Edit task
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleComplete}>
+            <DropdownMenuItem
+              onClick={handleComplete}
+              className="dark:hover:bg-slate-700"
+            >
               <Check className="h-3.5 w-3.5 mr-2" />
               Mark as {isCompleted ? "incomplete" : "complete"}
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem className="dark:hover:bg-slate-700">
               <Plus className="h-3.5 w-3.5 mr-2" />
               Add subtask
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
+              className="text-destructive focus:text-destructive dark:hover:bg-slate-700"
               onClick={() => onTaskDelete && onTaskDelete(task._id)}
             >
               <Trash2 className="h-3.5 w-3.5 mr-2" />

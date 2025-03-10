@@ -72,14 +72,14 @@ const ProjectItem = ({ project, isActive, onClick, onContextMenu }) => {
       className={cn(
         "group flex items-center z-0 justify-between py-2 px-3 rounded-md my-1 cursor-pointer",
         isActive
-          ? "bg-slate-200 text-slate-900"
-          : "text-slate-700 hover:bg-slate-100"
+          ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
       )}
       onClick={onClick}
       onContextMenu={(e) => onContextMenu(e, project)}
     >
       <div className="flex items-center gap-2 overflow-hidden">
-        <Folder className="h-4 w-4 text-slate-500" />
+        <Folder className="h-4 w-4 text-slate-500 dark:text-slate-400" />
         <span className="text-sm font-medium truncate">{project.title}</span>
       </div>
       <div className="flex items-center">
@@ -89,18 +89,22 @@ const ProjectItem = ({ project, isActive, onClick, onContextMenu }) => {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div
-              className="h-6 w-6 flex justify-center items-center opacity-0 group-hover:opacity-100 rounded hover:bg-slate-200"
+              className="h-6 w-6 flex justify-center items-center opacity-0 group-hover:opacity-100 rounded hover:bg-slate-200 dark:hover:bg-slate-600"
               onClick={(e) => e.stopPropagation()}
             >
-              <MoreHorizontal className="h-4 w-4 text-slate-500" />
+              <MoreHorizontal className="h-4 w-4 text-slate-500 dark:text-slate-400" />
             </div>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 bg-white">
+          <DropdownMenuContent
+            align="end"
+            className="w-48 bg-white dark:bg-slate-800"
+          >
             <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();
                 onContextMenu(e, project, "rename");
               }}
+              className="dark:hover:bg-slate-700"
             >
               Rename project
             </DropdownMenuItem>
@@ -109,6 +113,7 @@ const ProjectItem = ({ project, isActive, onClick, onContextMenu }) => {
                 e.stopPropagation();
                 onContextMenu(e, project, "star");
               }}
+              className="dark:hover:bg-slate-700"
             >
               {project.isStarred ? "Remove from favorites" : "Add to favorites"}
             </DropdownMenuItem>
@@ -117,12 +122,13 @@ const ProjectItem = ({ project, isActive, onClick, onContextMenu }) => {
                 e.stopPropagation();
                 onContextMenu(e, project, "share");
               }}
+              className="dark:hover:bg-slate-700"
             >
               Share project
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="text-red-500 focus:text-red-500"
+              className="text-red-500 focus:text-red-500 dark:hover:bg-slate-700"
               onClick={async (e) => {
                 e.stopPropagation();
                 onContextMenu(e, project, "delete");
@@ -262,26 +268,28 @@ const Sidebar = ({ onCollapse }) => {
       <motion.div
         initial={false}
         animate={{ width: isCollapsed ? 60 : 280 }}
-        className="h-[calc(100vh-50px)] border-r border-slate-300 bg-white flex flex-col"
+        className="h-[calc(100vh-50px)] border-r border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex flex-col"
       >
         {/* Sidebar Header */}
-        <div className="flex h-12 items-center justify-between border-b border-slate-300 px-3">
+        <div className="flex h-12 items-center justify-between border-b border-slate-300 dark:border-slate-700 px-3">
           {!isCollapsed && (
-            <h3 className="font-medium text-slate-800">Projects</h3>
+            <h3 className="font-medium text-slate-800 dark:text-slate-200">
+              Projects
+            </h3>
           )}
 
           <div className="flex items-center justify-center gap-1 relative">
             {!isCollapsed && (
               <>
                 {showSearch ? (
-                  <div className="absolute w-[180px] z-20 right-10 top-1 bg-white">
+                  <div className="absolute w-[180px] z-20 right-10 top-1 bg-white dark:bg-slate-800">
                     <Input
                       ref={searchInputRef}
                       type="text"
                       placeholder="Search projects..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="h-8 text-sm bg-white border-slate-300"
+                      className="h-8 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700"
                       onBlur={() => {
                         if (!searchQuery) setShowSearch(false);
                       }}
@@ -294,7 +302,7 @@ const Sidebar = ({ onCollapse }) => {
                     />
                     {searchQuery && (
                       <button
-                        className="absolute right-2 top-2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                         onClick={() => {
                           setSearchQuery("");
                           setShowSearch(false);
@@ -306,7 +314,7 @@ const Sidebar = ({ onCollapse }) => {
                   </div>
                 ) : (
                   <button
-                    className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md"
+                    className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md"
                     onClick={() => setShowSearch(true)}
                   >
                     <Search size={18} />
@@ -317,7 +325,7 @@ const Sidebar = ({ onCollapse }) => {
 
             {!isCollapsed && (
               <button
-                className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md"
+                className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md"
                 onClick={() => setShowAddProject(true)}
               >
                 <Plus size={18} />
@@ -326,7 +334,7 @@ const Sidebar = ({ onCollapse }) => {
 
             {showAddProject && <AddProjectPopup close={setShowAddProject} />}
             <button
-              className="h-8 w-8 flex justify-center items-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md"
+              className="h-8 w-8 flex justify-center items-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md"
               onClick={toggleCollapse}
             >
               <PanelLeft size={18} />
@@ -338,7 +346,7 @@ const Sidebar = ({ onCollapse }) => {
         {isCollapsed ? (
           <div className="flex flex-col items-center py-4 gap-4">
             <button
-              className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md"
+              className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md"
               onClick={() => {
                 setIsCollapsed(false);
                 setShowAddProject(true);
@@ -347,19 +355,19 @@ const Sidebar = ({ onCollapse }) => {
               <Plus className="h-4 w-4" />
             </button>
 
-            <button className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md">
+            <button className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md">
               <Star className="h-4 w-4" />
             </button>
 
-            <button className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md">
+            <button className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md">
               <Clock className="h-4 w-4" />
             </button>
 
-            <button className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md">
+            <button className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md">
               <Users className="h-4 w-4" />
             </button>
 
-            <button className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md">
+            <button className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md">
               <Settings className="h-4 w-4" />
             </button>
           </div>
@@ -370,16 +378,16 @@ const Sidebar = ({ onCollapse }) => {
               {recentProjects?.length > 0 && (
                 <div className="mb-4">
                   <div
-                    className="flex items-center justify-between py-1 cursor-pointer hover:bg-slate-50 rounded px-1"
+                    className="flex items-center justify-between py-1 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 rounded px-1"
                     onClick={() => toggleSection("recent")}
                   >
                     <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4 text-slate-500" />
-                      <span className="text-sm font-medium text-slate-700">
+                      <Clock className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                         Recent
                       </span>
                     </div>
-                    <button className="h-5 w-5 flex items-center justify-center text-slate-500">
+                    <button className="h-5 w-5 flex items-center justify-center text-slate-500 dark:text-slate-400">
                       {expandedSections.recent ? (
                         <ChevronDown className="h-4 w-4" />
                       ) : (
@@ -418,19 +426,19 @@ const Sidebar = ({ onCollapse }) => {
               {/* My Projects Section */}
               <div className="mb-4">
                 <div
-                  className="flex items-center justify-between py-1 cursor-pointer hover:bg-slate-50 rounded px-1"
+                  className="flex items-center justify-between py-1 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 rounded px-1"
                   onClick={() => toggleSection("myProjects")}
                 >
                   <div className="flex items-center gap-1">
-                    <Folder className="h-4 w-4 text-slate-500" />
-                    <span className="text-sm font-medium text-slate-700">
+                    <Folder className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                       My Projects
                     </span>
-                    <Badge className="ml-1 h-5 px-1.5 text-xs bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300">
+                    <Badge className="ml-1 h-5 px-1.5 text-xs bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 border-slate-300 dark:border-slate-600">
                       {filteredProjects?.length}
                     </Badge>
                   </div>
-                  <button className="h-5 w-5 flex items-center justify-center text-slate-500">
+                  <button className="h-5 w-5 flex items-center justify-center text-slate-500 dark:text-slate-400">
                     {expandedSections.myProjects ? (
                       <ChevronDown className="h-4 w-4" />
                     ) : (
@@ -462,18 +470,18 @@ const Sidebar = ({ onCollapse }) => {
                           />
                         ))
                       ) : searchQuery ? (
-                        <div className="py-3 px-3 text-sm text-slate-500">
+                        <div className="py-3 px-3 text-sm text-slate-500 dark:text-slate-400">
                           No projects match your search
                         </div>
                       ) : (
-                        <div className="py-3 px-3 text-sm text-slate-500">
+                        <div className="py-3 px-3 text-sm text-slate-500 dark:text-slate-400">
                           No projects yet. Create your first project!
                         </div>
                       )}
 
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-slate-500 hover:text-slate-700 hover:bg-slate-100 mt-1"
+                        className="w-full justify-start text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 mt-1"
                         onClick={() => setShowAddProject(true)}
                       >
                         <Plus className="h-4 w-4 mr-2" />
@@ -487,19 +495,19 @@ const Sidebar = ({ onCollapse }) => {
               {/* Shared Projects Section */}
               <div className="mb-4">
                 <div
-                  className="flex items-center justify-between py-1 cursor-pointer hover:bg-slate-50 rounded px-1"
+                  className="flex items-center justify-between py-1 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 rounded px-1"
                   onClick={() => toggleSection("shared")}
                 >
                   <div className="flex items-center gap-1">
-                    <Users className="h-4 w-4 text-slate-500" />
-                    <span className="text-sm font-medium text-slate-700">
+                    <Users className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                       Shared with me
                     </span>
-                    <Badge className="ml-1 h-5 px-1.5 text-xs bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300">
+                    <Badge className="ml-1 h-5 px-1.5 text-xs bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 border-slate-300 dark:border-slate-600">
                       {sharedProjects.length}
                     </Badge>
                   </div>
-                  <button className="h-5 w-5 flex items-center justify-center text-slate-500">
+                  <button className="h-5 w-5 flex items-center justify-center text-slate-500 dark:text-slate-400">
                     {expandedSections.shared ? (
                       <ChevronDown className="h-4 w-4" />
                     ) : (
@@ -538,10 +546,10 @@ const Sidebar = ({ onCollapse }) => {
         )}
 
         {/* Sidebar Footer */}
-        <div className="border-t border-slate-300 p-3">
+        <div className="border-t border-slate-300 dark:border-slate-700 p-3">
           <Button
             variant="ghost"
-            className="w-full justify-start text-slate-600 hover:text-slate-800 hover:bg-slate-100"
+            className="w-full justify-start text-slate-600 hover:text-slate-800 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
             size="sm"
           >
             <Settings className="h-4 w-4 mr-2" />

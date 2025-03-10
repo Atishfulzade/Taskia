@@ -7,28 +7,17 @@ import { showToast } from "../utils/showToast";
 import { useNavigate } from "react-router-dom";
 
 // Icons
-import { LogOut, User, Settings, Moon, Sun, X, Bell } from "lucide-react";
+import { LogOut, User, Settings, X } from "lucide-react";
 
 // ShadCN components
 import { Button } from "../components/ui/Button";
-import { Switch } from "../components/ui/switch";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/Avatar";
-import { Badge } from "../components/ui/Badge";
 import { formatDate } from "@/utils/formatDate";
 
 const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [isClosing, setIsClosing] = useState(false);
-
-  // Theme state
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme) {
-      return savedTheme === "dark";
-    }
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
-  });
 
   // Handle escape key to close profile
   useEffect(() => {
@@ -42,17 +31,6 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
     return () => window.removeEventListener("keydown", handleEscape);
   }, []);
 
-  // Update document theme when dark mode changes
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  }, [isDarkMode]);
-
   // Handle closing with animation
   const handleClose = () => {
     setIsClosing(true);
@@ -60,11 +38,6 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
       setShowProfile(false);
       setIsClosing(false);
     }, 200);
-  };
-
-  // Handle theme toggle
-  const toggleTheme = () => {
-    setIsDarkMode((prev) => !prev);
   };
 
   // Handle user logout
@@ -171,33 +144,6 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
           My Profile
         </Button>
 
-        {/* Notifications */}
-        {/* <Button
-          variant="ghost"
-          onClick={() => {
-            navigate("/notifications");
-            handleClose();
-          }}
-          className="w-full justify-between px-3 py-2 my-0.5 text-slate-700 dark:text-slate-300 
-                     hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
-        >
-          <div className="flex items-center">
-            <Bell
-              size={18}
-              className="mr-3 text-slate-500 dark:text-slate-400"
-            />
-            Notifications
-          </div>
-          {notifications > 0 && (
-            <Badge
-              variant="destructive"
-              className="ml-2 px-1.5 min-w-[1.5rem] text-center"
-            >
-              {notifications}
-            </Badge>
-          )}
-        </Button> */}
-
         {/* Settings */}
         <Button
           variant="ghost"
@@ -214,31 +160,6 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
           />
           Settings
         </Button>
-
-        {/* Theme Toggle */}
-        <div className="px-3 py-2 my-1 flex items-center justify-between rounded-lg">
-          <div className="flex items-center">
-            {isDarkMode ? (
-              <Moon
-                className="mr-3 text-slate-500 dark:text-slate-400"
-                size={18}
-              />
-            ) : (
-              <Sun
-                className="mr-3 text-slate-500 dark:text-slate-400"
-                size={18}
-              />
-            )}
-            <span className="text-slate-700 dark:text-slate-300 text-sm">
-              {isDarkMode ? "Dark" : "Light"} Mode
-            </span>
-          </div>
-          <Switch
-            checked={isDarkMode}
-            onCheckedChange={toggleTheme}
-            className="data-[state=checked]:bg-violet-600"
-          />
-        </div>
       </div>
 
       {/* Logout Button */}

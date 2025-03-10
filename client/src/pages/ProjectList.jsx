@@ -1,4 +1,4 @@
-import react, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   DndContext,
   closestCenter,
@@ -231,7 +231,9 @@ const ProjectList = () => {
       <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
         <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
           {projectName || "Project Tasks"}{" "}
-          <Badge className="text-xs">{total} tasks</Badge>
+          <Badge className="text-xs dark:bg-slate-700 dark:text-slate-200">
+            {total} tasks
+          </Badge>
         </h1>
       </div>
 
@@ -245,7 +247,7 @@ const ProjectList = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => toggleAllDropdowns(true)}
-                className="h-8 text-xs sm:text-sm cursor-pointer border-slate-300 text-slate-700 "
+                className="h-8 text-xs sm:text-sm cursor-pointer border-slate-300 text-slate-700 dark:border-slate-600 dark:text-slate-200"
               >
                 <PiGitMergeDuotone size={14} className="mr-1" />
                 <span className="hidden sm:inline">Expand All</span>
@@ -255,7 +257,7 @@ const ProjectList = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => toggleAllDropdowns(false)}
-                className="h-8 text-xs sm:text-sm cursor-pointer  border-slate-300 text-slate-700 "
+                className="h-8 text-xs sm:text-sm cursor-pointer border-slate-300 text-slate-700 dark:border-slate-600 dark:text-slate-200"
               >
                 <TbStack2 size={14} className="mr-1" />
                 <span className="hidden sm:inline">Collapse All</span>
@@ -268,7 +270,7 @@ const ProjectList = () => {
             {/* Search */}
             <div className="relative">
               <IoSearch
-                className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-slate-400"
+                className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500"
                 size={14}
               />
               <Input
@@ -276,17 +278,17 @@ const ProjectList = () => {
                 placeholder="Search tasks..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-8 text-xs sm:text-sm w-[140px] sm:w-[180px]"
+                className="pl-8 h-8 text-xs sm:text-sm w-[140px] sm:w-[180px] dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"
               />
             </div>
 
             {/* Sort By */}
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[140px] h-8 text-xs sm:text-sm border-slate-300 text-slate-700">
+              <SelectTrigger className="w-[140px] h-8 text-xs sm:text-sm border-slate-300 text-slate-700 dark:border-slate-600 dark:text-slate-200 dark:bg-slate-700">
                 <RiExpandUpDownLine size={14} className="mr-1" />
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
-              <SelectContent className="text-slate-700 border-slate-300 bg-white">
+              <SelectContent className="text-slate-700 border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200">
                 <SelectItem value="default">Default</SelectItem>
                 <SelectItem value="dueDate">Due Date</SelectItem>
                 <SelectItem value="created">Created Date</SelectItem>
@@ -299,7 +301,7 @@ const ProjectList = () => {
               size="sm"
               variant="default"
               onClick={() => handleAddTask("No")}
-              className="h-8 text-xs sm:text-sm text-slate-50 cursor-pointer bg-violet-600"
+              className="h-8 text-xs sm:text-sm text-slate-50 cursor-pointer bg-violet-600 dark:bg-violet-700"
             >
               <Plus size={16} className="" />
               <span>New Task</span>
@@ -326,13 +328,13 @@ const ProjectList = () => {
               >
                 <div className="p-4 flex justify-between items-center">
                   <div className="flex items-center gap-2">
-                    <Skeleton className="h-5 w-5 rounded-full" />
-                    <Skeleton className="h-4 w-28" />
-                    <Skeleton className="h-6 w-16 rounded-full" />
+                    <Skeleton className="h-5 w-5 rounded-full dark:bg-slate-700" />
+                    <Skeleton className="h-4 w-28 dark:bg-slate-700" />
+                    <Skeleton className="h-6 w-16 rounded-full dark:bg-slate-700" />
                   </div>
-                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-8 w-20 dark:bg-slate-700" />
                 </div>
-                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-32 w-full dark:bg-slate-700" />
               </div>
             ))}
           </div>
@@ -349,7 +351,7 @@ const ProjectList = () => {
                   <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-lg">
                     <IoAddCircleOutline
                       size={48}
-                      className="mx-auto mb-4 text-slate-400"
+                      className="mx-auto mb-4 text-slate-400 dark:text-slate-500"
                     />
                     <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 mb-2">
                       No tasks found
@@ -361,7 +363,7 @@ const ProjectList = () => {
                     </p>
                     <Button
                       onClick={() => handleAddTask("No")}
-                      className="text-slate-300"
+                      className="text-slate-300 dark:bg-violet-700"
                     >
                       Create a task
                     </Button>

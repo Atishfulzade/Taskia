@@ -47,7 +47,7 @@ const TaskMoreDropdown = ({ setShowMore, status }) => {
   return (
     <div
       ref={popupRef}
-      className="absolute p-2 bg-white border top-0 right-6 border-slate-100 rounded-md shadow"
+      className="absolute p-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-md shadow-lg z-50"
     >
       {/* Edit Status Popup */}
       {editStatus && (
@@ -60,22 +60,24 @@ const TaskMoreDropdown = ({ setShowMore, status }) => {
       )}
 
       {/* Dropdown Options */}
-      <div className="">
+      <div className="space-y-1">
         {/* Edit Option */}
-        <p
+        <div
           onClick={() => setEditStatus(!editStatus)}
-          className="hover:bg-violet-600 hover:text-slate-100 py-1 px-2 rounded flex items-center gap-2 cursor-pointer"
+          className="flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
         >
-          <GoPencil /> Edit
-        </p>
+          <GoPencil className="text-slate-600 dark:text-slate-300" />
+          <p className="text-sm text-slate-700 dark:text-slate-200">Edit</p>
+        </div>
 
         {/* Delete Option */}
-        <p
+        <div
           onClick={handleDelete}
-          className="hover:bg-violet-600 hover:text-slate-100 py-1 px-2 rounded flex items-center gap-2 cursor-pointer"
+          className="flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
         >
-          <MdDeleteOutline /> Delete
-        </p>
+          <MdDeleteOutline className="text-red-500" />
+          <p className="text-sm text-red-500">Delete</p>
+        </div>
       </div>
     </div>
   );

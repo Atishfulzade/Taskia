@@ -10,7 +10,7 @@ import { FaRegCircle } from "react-icons/fa6";
 import { PiDotsThreeBold } from "react-icons/pi";
 import { TbLayoutKanban } from "react-icons/tb";
 import TaskMoreDropdown from "./TaskMoreDropdown";
-import { AddTaskPopup } from "./AddTaskPopup";
+import AddTaskPopup from "./AddTaskPopup";
 
 const Column = React.memo(
   ({
@@ -63,7 +63,7 @@ const Column = React.memo(
     const renderAddTaskButton = () => (
       <button
         onClick={handleOpenTaskPopup}
-        className="p-1.5 rounded-full hover:bg-slate-100 transition-colors text-slate-600"
+        className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors text-slate-600 dark:text-gray-300"
         title="Add a new task"
         aria-label="Add task"
       >
@@ -90,7 +90,7 @@ const Column = React.memo(
         />
 
         {/* Column Header */}
-        <div className="p-3 border-b border-slate-200">
+        <div className="p-3 border-b border-slate-200 dark:border-gray-700">
           <div className="flex justify-between items-center">
             <div className="flex gap-2 items-center">
               <div
@@ -102,12 +102,12 @@ const Column = React.memo(
                 <FaRegCircle className="text-violet-600" size={12} />
                 <h3
                   title={status?.title}
-                  className="text-[12px] font-medium font-inter w-fit line-clamp-1 text-slate-800"
+                  className="text-[12px] font-medium font-inter w-fit line-clamp-1 text-slate-800 dark:text-gray-100"
                 >
                   {status?.title?.toUpperCase()}
                 </h3>
               </div>
-              <span className="text-slate-500 text-xs font-medium px-2 py-1 bg-slate-100 rounded-full">
+              <span className="text-slate-500 dark:text-gray-300 text-xs font-medium px-2 py-1 bg-slate-100 dark:bg-gray-700 rounded-full">
                 {tasks?.length || 0}
               </span>
             </div>
@@ -116,7 +116,7 @@ const Column = React.memo(
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setShowMore(!showMore)}
-                    className="p-1.5 rounded-full hover:bg-slate-100 transition-colors text-slate-600"
+                    className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors text-slate-600 dark:text-gray-300"
                     aria-label="More options"
                     aria-expanded={showMore}
                   >
@@ -148,7 +148,7 @@ const Column = React.memo(
         {/* Task List */}
         <div
           ref={setNodeRef}
-          className="flex-1 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent"
+          className="flex-1 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent"
         >
           {isLoading ? (
             // Loading skeleton for tasks
@@ -157,7 +157,7 @@ const Column = React.memo(
               .map((_, index) => (
                 <div
                   key={`skeleton-${index}`}
-                  className="bg-slate-100 animate-pulse h-24 rounded-lg mb-2"
+                  className="bg-slate-100 dark:bg-gray-700 animate-pulse h-24 rounded-lg mb-2"
                 />
               ))
           ) : tasks?.length > 0 ? (
@@ -174,7 +174,7 @@ const Column = React.memo(
             ))
           ) : (
             // Empty state when no tasks are available
-            <div className="flex flex-col items-center justify-center h-full text-center p-4 text-slate-400">
+            <div className="flex flex-col items-center justify-center h-full text-center p-4 text-slate-400 dark:text-gray-400">
               <TbLayoutKanban size={32} className="mb-2" />
               <p className="text-sm">No tasks yet</p>
               <p className="text-xs mt-1">Drop tasks here or add a new one</p>
@@ -184,15 +184,15 @@ const Column = React.memo(
 
         {/* Add Task Button */}
         {isProjectOwner && (
-          <div className="p-2 border-t border-slate-200">
+          <div className="p-2 border-t border-slate-200 dark:border-gray-700">
             <button
               onClick={handleOpenTaskPopup}
-              className="w-full py-2 px-3 rounded-md bg-white hover:bg-violet-50 border border-slate-200 hover:border-violet-200 transition-colors flex items-center justify-center gap-1 text-slate-600 hover:text-violet-600 group"
+              className="w-full py-2 px-3 rounded-md bg-white dark:bg-gray-800 hover:bg-violet-50 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 hover:border-violet-200 dark:hover:border-violet-600 transition-colors flex items-center justify-center gap-1 text-slate-600 dark:text-gray-300 hover:text-violet-600 dark:hover:text-violet-500 group"
               aria-label="Add task"
             >
               <IoIosAdd
                 size={18}
-                className="text-violet-500 group-hover:text-violet-600 transition-colors"
+                className="text-violet-500 dark:text-violet-400 group-hover:text-violet-600 dark:group-hover:text-violet-500 transition-colors"
               />
               <span className="text-sm font-medium">Add task</span>
             </button>

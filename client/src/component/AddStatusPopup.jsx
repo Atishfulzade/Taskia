@@ -9,7 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription, // Ensure this is imported
+  DialogDescription,
 } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -97,12 +97,17 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
-        className="max-w-md bg-white"
+        className="max-w-md bg-white dark:bg-gray-800"
         aria-describedby="status-form-description"
       >
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Status" : "Add Status"}</DialogTitle>
-          <DialogDescription id="status-form-description">
+          <DialogTitle className="text-gray-900 dark:text-gray-100">
+            {isEdit ? "Edit Status" : "Add Status"}
+          </DialogTitle>
+          <DialogDescription
+            id="status-form-description"
+            className="text-gray-600 dark:text-gray-300"
+          >
             Create a new status by filling out the form below.
           </DialogDescription>
         </DialogHeader>
@@ -115,6 +120,7 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
             onBlur={formik.handleBlur}
             value={formik.values.title}
             placeholder="Enter Status (e.g. 'Todo', 'In Progress')"
+            className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
           />
           {formik.touched.title && formik.errors.title && (
             <p className="text-red-500 text-sm">{formik.errors.title}</p>
@@ -122,7 +128,9 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
 
           {/* Color Selection */}
           <div>
-            <p className="text-sm text-slate-600 mb-2">Select color</p>
+            <p className="text-sm text-slate-600 dark:text-gray-300 mb-2">
+              Select color
+            </p>
             <div className="flex flex-wrap gap-2">
               {bgColors.map((color, index) => (
                 <button
@@ -132,7 +140,7 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
                   onClick={() => setSelectedColor(color)}
                   className={`w-8 h-8 rounded-full border-2 ${
                     selectedColor.primaryColor === color.primaryColor
-                      ? "border-violet-700"
+                      ? "border-violet-700 dark:border-violet-500"
                       : "border-transparent"
                   }`}
                   aria-label={`Select ${color.primaryColor}`}
@@ -146,7 +154,7 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
             type="submit"
             disabled={loading}
             variant="default"
-            className="bg-violet-600 text-white"
+            className="bg-violet-600 dark:bg-violet-700 hover:bg-violet-700 dark:hover:bg-violet-800 text-white"
           >
             {loading
               ? isEdit
