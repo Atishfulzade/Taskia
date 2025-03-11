@@ -287,11 +287,11 @@ const ProjectDetail = () => {
           </Popover>
 
           {/* Search */}
-          <div className="relative z-10">
+          <div className="relative z-[1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400 dark:text-gray-500" />
             <Input
               placeholder="Search tasks..."
-              className="pl-8 dark:bg-gray-800 dark:text-white dark:border-gray-700"
+              className="pl-8 dark:bg-gray-800 z-[1] dark:text-white dark:border-gray-700"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />

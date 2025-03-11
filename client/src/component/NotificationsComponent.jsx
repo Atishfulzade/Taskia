@@ -38,7 +38,7 @@ const NotificationsComponent = () => {
 
   const removeNotification = async (id) => {
     setNotifications((prev) =>
-      prev.filter((notification) => notification.id !== id)
+      prev.filter((notification) => notification._id !== id)
     );
     await requestServer(`user/notification/delete`, {
       notificationId: id,
@@ -49,10 +49,16 @@ const NotificationsComponent = () => {
   const clearAllNotifications = () => {
     setNotifications([]);
   };
+  console.log(notifications);
 
   const getRelativeTime = (timestamp) => {
+    if (!timestamp) return "Unknown time";
+
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return "Invalid date";
+
     const now = new Date();
-    const diff = now - timestamp;
+    const diff = now - date;
     const seconds = Math.floor(diff / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
@@ -144,10 +150,10 @@ const NotificationsComponent = () => {
                       {/* Notification Content */}
                       <div className="flex-grow">
                         <p className="text-sm text-slate-800 dark:text-slate-200">
-                          {notification.title}
+                          {notification.message}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {getRelativeTime(notification.timestamp)}
+                          {getRelativeTime(notification.createdAt)}
                         </p>
                       </div>
 

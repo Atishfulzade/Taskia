@@ -16,39 +16,96 @@ import {
   MdOutlineRadioButtonUnchecked,
 } from "react-icons/md";
 import AddTaskPopup from "./AddTaskPopup";
+import { Trash } from "lucide-react";
+import { useDispatch } from "react-redux";
+import { deleteTask } from "@/store/taskSlice";
+
+const priorityBadges = {
+  High: {
+    color:
+      "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800",
+    icon: "text-red-500 dark:text-red-400",
+  },
+  Medium: {
+    color:
+      "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800",
+    icon: "text-yellow-500 dark:text-yellow-400",
+  },
+  Low: {
+    color:
+      "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-700/20 dark:text-slate-300 dark:border-slate-600",
+    icon: "text-slate-600 dark:text-slate-400",
+  },
+};
 
 const TaskItem = ({
-  task,
+  task = {},
   status,
   setTaskOpen,
   taskOpen,
   isDragging = false,
 }) => {
-  // Only use useDraggable if not being used as a drag overlay
+  const {
+    _id,
+    title,
+    priority,
+    assignedTo,
+    dueDate,
+    subTask = [],
+    attachedFile = [],
+  } = task;
   const { attributes, listeners, setNodeRef, transform } = !isDragging
-    ? useDraggable({ id: task?._id })
+    ? useDraggable({ id: _id })
     : { attributes: {}, listeners: {}, setNodeRef: null, transform: null };
 
-  // State for showing subtasks, assigned user, and loading states
   const [showSubTask, setShowSubTask] = useState(false);
   const [assignedUser, setAssignedUser] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useDispatch();
 
-  // Calculate completed subtasks
-  const completedSubtasks = useMemo(() => {
-    if (Array.isArray(task?.subTask) && task.subTask.length > 0) {
-      return task.subTask.filter((subtask) => subtask.completed).length;
+  const completedSubtasks = useMemo(
+    () => subTask.filter((subtask) => subtask.completed).length,
+    [subTask]
+  );
+
+  const isOverdue = useMemo(() => {
+    if (!dueDate) return false;
+    return new Date(dueDate) < new Date();
+  }, [dueDate]);
+
+  const handleTaskClick = useCallback(
+    (e) => {
+      if (isDragging) return;
+      e.stopPropagation();
+      setTaskOpen(true);
+    },
+    [isDragging, setTaskOpen]
+  );
+
+  const handleDeleteTask = async () => {
+    try {
+      await requestServer(`task/delete/${_id}`);
+      dispatch(deleteTask(_id));
+    } catch (error) {
+      console.error("Error deleting task:", error);
     }
-    return 0;
-  }, [task?.subTask]);
+  };
 
-  // Fetch assigned user details (Only if task.assignedTo exists)
+  const toggleSubTaskVisibility = useCallback(
+    (e) => {
+      if (isDragging) return;
+      e.stopPropagation();
+      setShowSubTask((prev) => !prev);
+    },
+    [isDragging]
+  );
+
   useEffect(() => {
-    if (task?.assignedTo) {
+    if (assignedTo) {
       setIsLoading(true);
-      requestServer(`user/u/${task.assignedTo}`)
+      requestServer(`user/u/${assignedTo}`)
         .then((user) => {
-          setAssignedUser(user?.data?.name ?? "Unknown");
+          setAssignedUser(user?.data?.name || "Unknown");
           setIsLoading(false);
         })
         .catch((error) => {
@@ -56,64 +113,15 @@ const TaskItem = ({
           setIsLoading(false);
         });
     }
-  }, [task?.assignedTo]);
+  }, [assignedTo]);
 
-  // Get initials of the assigned user
-  const getInitials = useCallback(
-    (name) =>
-      name
-        ?.split(" ")
-        .map((n) => n[0]?.toUpperCase())
-        .join("") ?? "?",
-    []
-  );
+  const getInitials = (name) =>
+    name
+      ?.split(" ")
+      .map((n) => n[0]?.toUpperCase())
+      .join("") || "?";
 
-  // Priority badges with colors and styles
-  const priorityBadges = useMemo(
-    () => ({
-      High: {
-        color:
-          "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800",
-        icon: "text-red-500 dark:text-red-400",
-      },
-      Medium: {
-        color:
-          "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800",
-        icon: "text-yellow-500 dark:text-yellow-400",
-      },
-      Low: {
-        color:
-          "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-700/20 dark:text-slate-300 dark:border-slate-600",
-        icon: "text-slate-600 dark:text-slate-400",
-      },
-    }),
-    []
-  );
-
-  // Check if due date is overdue
-  const isOverdue = useMemo(() => {
-    if (!task?.dueDate) return false;
-    return new Date(task.dueDate) < new Date();
-  }, [task?.dueDate]);
-
-  // Memoized event handlers
-  const handleTaskClick = useCallback(
-    (e) => {
-      if (isDragging) return; // Don't trigger clicks while dragging
-      e.stopPropagation();
-      setTaskOpen(true);
-    },
-    [isDragging, setTaskOpen]
-  );
-
-  const toggleSubTaskVisibility = useCallback(
-    (e) => {
-      if (isDragging) return; // Don't trigger clicks while dragging
-      e.stopPropagation();
-      setShowSubTask((prev) => !prev);
-    },
-    [isDragging]
-  );
+  const hasSubtasks = subTask.length > 0;
 
   return (
     <div
@@ -128,45 +136,40 @@ const TaskItem = ({
         zIndex: isDragging ? 999 : 1,
       }}
     >
-      {/* Task Card Content */}
       <div className="p-3">
-        {/* Priority indicator (if exists) */}
-        {task?.priority && task.priority !== "No" && (
+        {priority && priority !== "No" && (
           <div className="mb-2">
             <span
               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                priorityBadges[task.priority]?.color ||
+                priorityBadges[priority]?.color ||
                 "bg-slate-100 text-slate-700 dark:bg-slate-700/20 dark:text-slate-300"
               }`}
             >
               <TbFlag3
                 className={
-                  priorityBadges[task.priority]?.icon ||
+                  priorityBadges[priority]?.icon ||
                   "text-slate-600 dark:text-slate-400"
                 }
               />
-              {task.priority}
+              {priority}
             </span>
           </div>
         )}
 
-        {/* Task Title */}
         <div onClick={handleTaskClick} className="cursor-pointer">
           <h4 className="text-slate-800 dark:text-slate-200 font-inter text-sm font-medium leading-5 line-clamp-2 hover:text-violet-700 dark:hover:text-violet-500 transition-colors">
-            {task?.title}
+            {title}
           </h4>
         </div>
 
-        {/* Task Details Row */}
         <div className="flex mt-3 gap-2 flex-wrap">
-          {/* Assigned User */}
           <div
             className="flex items-center"
             title={assignedUser || "Unassigned"}
           >
             {isLoading ? (
               <div className="animate-pulse bg-slate-200 dark:bg-slate-700 rounded-full w-6 h-6"></div>
-            ) : task?.assignedTo ? (
+            ) : assignedTo ? (
               <span className="border text-white flex items-center justify-center bg-violet-600 dark:bg-violet-700 rounded-full border-violet-300 dark:border-violet-600 w-6 h-6 text-[11px] shadow-sm">
                 {getInitials(assignedUser)}
               </span>
@@ -175,8 +178,7 @@ const TaskItem = ({
             )}
           </div>
 
-          {/* Due Date */}
-          {task?.dueDate && (
+          {dueDate && (
             <div className="flex border gap-1 justify-center border-slate-200 dark:border-slate-700 p-1 h-6 rounded-md items-center bg-slate-50 dark:bg-slate-700">
               <FaRegCalendar
                 size={12}
@@ -193,16 +195,15 @@ const TaskItem = ({
                     : "text-slate-600 dark:text-slate-300"
                 } text-[11px] font-inter`}
               >
-                {formatDate(task.dueDate)}
+                {formatDate(dueDate)}
               </p>
             </div>
           )}
 
-          {/* Attachments */}
-          {task.attachedFile && task.attachedFile.length > 0 && (
+          {attachedFile.length > 0 && (
             <div
-              title={`${task.attachedFile.length} attachment${
-                task.attachedFile.length > 1 ? "s" : ""
+              title={`${attachedFile.length} attachment${
+                attachedFile.length > 1 ? "s" : ""
               }`}
               className="flex border gap-1 justify-center border-slate-200 dark:border-slate-700 p-1 h-6 rounded-md items-center bg-slate-50 dark:bg-slate-700"
             >
@@ -211,16 +212,18 @@ const TaskItem = ({
                 className="text-slate-500 dark:text-slate-400"
               />
               <span className="text-[11px] text-slate-600 dark:text-slate-300">
-                {task.attachedFile.length}
+                {attachedFile.length}
               </span>
             </div>
           )}
+
+          <button onClick={handleDeleteTask}>
+            <Trash className="h-4 w-4 cursor-pointer text-slate-800 dark:text-white" />
+          </button>
         </div>
 
-        {/* Subtasks Section */}
-        {Array.isArray(task.subTask) && task.subTask.length > 0 && (
+        {hasSubtasks && (
           <div className="mt-3 border-t border-slate-100 dark:border-slate-700 pt-2">
-            {/* Subtask Header */}
             <div
               onClick={toggleSubTaskVisibility}
               className="flex cursor-pointer justify-between items-center group"
@@ -228,19 +231,16 @@ const TaskItem = ({
               <div className="flex gap-1.5 items-center">
                 <PiGitMergeDuotone className="text-violet-500 dark:text-violet-400" />
                 <p className="text-slate-700 dark:text-slate-300 text-xs font-medium">
-                  Subtasks ({completedSubtasks}/{task.subTask.length})
+                  Subtasks ({completedSubtasks}/{subTask.length})
                 </p>
               </div>
 
-              {/* Progress bar */}
               <div className="flex items-center gap-2">
                 <div className="w-16 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-violet-500 rounded-full"
                     style={{
-                      width: `${
-                        (completedSubtasks / task.subTask.length) * 100
-                      }%`,
+                      width: `${(completedSubtasks / subTask.length) * 100}%`,
                     }}
                   ></div>
                 </div>
@@ -258,10 +258,9 @@ const TaskItem = ({
               </div>
             </div>
 
-            {/* Subtask List */}
             {showSubTask && !isDragging && (
               <div className="mt-2 space-y-2 pl-2 pr-1 py-1 bg-slate-50 dark:bg-slate-700 rounded-md max-h-40 overflow-y-auto">
-                {task.subTask.map((subtask) => (
+                {subTask.map((subtask) => (
                   <div
                     key={subtask._id}
                     className="flex gap-2 items-start py-1 px-1 hover:bg-slate-100 dark:hover:bg-slate-600 rounded transition-colors"
@@ -301,18 +300,16 @@ const TaskItem = ({
         )}
       </div>
 
-      {/* Don't render modal when it's a drag overlay */}
       {!isDragging && setTaskOpen && (
         <AddTaskPopup
           onOpenChange={setTaskOpen}
           currentStatus={status}
-          isEdit={false}
+          isEdit={true}
           open={taskOpen}
           taskData={task}
         />
       )}
 
-      {/* Drag Handle - Only render when not dragging */}
       {!isDragging && (
         <div
           {...listeners}

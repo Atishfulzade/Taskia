@@ -63,7 +63,7 @@ const Column = React.memo(
     const renderAddTaskButton = () => (
       <button
         onClick={handleOpenTaskPopup}
-        className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors text-slate-600 dark:text-gray-300"
+        className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors text-slate-600 dark:text-gray-800"
         title="Add a new task"
         aria-label="Add task"
       >
@@ -90,19 +90,19 @@ const Column = React.memo(
         />
 
         {/* Column Header */}
-        <div className="p-3 border-b border-slate-200 dark:border-gray-700">
-          <div className="flex justify-between items-center">
+        <div className="p-3 border-b border-slate-200 dark:border-slate-700 ">
+          <div className="flex justify-between items-center ">
             <div className="flex gap-2 items-center">
               <div
                 style={{
                   backgroundColor: status?.color?.primaryColor || "#e2e8f0",
                 }}
-                className="flex items-center rounded-md gap-1 p-1 px-2 shadow-sm"
+                className="flex items-center rounded-md gap-1 p-1 px-2 shadow-sm dark:bg-slate-600"
               >
                 <FaRegCircle className="text-violet-600" size={12} />
                 <h3
                   title={status?.title}
-                  className="text-[12px] font-medium font-inter w-fit line-clamp-1 text-slate-800 dark:text-gray-100"
+                  className="text-[12px] font-medium font-inter w-fit line-clamp-1 text-slate-800 dark:text-gray-900"
                 >
                   {status?.title?.toUpperCase()}
                 </h3>
@@ -116,7 +116,7 @@ const Column = React.memo(
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setShowMore(!showMore)}
-                    className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors text-slate-600 dark:text-gray-300"
+                    className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors text-slate-900 dark:text-gray-800"
                     aria-label="More options"
                     aria-expanded={showMore}
                   >

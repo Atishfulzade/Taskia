@@ -5,14 +5,17 @@ import * as z from "zod";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { Paperclip, X, Loader2, Plus, ChevronDown } from "lucide-react";
-
+import { useFileUpload } from "../hooks/useFileUpload ";
+import { useProjectMembers } from "../hooks/useProjectMembers";
+import { showToast } from "@/utils/showToast";
+import requestServer from "@/utils/requestServer";
+import { addTask, updateTask } from "@/store/taskSlice";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import {
@@ -36,11 +39,6 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Separator } from "@/components/ui/Separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { addTask, updateTask } from "../store/taskSlice";
-import { useFileUpload } from "../hooks/useFileUpload ";
-import { useProjectMembers } from "../hooks/useProjectMembers";
-import { showToast } from "../utils/showToast";
-import requestServer from "../utils/requestServer";
 
 // Task schema with Zod validation
 const taskSchema = z.object({
@@ -66,7 +64,7 @@ const taskSchema = z.object({
   ),
 });
 
-// Subtask component to improve readability
+// Subtask component
 const SubtaskItem = ({ index, form, isFormDisabled, removeSubtask }) => {
   return (
     <Card className="bg-white dark:bg-gray-800">
@@ -161,19 +159,16 @@ const FileAttachmentItem = ({ file, index, onRemove, isDisabled }) => {
   );
 };
 
-// Main component with useCallback for memoized functions
+// Main component
 const AddTaskPopup = React.memo(
   ({ open, onOpenChange, currentStatus, taskData, isEdit }) => {
-    // State management
     const [loading, setLoading] = useState(false);
     const [showSubtasks, setShowSubtasks] = useState(false);
     const [isFormDisabled, setIsFormDisabled] = useState(isEdit);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-    // Refs
     const fileInputRef = useRef(null);
 
-    // Redux hooks
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const projectId = useSelector((state) => state.project.currentProject?._id);
@@ -181,8 +176,8 @@ const AddTaskPopup = React.memo(
     const projectMembers = useSelector(
       (state) => state.project.currentProject?.member
     );
+    console.log(isEdit, taskData);
 
-    // Custom hooks for file upload and members
     const { uploadFiles, fileLoading } = useFileUpload();
     const { members, loading: membersLoading } = useProjectMembers(
       projectMembers,
@@ -218,13 +213,18 @@ const AddTaskPopup = React.memo(
         subTask: [],
         attachedFile: [],
       };
-    }, [taskData, currentStatus, userId, projectId]);
+    }, [taskData, currentStatus, userId, projectId, isEdit]);
 
     // Initialize form with default values
     const form = useForm({
       resolver: zodResolver(taskSchema),
       defaultValues: getDefaultValues(),
     });
+
+    // Reset form when taskData or isEdit changes
+    useEffect(() => {
+      form.reset(getDefaultValues());
+    }, [taskData, isEdit, form, getDefaultValues]);
 
     // Track form changes
     useEffect(() => {
@@ -236,7 +236,6 @@ const AddTaskPopup = React.memo(
 
     // Update required form values when dependencies change
     useEffect(() => {
-      // Only update these if they changed and are not already set
       if (projectId && !form.getValues("projectId")) {
         form.setValue("projectId", projectId);
       }

@@ -61,12 +61,12 @@ const Dashboard = () => {
           value={selectedSubBoard.toString()}
           onValueChange={(value) => setSelectedSubBoard(Number(value))}
         >
-          <TabsList className="bg-gray-100 dark:bg-gray-800">
+          <TabsList className="bg-gray-100 dark:bg-gray-800 dark:text-slate-800">
             {navItems.map((item) => (
               <TabsTrigger
                 key={item.id}
                 value={item.id.toString()}
-                className="rounded-sm px-4 py-2 flex items-center dark:text-gray-300 dark:hover:bg-gray-700"
+                className="rounded-sm px-4 py-2 flex items-center dark:text-gray-600 "
               >
                 <item.icon className="h-4 w-4" />
                 <span>{item.label}</span>
@@ -76,17 +76,15 @@ const Dashboard = () => {
         </Tabs>
 
         {/* Right Actions */}
-        <div className="flex items-center space-x-2 z-[1]">
-          {/* Search */}
-          <div className="relative z-[1]">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground dark:text-gray-400" />
-            <Input
-              placeholder="Search status..."
-              className="pl-8 w-64 z-0 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700"
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-            />
-          </div>
+        {/* Search */}
+        <div className="relative z-[1]">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground dark:text-gray-400" />
+          <Input
+            placeholder="Search status..."
+            className="pl-8 w-64 z-[1] bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700"
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+          />
         </div>
       </div>
 

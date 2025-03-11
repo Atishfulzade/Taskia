@@ -216,7 +216,7 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
               onChange={(e) => setEditedTitle(e.target.value)}
               onBlur={saveTitle}
               onKeyDown={handleKeyDown}
-              className="flex-1 bg-background dark:bg-slate-800 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-1 bg-background  dark:bg-slate-800 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <Button
               size="icon"
@@ -237,7 +237,7 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
           </div>
         ) : (
           <p
-            className={`text-sm font-medium ${
+            className={`text-sm font-medium dark:text-slate-100 ${
               isCompleted ? "line-through text-muted-foreground" : ""
             }`}
             onClick={handleEditTitle}
@@ -259,7 +259,7 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
               color: statusDetails?.color?.primaryColor,
               borderColor: statusDetails?.color?.primaryColor,
             }}
-            className="px-2 py-0.5 text-xs font-medium"
+            className="px-2 py-0.5 text-xs font-medium dark:text-slate-800 "
           >
             {statusDetails?.title || "No Status"}
           </Badge>
@@ -268,18 +268,9 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
 
       {/* Created At */}
       <div className="w-[15%] px-2">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="text-xs text-muted-foreground dark:text-slate-400">
-                {getRelativeDate(task?.createdAt)}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent className="dark:bg-slate-800 dark:text-slate-200">
-              <p>Created: {formatDate(task?.createdAt)}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <div className="text-xs text-muted-foreground dark:text-slate-400">
+          {getRelativeDate(task?.createdAt)}
+        </div>
       </div>
 
       {/* Assigned User */}
@@ -287,77 +278,41 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
         {isLoading ? (
           <Skeleton className="h-5 w-5 rounded-full" />
         ) : task?.assignedTo ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Avatar className="h-5 w-5">
-                  <AvatarFallback className="bg-primary text-[10px] text-primary-foreground">
-                    {getInitials(assignedUser)}
-                  </AvatarFallback>
-                </Avatar>
-              </TooltipTrigger>
-              <TooltipContent className="dark:bg-slate-800 dark:text-slate-200">
-                <p>Assigned to: {assignedUser}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Avatar className="h-5 w-5">
+            <AvatarFallback className="bg-primary text-[10px] dark:text-slate-500 text-primary-foreground">
+              {getInitials(assignedUser)}
+            </AvatarFallback>
+          </Avatar>
         ) : (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-5 w-5 rounded-full"
-                >
-                  <User className="h-3 w-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="dark:bg-slate-800 dark:text-slate-200">
-                <p>Not assigned</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-5 w-5 rounded-full"
+          >
+            <User className="h-3 w-3" />
+          </Button>
         )}
       </div>
 
       {/* Priority */}
-      <div className="w-[10%] px-2">
+      <div className="w-[10%] px-2 dark:text-slate-500">
         <PriorityFlag priority={task?.priority} />
       </div>
 
       {/* Due Date */}
       <div className="w-[15%] px-2">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="text-xs text-muted-foreground dark:text-slate-400">
-                {getRelativeDate(task?.dueDate)}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent className="dark:bg-slate-800 dark:text-slate-200">
-              <p>Due: {formatDate(task?.dueDate)}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <div className="text-xs text-muted-foreground dark:text-slate-400">
+          {getRelativeDate(task?.dueDate)}
+        </div>
       </div>
 
       {/* Attachments */}
       <div className="w-[10%] px-2">
         {task?.attachedFile?.length > 0 && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="secondary" className="gap-1">
-                  <Paperclip className="h-3 w-3" />
-                  <span>{task.attachedFile?.length ?? 0}</span>
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent className="dark:bg-slate-800 dark:text-slate-200">
-                <p>Has {task.attachedFile?.length ?? 0} attachment(s)</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Badge variant="secondary" className="gap-1">
+            <Paperclip className="h-3 w-3" />
+            <span>{task.attachedFile?.length ?? 0}</span>
+          </Badge>
         )}
       </div>
 
