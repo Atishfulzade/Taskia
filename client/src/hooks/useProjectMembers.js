@@ -5,7 +5,9 @@ import { useSelector } from "react-redux";
 export function useProjectMembers(projectId) {
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState([]);
-  const memberIds = useSelector((state) => state.project.currentProject.member);
+  const memberIds = useSelector(
+    (state) => state.project.currentProject?.member
+  );
 
   useEffect(() => {
     async function fetchMembers() {

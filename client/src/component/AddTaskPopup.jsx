@@ -182,6 +182,7 @@ const AddTaskPopup = React.memo(
       projectMembers,
       open
     );
+    console.log(isEdit, taskData);
 
     // Get default values based on edit mode
     const getDefaultValues = useCallback(() => {
@@ -298,6 +299,7 @@ const AddTaskPopup = React.memo(
 
     // Handle dialog close with confirmation if changes exist
     const handleDialogClose = useCallback(() => {
+      console.log("Dialog close triggered"); // Debugging
       if (hasUnsavedChanges) {
         if (
           window.confirm(
@@ -366,6 +368,14 @@ const AddTaskPopup = React.memo(
                 ? "Update this task by modifying the form fields."
                 : "Create a new task by filling out the form below."}
             </DialogDescription>
+            {/* <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onOpenChange(false)} // Close the dialog
+              className="absolute top-2 right-2"
+            >
+              <X className="h-4 w-4" />
+            </Button> */}
           </DialogHeader>
 
           {isEdit && (

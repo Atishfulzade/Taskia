@@ -10,19 +10,11 @@ import { FaRegCircle } from "react-icons/fa6";
 import { PiDotsThreeBold } from "react-icons/pi";
 import { TbLayoutKanban } from "react-icons/tb";
 import TaskMoreDropdown from "./TaskMoreDropdown";
-import AddTaskPopup from "./AddTaskPopup";
 
 const Column = React.memo(
-  ({
-    status,
-    tasks = [],
-    setEditTaskOpen,
-    isLoading = false,
-    isTaskOpen,
-    setTaskOpen,
-  }) => {
-    const { setNodeRef, isOver } = useDroppable({
-      id: status?._id || "default-status",
+  ({ status, tasks = [], isLoading = false, onEditTask, onAddTask }) => {
+    const { setNodeRef } = useDroppable({
+      id: status?._id || "default-status", // Fallback for undefined status
     });
 
     const [showMore, setShowMore] = useState(false);
@@ -34,6 +26,7 @@ const Column = React.memo(
     const userId = useSelector((state) => state.user.user._id);
     const isProjectOwner = userId === currentProjectUserId;
 
+    // Handle clicks outside the dropdown to close it
     useEffect(() => {
       const handleClickOutside = (event) => {
         if (
@@ -50,19 +43,15 @@ const Column = React.memo(
       };
     }, []);
 
-    // Handle opening task popup for this specific column
-    const handleOpenTaskPopup = () => {
-      setTaskOpen(true); // This now calls the parent function which sets activeTaskStatusId
+    // Call parent handler with status info
+    const handleAddTask = () => {
+      onAddTask(status);
     };
 
-    // Handle closing task popup
-    const handleCloseTaskPopup = () => {
-      setTaskOpen(false);
-    };
-
+    // Render the "Add Task" button
     const renderAddTaskButton = () => (
       <button
-        onClick={handleOpenTaskPopup}
+        onClick={handleAddTask}
         className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors text-slate-600 dark:text-gray-800"
         title="Add a new task"
         aria-label="Add task"
@@ -71,27 +60,51 @@ const Column = React.memo(
       </button>
     );
 
+    // Render the task list or loading skeleton
+    const renderTaskList = () => {
+      if (isLoading) {
+        return Array(3)
+          .fill(0)
+          .map((_, index) => (
+            <div
+              key={`skeleton-${index}`}
+              className="bg-slate-100 dark:bg-gray-700 animate-pulse h-24 rounded-lg mb-2"
+            />
+          ));
+      }
+
+      if (tasks?.length > 0) {
+        return tasks.map((task) => (
+          <TaskItem
+            key={task?._id || `task-${task.index}`}
+            task={task}
+            status={status}
+            isDragging={false}
+            onEditTask={onEditTask} // Ensure this is passed
+          />
+        ));
+      }
+
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center p-4 text-slate-400 dark:text-gray-400">
+          <TbLayoutKanban size={32} className="mb-2" />
+          <p className="text-sm">No tasks yet</p>
+          <p className="text-xs mt-1">Drop tasks here or add a new one</p>
+        </div>
+      );
+    };
+
     return (
       <div
-        className={`flex flex-col h-[calc(100vh-180px)] w-[280px] rounded-lg shadow-sm transition-all duration-200 ${
-          isOver ? "ring-2 ring-violet-400 ring-opacity-70" : ""
-        }`}
+        className={`flex flex-col h-[calc(100vh-180px)] w-[280px] rounded-lg shadow-sm transition-all duration-200`}
         style={{
           backgroundColor: status?.color?.secondaryColor || "#f8fafc",
           borderLeft: `3px solid ${status?.color?.primaryColor || "#e2e8f0"}`,
         }}
       >
-        {/* Add Task Popup */}
-        <AddTaskPopup
-          open={isTaskOpen}
-          onOpenChange={handleCloseTaskPopup}
-          currentStatus={status}
-          isEdit={false}
-        />
-
         {/* Column Header */}
-        <div className="p-3 border-b border-slate-200 dark:border-slate-700 ">
-          <div className="flex justify-between items-center ">
+        <div className="p-3 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex justify-between items-center">
             <div className="flex gap-2 items-center">
               <div
                 style={{
@@ -150,43 +163,14 @@ const Column = React.memo(
           ref={setNodeRef}
           className="flex-1 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent"
         >
-          {isLoading ? (
-            // Loading skeleton for tasks
-            Array(3)
-              .fill(0)
-              .map((_, index) => (
-                <div
-                  key={`skeleton-${index}`}
-                  className="bg-slate-100 dark:bg-gray-700 animate-pulse h-24 rounded-lg mb-2"
-                />
-              ))
-          ) : tasks?.length > 0 ? (
-            // Render tasks if not loading
-            tasks.map((task) => (
-              <TaskItem
-                key={task?._id || `task-${task.index}`}
-                task={task}
-                status={status}
-                setEditTaskOpen={setEditTaskOpen}
-                taskOpen={false} // Don't pass isTaskOpen here
-                setTaskOpen={setTaskOpen} // Pass the parent function
-              />
-            ))
-          ) : (
-            // Empty state when no tasks are available
-            <div className="flex flex-col items-center justify-center h-full text-center p-4 text-slate-400 dark:text-gray-400">
-              <TbLayoutKanban size={32} className="mb-2" />
-              <p className="text-sm">No tasks yet</p>
-              <p className="text-xs mt-1">Drop tasks here or add a new one</p>
-            </div>
-          )}
+          {renderTaskList()}
         </div>
 
         {/* Add Task Button */}
         {isProjectOwner && (
           <div className="p-2 border-t border-slate-200 dark:border-gray-700">
             <button
-              onClick={handleOpenTaskPopup}
+              onClick={handleAddTask}
               className="w-full py-2 px-3 rounded-md bg-white dark:bg-gray-800 hover:bg-violet-50 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 hover:border-violet-200 dark:hover:border-violet-600 transition-colors flex items-center justify-center gap-1 text-slate-600 dark:text-gray-300 hover:text-violet-600 dark:hover:text-violet-500 group"
               aria-label="Add task"
             >

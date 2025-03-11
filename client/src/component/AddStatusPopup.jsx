@@ -40,7 +40,6 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
       title: status?.title || "",
       projectId: CurrentProjectId || "",
       color: selectedColor,
-      isLast: status?.isLast || false, // Add isLast to initial values
     },
     validationSchema: Yup.object({
       title: Yup.string().required("Enter status title"),
@@ -51,11 +50,7 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
         let res;
         if (isEdit) {
           // Update status if in edit mode
-          res = await requestServer(
-            `status/update/${status._id}`,
-            values,
-            "PUT"
-          );
+          res = await requestServer(`status/update/${status._id}`, values);
           dispatch(updateStatus(res.data));
         } else {
           // Add new status if not in edit mode
@@ -150,33 +145,6 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
                 />
               ))}
             </div>
-          </div>
-
-          {/* isLast Checkbox */}
-          {/* isLast Checkbox */}
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="isLast"
-                name="isLast"
-                checked={formik.values.isLast}
-                onCheckedChange={(checked) =>
-                  formik.setFieldValue("isLast", checked)
-                }
-                className="border-gray-300 dark:border-gray-600"
-              />
-              <label
-                htmlFor="isLast"
-                className="text-sm text-gray-700 dark:text-gray-300"
-              >
-                This is the last status
-              </label>
-            </div>
-            {/* Info Text */}
-            <p className="text-xs text-gray-500 dark:text-gray-400 ml-6">
-              Tasks in the last status can be deleted. Use this option to mark a
-              status as the final stage in your workflow.
-            </p>
           </div>
 
           {/* Submit Button */}

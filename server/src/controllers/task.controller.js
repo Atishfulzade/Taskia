@@ -66,16 +66,16 @@ const addTask = async (req, res) => {
 const updateTask = async (req, res) => {
   try {
     const { id: taskId } = req.params;
-    const { assignedTo, title } = req.body;
+    const { assignedTo, title, ...others } = req.body;
 
     // Validate taskId format
     if (!mongoose.Types.ObjectId.isValid(taskId)) {
       return handleResponse(res, 400, msg.task.invalidTaskId);
     }
 
-    if (!title) {
-      return handleResponse(res, 400, msg.task.allFieldsRequired);
-    }
+    // if (!title) {
+    //   return handleResponse(res, 400, msg.task.allFieldsRequired);
+    // }
 
     // Update task
     const updatedTask = await Task.findByIdAndUpdate(taskId, req.body, {
