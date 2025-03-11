@@ -60,6 +60,7 @@ const BoardContainer = ({ projectId, statuses, tasks, isLoading }) => {
     const draggedTask = tasks.find((task) => task._id === active.id);
     setActiveTask(draggedTask);
   };
+  console.log("editTask", editTask);
 
   const handleDragEnd = async (event) => {
     const { active, over } = event;
@@ -156,7 +157,7 @@ const BoardContainer = ({ projectId, statuses, tasks, isLoading }) => {
           <AddTaskPopup
             open={showTaskPopup}
             onOpenChange={setShowTaskPopup} // Ensure this is a function
-            task={editTask}
+            taskData={editTask}
             status={editStatus}
             projectId={projectId}
             onCreateTask={handleTaskCreate}

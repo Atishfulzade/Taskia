@@ -235,7 +235,7 @@ const TaskItem = React.memo(
                 <div className="flex gap-1.5 items-center">
                   <PiGitMergeDuotone className="text-violet-500 dark:text-violet-400" />
                   <p className="text-slate-700 dark:text-slate-300 text-xs font-medium">
-                    Subtasks ({completedSubtasks}/{subTask.length})
+                    Subtasks {subTask.length}
                   </p>
                 </div>
 
