@@ -16,8 +16,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/Dialog";
-import { Button } from "@/components/ui/Button";
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -26,18 +26,18 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/Select";
-import { Card, CardContent } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Separator } from "@/components/ui/Separator";
+} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Task schema with Zod validation
@@ -163,9 +163,9 @@ const FileAttachmentItem = ({ file, index, onRemove, isDisabled }) => {
 const AddTaskPopup = React.memo(
   ({ open, onOpenChange, currentStatus, taskData, isEdit }) => {
     const [loading, setLoading] = useState(false);
-    const [showSubtasks, setShowSubtasks] = useState(false);
     const [isFormDisabled, setIsFormDisabled] = useState(isEdit);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [showSubtasks, setShowSubtasks] = useState(true);
 
     const fileInputRef = useRef(null);
 
@@ -176,7 +176,6 @@ const AddTaskPopup = React.memo(
     const projectMembers = useSelector(
       (state) => state.project.currentProject?.member
     );
-    console.log(isEdit, taskData);
 
     const { uploadFiles, fileLoading } = useFileUpload();
     const { members, loading: membersLoading } = useProjectMembers(
@@ -247,7 +246,7 @@ const AddTaskPopup = React.memo(
       if (userId && !form.getValues("assignedBy")) {
         form.setValue("assignedBy", userId);
       }
-    }, [projectId, currentStatus, form]);
+    }, [projectId, currentStatus, userId, form]);
 
     // Handle file input change
     const handleFileChange = async (event) => {
@@ -431,56 +430,49 @@ const AddTaskPopup = React.memo(
                 />
 
                 {/* Priority & Assignee */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="flex justify-between w-full gap-4">
                   <FormField
                     control={form.control}
                     name="priority"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex-1">
                         <FormLabel className="dark:text-gray-300">
                           Priority
                         </FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          disabled={isFormDisabled}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600">
-                              <SelectValue placeholder="Select priority" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-white dark:bg-gray-800">
-                            <SelectItem
-                              value="No"
-                              className="dark:text-gray-100"
+                        <div className="flex items-center space-x-4">
+                          {["No", "Medium", "High"].map((priority) => (
+                            <div
+                              key={priority}
+                              className="flex items-center space-x-2"
                             >
-                              No
-                            </SelectItem>
-                            <SelectItem
-                              value="Medium"
-                              className="dark:text-gray-100"
-                            >
-                              Medium
-                            </SelectItem>
-                            <SelectItem
-                              value="High"
-                              className="dark:text-gray-100"
-                            >
-                              High
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
+                              <input
+                                type="radio"
+                                id={`priority-${priority}`}
+                                checked={field.value === priority}
+                                onChange={() => {
+                                  field.onChange(priority);
+                                }}
+                                disabled={isFormDisabled}
+                                className="h-4 w-4 text-violet-600 dark:text-violet-700 border-gray-300 dark:border-gray-600 rounded focus:ring-violet-500 dark:focus:ring-violet-600"
+                              />
+                              <label
+                                htmlFor={`priority-${priority}`}
+                                className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                              >
+                                {priority}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="assignedTo"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex-1">
                         <FormLabel className="dark:text-gray-300">
                           Assign To<span className="text-destructive">*</span>
                         </FormLabel>
@@ -553,7 +545,7 @@ const AddTaskPopup = React.memo(
                       size="sm"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={fileLoading || isFormDisabled}
-                      className="dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
+                      className="dark:bg-gray-800 dark:text-gray-100 border-slate-300 dark:hover:bg-gray-700"
                     >
                       {fileLoading ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -590,34 +582,39 @@ const AddTaskPopup = React.memo(
                 {/* Subtasks */}
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowSubtasks(!showSubtasks)}
-                      className="dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
-                    >
-                      {showSubtasks ? "Hide Subtasks" : "Show Subtasks"}
-                      <ChevronDown
-                        className={`ml-2 h-4 w-4 transition-transform ${
-                          showSubtasks ? "rotate-180" : ""
-                        }`}
-                      />
-                    </Button>
-
-                    {showSubtasks && (
+                    <FormLabel className="dark:text-gray-300">
+                      Subtasks
+                    </FormLabel>
+                    <div className="flex space-x-2">
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={addSubtask}
-                        disabled={isFormDisabled}
-                        className="dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
+                        onClick={() => setShowSubtasks(!showSubtasks)}
+                        className="dark:bg-gray-800 dark:text-gray-100 border-slate-300 dark:hover:bg-gray-700"
                       >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Subtask
+                        {showSubtasks ? "Hide" : "Show"}
+                        <ChevronDown
+                          className={`ml-2 h-4 w-4 transition-transform ${
+                            showSubtasks ? "rotate-180" : ""
+                          }`}
+                        />
                       </Button>
-                    )}
+
+                      {showSubtasks && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={addSubtask}
+                          disabled={isFormDisabled}
+                          className="dark:bg-gray-800 dark:text-gray-100 border-slate-300 dark:hover:bg-gray-700"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   {showSubtasks && form.watch("subTask").length > 0 && (

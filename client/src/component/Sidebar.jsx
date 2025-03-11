@@ -278,7 +278,7 @@ const Sidebar = ({ onCollapse }) => {
             </h3>
           )}
 
-          <div className="flex items-center justify-center gap-1 relative">
+          <div className="flex items-center justify-center gap-1 relative ">
             {!isCollapsed && (
               <>
                 {showSearch ? (

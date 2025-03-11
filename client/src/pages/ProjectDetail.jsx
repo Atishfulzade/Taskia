@@ -225,9 +225,9 @@ const ProjectDetail = () => {
   }, [showStatusPopup, projectId]);
 
   return (
-    <div className="h-full w-full px-6 z-10 dark:bg-slate-900">
+    <div className="h-full w-full  z-10 dark:bg-slate-900 ">
       {/* Project Header */}
-      <div className="flex justify-between items-center mb-2 p-2">
+      <div className="flex justify-between items-center mb-2 p-2 border-b border-slate-300">
         <div>
           <CardTitle className="text-xl font-semibold flex gap-3.5 text-slate-800 dark:text-white">
             {projectName || "Project Dashboard"} <Badge>{total} Tasks</Badge>
@@ -322,7 +322,7 @@ const ProjectDetail = () => {
               </p>
             </div>
           ) : (
-            <div className="flex gap-4 overflow-x-auto pb-4">
+            <div className="flex gap-4 overflow-x-auto pb-4 px-6">
               {statuses.map((status) => (
                 <Column
                   key={status._id}
