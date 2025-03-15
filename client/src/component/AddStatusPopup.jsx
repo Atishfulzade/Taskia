@@ -3,6 +3,7 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner"; // Import sonner's toast
 
 import {
   Dialog,
@@ -14,7 +15,6 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Checkbox } from "@/components/ui/Checkbox"; // Import a Checkbox component
-import { showToast } from "../utils/showToast";
 import requestServer from "../utils/requestServer";
 import { addStatus, updateStatus } from "../store/statusSlice";
 import { setCurrentProject, setProjects } from "../store/projectSlice";
@@ -52,27 +52,27 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
           // Update status if in edit mode
           res = await requestServer(`status/update/${status._id}`, values);
           dispatch(updateStatus(res.data));
+          toast.success(res.data.message); // Use sonner's toast
         } else {
           // Add new status if not in edit mode
           res = await requestServer("status/add", values);
-          dispatch(addStatus(res.data));
+          dispatch(addStatus(res.message));
+          toast.success(res.data.message); // Use sonner's toast
         }
-        showToast(res.data.message, "success");
         setOpen(false); // Close the popup after successful submission
         formik.resetForm();
       } catch (error) {
         console.error("Error:", error);
         if (error.response?.data?.message === "Token not found") {
-          showToast("Invalid token! Please login again.", "error");
+          toast.error("Invalid token! Please login again."); // Use sonner's toast
           localStorage.removeItem("token");
           localStorage.removeItem("userState");
           dispatch(setCurrentProject(null));
           dispatch(setProjects([]));
           navigate("/authenticate");
         } else {
-          showToast(
-            error.response?.data?.message || "Something went wrong",
-            "error"
+          toast.error(
+            error.response?.data?.message || "Something went wrong" // Use sonner's toast
           );
         }
       } finally {

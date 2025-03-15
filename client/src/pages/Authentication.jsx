@@ -10,9 +10,9 @@ import { login } from "../store/userSlice";
 import { setCurrentProject, setProjects } from "../store/projectSlice";
 import { setAssignTasks } from "../store/assignTaskSlice";
 import requestServer from "../utils/requestServer";
-import { showToast } from "../utils/showToast";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo-white.png";
+import { toast } from "sonner"; // Import sonner's toast
 
 const Authentication = () => {
   const [isRegistration, setIsRegistration] = useState(false);
@@ -60,12 +60,12 @@ const Authentication = () => {
         const res = await requestServer(endpoint, payload);
 
         // Show success message
-        showToast(res.data.message, "success");
+        toast.success(res.message); // Use sonner's toast
+        console.log(res);
 
         // Store token and user data in localStorage
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("user", JSON.stringify(res.data.user));
-        console.log("token", res.data.token);
 
         // Update Redux store with user login state
         dispatch(login(res.data.user));
@@ -98,9 +98,8 @@ const Authentication = () => {
         // Reset form after successful submission
         resetForm();
       } catch (error) {
-        showToast(
-          error?.response?.data?.message || "Authentication failed",
-          "error"
+        toast.error(
+          error?.response?.data?.message || "Authentication failed" // Use sonner's toast
         );
         console.error(error);
       } finally {

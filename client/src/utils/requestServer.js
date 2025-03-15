@@ -19,9 +19,10 @@ const requestServer = async (path, data = {}) => {
       data: Object.keys(data).length > 0 ? data : undefined,
       timeout: 5000,
       headers: {
-        Authorization: token ? `Bearer ${token}` : "",
+        Authorization: token ? `Bearer ${token}` : "", // Fixed the interpolation
         "Content-Type": "application/json",
       },
+      withCredentials: true, // Ensure cookies are sent with request
     });
 
     return res.data;

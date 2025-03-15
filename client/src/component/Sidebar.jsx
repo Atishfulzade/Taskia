@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { io } from "socket.io-client"; // Import Socket.IO
+
 import {
   Search,
   Plus,
@@ -14,8 +16,7 @@ import {
   Folder,
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
-
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -35,30 +36,7 @@ import {
   updateProject,
 } from "@/store/projectSlice"; // Import setCurrentProject
 import requestServer from "@/utils/requestServer";
-
-// Sample shared projects data
-const sharedProjects = [
-  {
-    _id: "7",
-    title: "Team Collaboration",
-    isStarred: false,
-    lastAccessed: new Date(Date.now() - 345600000).toISOString(),
-  },
-  {
-    _id: "8",
-    title: "Client Presentation",
-    isStarred: false,
-    lastAccessed: null,
-  },
-];
-const handleSharedProject = async () => {
-  try {
-    const res = await requestServer("project/member");
-    console.log("shared projects", res);
-  } catch (error) {
-    console.log(error);
-  }
-};
+import { toast } from "sonner"; // Import sonner's toast
 
 const ProjectItem = ({ project, isActive, onClick, onContextMenu }) => {
   const dispatch = useDispatch();
@@ -154,7 +132,14 @@ const Sidebar = ({ onCollapse }) => {
     recent: true,
   });
   const searchInputRef = useRef(null);
-
+  const socket = io(import.meta.env.VITE_SERVER_URL, {
+    transports: ["websocket"],
+    reconnection: true,
+    withCredentials: true,
+    extraHeaders: {
+      Cookie: document.cookie,
+    },
+  });
   const dispatch = useDispatch();
   const navigate = useNavigate(); // Initialize useNavigate
   const projects = useSelector((state) => state.project.projects);
@@ -167,8 +152,17 @@ const Sidebar = ({ onCollapse }) => {
     try {
       const res = await requestServer("project/member");
       setSharedProjects(res.data);
+      socket.on("projectAdded", async (data) => {
+        console.log("data", data);
+
+        if (!data?.project?.title || !data?.project?._id) return;
+        const message = `You have been added to the project "${data.project.title}".`;
+        toast.success(message); // Use sonner's toast
+        dispatch(setProjects([...projects, data.project]));
+      });
     } catch (error) {
       console.log(error);
+      toast.error("Failed to fetch shared projects"); // Use sonner's toast
     }
   };
   useEffect(() => {
@@ -216,6 +210,7 @@ const Sidebar = ({ onCollapse }) => {
             dispatch(setCurrentProject(null)); // Clear the active project if it was deleted
             setSelectedProjectId(null); // Clear the local state
           }
+          toast.success("Project deleted successfully"); // Use sonner's toast
         }
         break;
 
@@ -224,7 +219,7 @@ const Sidebar = ({ onCollapse }) => {
         const email = prompt("Enter the email of the user to share with:");
         if (email) {
           await requestServer(`project/share/${project._id}`, { email });
-          alert(`Project shared with ${email}`);
+          toast.success(`Project shared with ${email}`); // Use sonner's toast
         }
         break;
 

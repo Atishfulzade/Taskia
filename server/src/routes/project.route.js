@@ -1,4 +1,4 @@
-const router = require("express")?.Router();
+const router = require("express").Router();
 const { verifyUser } = require("../middlewares/verifyUser.middleware.js");
 const {
   addProject,
@@ -7,23 +7,26 @@ const {
   getProjectById,
   getAllProjectsByUser,
   getProjectsAsMember,
-  getAllUserProjects,
+  sharedProject,
 } = require("../controllers/project.controller.js");
 
-//Add new project
+// Add a new project
 router.post("/add", verifyUser, addProject);
 
-// Get project by Id
+// Get a project by ID
 router.post("/get/:id", verifyUser, getProjectById);
 
-//  Get all projects
+// Get all projects for the authenticated user
 router.post("/all", verifyUser, getAllProjectsByUser);
 
-// Update a project by Id
+// Get all projects where the user is a member
+router.post("/member", verifyUser, getProjectsAsMember);
+
+// Update a project by ID
 router.post("/update/:id", verifyUser, updateProject);
 
-// Delete a project by Id
+// Delete a project by ID
 router.post("/delete/:id", verifyUser, deleteProject);
-router.post("/member", verifyUser, getProjectsAsMember);
-router.post("/projects/all", verifyUser, getAllUserProjects);
+router.post("/share/:projectId", verifyUser, sharedProject);
+
 module.exports = router;

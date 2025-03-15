@@ -3,8 +3,8 @@ import { useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { logout } from "../store/userSlice";
 import requestServer from "../utils/requestServer";
-import { showToast } from "../utils/showToast";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner"; // Import sonner's toast
 
 // Icons
 import { LogOut, User, Settings, X } from "lucide-react";
@@ -44,7 +44,7 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
   const logoutUser = async () => {
     try {
       const res = await requestServer("user/logout");
-      showToast(res.message, "success");
+      toast.success(res.message); // Use sonner's toast
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       dispatch(logout());
@@ -52,7 +52,7 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
       navigate("/");
     } catch (error) {
       console.error("Error logging out:", error);
-      showToast("Failed to log out. Please try again.", "error");
+      toast.error("Failed to log out. Please try again."); // Use sonner's toast
     }
   };
 

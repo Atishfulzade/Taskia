@@ -1,18 +1,17 @@
+import { useState } from "react";
+
 export const useFileUpload = () => {
   const [fileLoading, setFileLoading] = useState(false);
 
   const uploadFileToCloudinary = async (file) => {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append(
-      "upload_preset",
-      process.env.REACT_APP_CLOUDINARY_PRESET || "Taskia"
-    );
+    formData.append("upload_preset", import.meta.env.VITE_CLOUDINARY_PRESET);
 
     try {
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/${
-          process.env.REACT_APP_CLOUDINARY_CLOUD_NAME || "dqizv2ags"
+          import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
         }/upload`,
         {
           method: "POST",
@@ -50,46 +49,4 @@ export const useFileUpload = () => {
   };
 
   return { uploadFiles, fileLoading };
-};
-
-// hooks/useProjectMembers.js
-import { useState, useEffect, useCallback } from "react";
-import requestServer from "../utils/requestServer";
-import { showToast } from "../utils/showToast";
-
-export const useProjectMembers = (projectMembers, isDialogOpen) => {
-  const [members, setMembers] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  const fetchMembers = useCallback(async () => {
-    if (!projectMembers || projectMembers.length === 0) return;
-
-    setLoading(true);
-    try {
-      const responses = await Promise.all(
-        projectMembers.map((member) => requestServer(`user/u/${member}`))
-      );
-
-      const membersData = responses.map((res) => res.data);
-
-      if (Array.isArray(membersData)) {
-        setMembers(membersData);
-      } else {
-        throw new Error("Invalid response format");
-      }
-    } catch (error) {
-      console.error("Error fetching members:", error);
-      showToast("Failed to fetch project members", "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [projectMembers]);
-
-  useEffect(() => {
-    if (isDialogOpen && projectMembers && projectMembers.length > 0) {
-      fetchMembers();
-    }
-  }, [isDialogOpen, projectMembers, fetchMembers]);
-
-  return { members, loading };
 };

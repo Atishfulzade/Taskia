@@ -49,7 +49,6 @@ const NotificationsComponent = () => {
   const clearAllNotifications = () => {
     setNotifications([]);
   };
-  console.log(notifications);
 
   const getRelativeTime = (timestamp) => {
     if (!timestamp) return "Unknown time";
@@ -114,18 +113,18 @@ const NotificationsComponent = () => {
             </div>
 
             {/* Notifications List */}
-            {notifications.length === 0 ? (
+            {notifications?.length === 0 ? (
               <div className="p-4 text-center text-slate-500 dark:text-slate-400">
                 No notifications
               </div>
             ) : (
               <ul>
-                {notifications.map((notification) => {
+                {notifications?.map((notification) => {
                   const NotificationTypeIcon =
                     NotificationIcon[notification.type] || Info;
                   return (
                     <motion.li
-                      key={notification.id}
+                      key={notification._id}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}

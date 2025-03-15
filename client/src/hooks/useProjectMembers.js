@@ -1,6 +1,7 @@
 import requestServer from "@/utils/requestServer";
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import { toast } from "sonner"; // Import sonner's toast
 
 export function useProjectMembers(projectId) {
   const [loading, setLoading] = useState(true);
@@ -30,6 +31,7 @@ export function useProjectMembers(projectId) {
         setLoading(false);
       } catch (err) {
         setLoading(false);
+        toast.error("Error fetching members"); // Use sonner's toast
         console.error("Error fetching members:", err);
       }
     }

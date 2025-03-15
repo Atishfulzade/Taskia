@@ -60,7 +60,6 @@ const BoardContainer = ({ projectId, statuses, tasks, isLoading }) => {
     const draggedTask = tasks.find((task) => task._id === active.id);
     setActiveTask(draggedTask);
   };
-  console.log("editTask", editTask);
 
   const handleDragEnd = async (event) => {
     const { active, over } = event;
@@ -137,7 +136,10 @@ const BoardContainer = ({ projectId, statuses, tasks, isLoading }) => {
           </p>
         </div>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4 px-6">
+        <div
+          className="flex gap-4 overflow-x-auto pb-4 px-6"
+          key={Math.random()}
+        >
           {statuses.map((status) => (
             <Column
               key={status._id}

@@ -82,11 +82,23 @@ const loginUser = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
+    console.log("userId is " + user._id);
 
-    // Return success response with the user and token
-    return handleResponse(res, 200, msg.authentication.loginSuccess, {
-      user: { ...user.toObject(), password: undefined },
-      token,
+    // Save the user ID in the session
+    req.session.userId = user._id;
+    console.log(req.session);
+
+    req.session.save((err) => {
+      if (err) {
+        console.error("Error saving session:", err);
+        return handleError(res, msg.authentication.loginFailure, err);
+      }
+
+      // Return success response with the user and token
+      return handleResponse(res, 200, msg.authentication.loginSuccess, {
+        user: { ...user.toObject(), password: undefined },
+        token,
+      });
     });
   } catch (error) {
     // Handle error and return error response
@@ -103,10 +115,8 @@ const logOutUser = (req, res) => {
 
     res.clearCookie("connect.sid", { path: "/" });
 
-    // Ensure the response is sent after clearing the session
-    setTimeout(() => {
-      return handleResponse(res, 200, msg.authentication.logoutSuccess);
-    }, 0);
+    // Return success response
+    return handleResponse(res, 200, msg.authentication.logoutSuccess);
   });
 };
 
@@ -131,46 +141,36 @@ const getUserById = async (req, res) => {
 
 // Search users by name
 const getAllUser = async (req, res) => {
-  console.log("Query Parameters:", req.query);
   try {
     const term = req.query.name?.trim() || ""; // Ensure term is not undefined and remove spaces
     const query = term
       ? { name: { $regex: `.*${term}.*`, $options: "i" } }
       : {};
 
-    console.log("MongoDB Query:", query);
-
     const users = await User.find(query);
-    console.log("Fetched Users:", users);
 
     if (!users.length) {
-      return res.status(404).json({ message: "No users found" });
+      return handleResponse(res, 404, "No users found");
     }
 
-    return res
-      .status(200)
-      .json({ message: "Users fetched successfully", users });
+    return handleResponse(res, 200, "Users fetched successfully", { users });
   } catch (error) {
-    console.error("Error fetching users:", error);
-    return res.status(500).json({ message: "Error fetching users", error });
+    // Handle error and return error response
+    handleError(res, "Error fetching users", error);
   }
 };
 
+// Add a notification to a user
 const addNotification = async (req, res) => {
   try {
     const { userId, title, type } = req.body;
-    console.log("Request Body:", req.body);
 
     if (!userId) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User ID is required" });
+      return handleResponse(res, 400, "User ID is required");
     }
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid User ID" });
+      return handleResponse(res, 400, "Invalid User ID");
     }
 
     // Construct the notification object
@@ -183,106 +183,79 @@ const addNotification = async (req, res) => {
     // Update user document: Push notification into the array
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { $push: { notifications: notification } }, // 🛠 Correctly pushing an object
+      { $push: { notifications: notification } },
       { new: true, runValidators: true }
     );
 
     if (!updatedUser) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
+      return handleResponse(res, 404, "User not found");
     }
 
-    console.log("Notification added:", notification);
-
-    res.status(200).json({
-      success: true,
-      message: "Notification added successfully!",
+    return handleResponse(res, 200, "Notification added successfully", {
       notifications: updatedUser.notifications,
     });
   } catch (error) {
-    console.error("Error saving notification:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
-      error: error.message,
-    });
+    // Handle error and return error response
+    handleError(res, "Internal Server Error", error);
   }
 };
+
+// Delete a notification from a user
 const deleteNotification = async (req, res) => {
   try {
     const { userId, notificationId } = req.body;
-    console.log("Request Body:", req.body);
 
-    if (!userId) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User ID is required" });
+    if (!userId || !notificationId) {
+      return handleResponse(
+        res,
+        400,
+        "User ID and Notification ID are required"
+      );
     }
 
-    if (!notificationId) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Notification ID is required" });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid User ID" });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(notificationId)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid Notification ID" });
+    if (
+      !mongoose.Types.ObjectId.isValid(userId) ||
+      !mongoose.Types.ObjectId.isValid(notificationId)
+    ) {
+      return handleResponse(res, 400, "Invalid User ID or Notification ID");
     }
 
     // Update the user document: Pull the specific notification out of the notifications array
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { $pull: { notifications: { _id: notificationId } } }, // 🛠 Correctly pulling the notification by its ID
+      { $pull: { notifications: { _id: notificationId } } },
       { new: true, runValidators: true }
     );
 
     if (!updatedUser) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
+      return handleResponse(res, 404, "User not found");
     }
 
-    console.log("Notification deleted:", notificationId);
-
-    res.status(200).json({
-      success: true,
-      message: "Notification deleted successfully!",
+    return handleResponse(res, 200, "Notification deleted successfully", {
       notifications: updatedUser.notifications,
     });
   } catch (error) {
-    console.error("Error deleting notification:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
-      error: error.message,
-    });
+    // Handle error and return error response
+    handleError(res, "Internal Server Error", error);
   }
 };
 
+// Get notifications for a user
 const getUserNotifications = async (req, res) => {
   try {
     const { userId } = req.params;
 
     const user = await User.findById(userId);
     if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
+      return handleResponse(res, 404, "User not found");
     }
 
-    res.status(200).json({ success: true, notifications: user.notifications });
+    return handleResponse(res, 200, "Notifications fetched successfully", {
+      notifications: user.notifications,
+    });
   } catch (error) {
-    console.error("Error fetching notifications:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    // Handle error and return error response
+    handleError(res, "Internal Server Error", error);
   }
 };
 

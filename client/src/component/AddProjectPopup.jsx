@@ -1,7 +1,6 @@
 import { useFormik } from "formik";
 import React from "react";
 import requestServer from "../utils/requestServer";
-import { showToast } from "../utils/showToast";
 import { useDispatch, useSelector } from "react-redux";
 import { setCurrentProject, setProjects } from "../store/projectSlice";
 import * as Yup from "yup";
@@ -17,6 +16,7 @@ import {
   DialogDescription,
 } from "../components/ui/Dialog"; // ShadCN Dialog
 import { UserSearch } from "./UserSearch";
+import { toast } from "sonner"; // Import sonner's toast
 
 const AddProjectPopup = ({ close }) => {
   const dispatch = useDispatch();
@@ -39,21 +39,20 @@ const AddProjectPopup = ({ close }) => {
         const res = await requestServer("project/add", { ...values, userId });
         dispatch(setCurrentProject(res.data.newProject));
         dispatch(setProjects(res.data?.allProjects));
-        showToast(res.message, "success");
+        toast.success(res.message); // Use sonner's toast
 
         resetForm();
         close(false);
       } catch (error) {
         console.error("error", error);
         if (error.response?.data?.message === "Token not found") {
-          showToast("Invalid token! Please login again.", "error");
+          toast.error("Invalid token! Please login again."); // Use sonner's toast
           localStorage.removeItem("token");
           dispatch(setCurrentProject(null));
           dispatch(setProjects([]));
         } else {
-          showToast(
-            error.response?.data?.message || "Something went wrong",
-            "error"
+          toast.error(
+            error.response?.data?.message || "Something went wrong" // Use sonner's toast
           );
         }
       }

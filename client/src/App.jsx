@@ -1,18 +1,21 @@
 import { Route, Routes, Navigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { Bounce, ToastContainer } from "react-toastify";
 import { useEffect, Suspense, lazy, useRef } from "react";
 import { io } from "socket.io-client";
+import { toast, Toaster } from "sonner"; // Import sonner's toast
 
-import { setCurrentProject, setProjects } from "./store/projectSlice.js";
+import {
+  setCurrentProject,
+  setDeleteProject,
+  setProjects,
+  updateProject,
+} from "./store/projectSlice.js";
 import requestServer from "./utils/requestServer.js";
 import Loader from "./component/Loader.jsx";
 import { login, logout } from "./store/userSlice.js";
 import { addAssignTask } from "./store/assignTaskSlice.js";
-import { showToast } from "./utils/showToast.js";
 import NotFound from "./component/NotFound.jsx";
 
-// Lazy load pages
 const Welcome = lazy(() => import("./pages/Welcome.jsx"));
 const Authentication = lazy(() => import("./pages/Authentication"));
 const Layout = lazy(() => import("./component/Layout"));
@@ -27,9 +30,8 @@ function App() {
   const assignedTask = useSelector((state) => state.assignTask.tasks);
   const token = localStorage.getItem("token");
 
-  const socketRef = useRef(null); // Prevents unnecessary re-renders due to WebSocket
+  const socketRef = useRef(null); // Prevents unnecessary re-renders
 
-  // Validate User & Restore Data
   useEffect(() => {
     if (!token) return;
 
@@ -73,20 +75,26 @@ function App() {
         dispatch(logout());
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-        showToast("Session expired. Please log in again.", "error");
       }
     };
 
     validateUser();
-  }, [token, dispatch]);
+  }, [dispatch]);
 
-  // Connect to WebSocket
+  // WebSocket Connection - Optimized
   useEffect(() => {
-    if (!isAuthenticated || !user?._id || socketRef.current) return;
+    if (!isAuthenticated || !user?._id) return;
+    if (socketRef.current) return; // Prevent multiple WebSocket connections
+
+    console.log("🔄 Establishing WebSocket connection...");
 
     const socket = io(import.meta.env.VITE_SERVER_URL, {
       transports: ["websocket"],
       reconnection: true,
+      withCredentials: true,
+      extraHeaders: {
+        Cookie: document.cookie,
+      },
     });
 
     socketRef.current = socket;
@@ -95,164 +103,67 @@ function App() {
       console.log("✅ WebSocket connected:", socket.id)
     );
     socket.on("connect_error", (error) =>
-      console.error("❌ WebSocket connection error:", error)
+      console.error("❌ WebSocket error:", error)
     );
 
     socket.emit("joinUserRoom", user._id);
 
-    // 🛠 Function to add notifications to the server
-    const addNotification = async (userId, title, message, type = "info") => {
-      try {
-        await requestServer("user/notification/add", {
-          userId,
-          title,
-          message,
-          type,
-        });
-      } catch (error) {
-        console.error("⚠️ Failed to add notification:", error);
-      }
-    };
-
-    // 📌 Listen for New Task Assignment
     socket.on("newTaskAssigned", async (data) => {
-      if (!data?.task?.title || !data?.task?.assignedTo) {
-        console.error("❌ Invalid task data received:", data);
-        return;
-      }
-
+      if (!data?.task?.title || !data?.task?.assignedTo) return;
       const message = `A new task "${data.task.title}" has been assigned to you.`;
-      showToast(message, "info");
-
-      await addNotification(
-        data.task.assignedTo,
-        "New Task Assigned",
-        message,
-        "info"
-      );
-
+      toast.info(message); // Use sonner's toast
       dispatch(addAssignTask(data.task));
     });
 
-    // 📌 Listen for Project Updates
     socket.on("projectUpdated", async (data) => {
-      if (!data?.project?.title || !data?.project?._id) {
-        console.error("❌ Invalid project data received:", data);
-        return;
-      }
-
-      const message = `The project "${data.project.title}" has been updated. Check the latest changes.`;
-      showToast(message, "info");
-
-      await addNotification(
-        data.project.member[0],
-        "Project Updated",
-        message,
-        "info"
+      if (!data?.project?.title || !data?.project?._id) return;
+      const message = `The project "${data.project.title}" has been updated.`;
+      toast.info(message); // Use sonner's toast
+      dispatch(
+        updateProject((prevProjects) =>
+          prevProjects.map((p) =>
+            p._id === data.project._id ? data.project : p
+          )
+        )
       );
-
-      // Update project in Redux store
-      const updatedProjects = projects.map((p) =>
-        p._id === data.project._id ? data.project : p
-      );
-      dispatch(setProjects(updatedProjects));
     });
 
-    // 📌 Listen for Project Deletion
     socket.on("projectDeleted", async (data) => {
-      if (!data?.project?._id) {
-        console.error("❌ Invalid project data received:", data);
-        return;
-      }
-
+      if (!data?.project?._id) return;
       const message = `The project "${data.project.title}" has been deleted.`;
-      showToast(message, "info");
-
-      await addNotification(
-        data.project.member[0],
-        "Project Deleted",
-        message,
-        "warning"
-      );
-
-      // Remove project from Redux store
+      toast.info(message); // Use sonner's toast
       const updatedProjects = projects.filter(
         (p) => p._id !== data.project._id
       );
-      dispatch(setProjects(updatedProjects));
+      dispatch(setDeleteProject(updatedProjects._id));
     });
 
-    // 📌 Listen for Being Added to a Project
-    socket.on("addedToProject", async (data) => {
-      if (!data?.project?.title || !data?.project?._id) {
-        console.error("❌ Invalid project data received:", data);
-        return;
-      }
-
-      const message = `You have been added to the project "${data.project.title}".`;
-      showToast(message, "success");
-
-      await addNotification(
-        data.project.member[0],
-        "Added to Project",
-        message,
-        "success"
-      );
-
-      dispatch(setProjects([...projects, data.project]));
-    });
-
-    // 📌 Listen for Task Updates
     socket.on("taskUpdated", async (data) => {
-      if (!data?.task?.title || !data?.task?._id) {
-        console.error("❌ Invalid task data received:", data);
-        return;
-      }
-
-      const message = `The task "${data.task.title}" has been updated. Check the latest modifications.`;
-      showToast(message, "info");
-
-      await addNotification(
-        data.task.assignedTo,
-        "Task Updated",
-        message,
-        "info"
-      );
-
+      if (!data?.task?.title || !data?.task?._id) return;
+      const message = `The task "${data.task.title}" has been updated.`;
+      toast.info(message); // Use sonner's toast
       dispatch(addAssignTask(data.task));
     });
 
-    // 📌 Handle WebSocket Errors
     socket.on("error", (error) => {
       console.error("❌ WebSocket error:", error);
-      showToast("An error occurred with the WebSocket connection.", "error");
+      toast.error("An error occurred with the WebSocket connection."); // Use sonner's toast
     });
 
-    // 🔄 Cleanup WebSocket on Unmount
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
+      console.log("🔌 Disconnecting WebSocket...");
+      socket.disconnect();
+      socketRef.current = null;
     };
-  }, [isAuthenticated, user?._id, dispatch, projects]);
+  }, [isAuthenticated, user?._id]); // Optimized dependencies
 
   return (
     <>
-      <ToastContainer
-        position="bottom-right"
-        autoClose={3000}
-        hideProgressBar
-        closeOnClick
-        pauseOnHover
-        transition={Bounce}
-        limit={3}
-      />
       <Suspense fallback={<Loader message="Loading application..." />}>
+        <Toaster />
         <Routes>
           <Route path="/" element={<Welcome />} />
           <Route path="authenticate" element={<Authentication />} />
-
           {isAuthenticated ? (
             <Route path="dashboard" element={<Layout />}>
               <Route index element={<Dashboard />} />
@@ -260,7 +171,6 @@ function App() {
           ) : (
             <Route path="*" element={<Navigate to="/authenticate" replace />} />
           )}
-
           <Route path="error" element={<Error />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

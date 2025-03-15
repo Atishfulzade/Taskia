@@ -3,9 +3,9 @@ import { GoPencil } from "react-icons/go";
 import { MdDeleteOutline } from "react-icons/md";
 import AddStatusPopup from "../component/AddStatusPopup";
 import requestServer from "../utils/requestServer";
-import { showToast } from "../utils/showToast";
 import { useDispatch } from "react-redux";
 import { deleteStatus } from "../store/statusSlice";
+import { toast } from "sonner"; // Import sonner's toast
 
 const TaskMoreDropdown = ({ setShowMore, status }) => {
   const popupRef = useRef(null);
@@ -37,10 +37,10 @@ const TaskMoreDropdown = ({ setShowMore, status }) => {
       const res = await requestServer(`status/delete/${status._id}`);
       dispatch(deleteStatus(status._id)); // Update Redux store
       setShowMore(false); // Close dropdown
-      showToast(res.message, "success"); // Show success toast
+      toast.success(res.message); // Use sonner's toast
     } catch (error) {
       console.error("Error deleting status:", error);
-      showToast("Failed to delete status", "error"); // Show error toast
+      toast.error("Failed to delete status"); // Use sonner's toast
     }
   };
 

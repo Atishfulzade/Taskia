@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useMemo } from "react";
 import {
   Check,
@@ -28,8 +26,8 @@ import { Badge } from "@/components/ui/Badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/Skeleton";
 import requestServer from "../utils/requestServer";
-import { showToast } from "../utils/showToast";
 import { useDebounce } from "../hooks/useDebounce";
+import { toast } from "sonner"; // Import sonner's toast
 
 export function UserSearch({
   onSelectUser,
@@ -63,10 +61,10 @@ export function UserSearch({
         const response = await requestServer(
           `user/search?name=${debouncedSearchTerm}`
         );
-        setUsers(response.users || []);
+        setUsers(response.data.users || []);
       } catch (error) {
         console.error("Error fetching users:", error);
-        showToast("Failed to load users", "error");
+        toast.error("Failed to load users"); // Use sonner's toast
       } finally {
         setLoading(false);
       }
@@ -200,7 +198,7 @@ export function UserSearch({
                           </div>
                         )}
                         <span className="truncate dark:text-white">
-                          {user.name}
+                          {user?.name}
                         </span>
                       </div>
                       {selectedUserIds.includes(user._id) ? (

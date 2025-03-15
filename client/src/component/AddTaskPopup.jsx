@@ -4,10 +4,22 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { Paperclip, X, Loader2, Plus, ChevronDown } from "lucide-react";
+import { toast } from "sonner"; // Import sonner's toast
+import {
+  Paperclip,
+  X,
+  Loader2,
+  Plus,
+  Calendar,
+  User,
+  Flag,
+  ListTodo,
+  FileText,
+  Edit,
+  Save,
+} from "lucide-react";
 import { useFileUpload } from "../hooks/useFileUpload ";
 import { useProjectMembers } from "../hooks/useProjectMembers";
-import { showToast } from "@/utils/showToast";
 import requestServer from "@/utils/requestServer";
 import { addTask, updateTask } from "@/store/taskSlice";
 import {
@@ -16,7 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/Dialog";
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/Button";
 import {
   Form,
@@ -34,11 +46,19 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/Select";
+} from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Separator } from "@/components/ui/Separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/Accordion";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 // Task schema with Zod validation
 const taskSchema = z.object({
@@ -67,33 +87,34 @@ const taskSchema = z.object({
 // Subtask component
 const SubtaskItem = ({ index, form, isFormDisabled, removeSubtask }) => {
   return (
-    <Card className="bg-white dark:bg-gray-800">
-      <CardContent className="p-3 space-y-2">
+    <Card className="bg-background border border-border shadow-sm">
+      <CardContent className="p-4 space-y-3">
         <div className="flex justify-between items-center">
           <Badge
             variant="outline"
-            className="dark:bg-gray-700 dark:text-gray-100"
+            className="bg-secondary/30 text-secondary-foreground"
           >
             Subtask {index + 1}
           </Badge>
           <Button
             type="button"
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={() => removeSubtask(index)}
             disabled={isFormDisabled}
-            className="dark:text-gray-100"
+            className="h-8 w-8 rounded-full"
           >
             <X className="h-4 w-4" />
+            <span className="sr-only">Remove subtask</span>
           </Button>
         </div>
-        <Separator className="dark:bg-gray-600" />
+        <Separator />
         <FormField
           control={form.control}
           name={`subTask.${index}.title`}
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs dark:text-gray-300">
+              <FormLabel className="text-xs font-medium">
                 Title<span className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
@@ -101,7 +122,7 @@ const SubtaskItem = ({ index, form, isFormDisabled, removeSubtask }) => {
                   placeholder="Subtask title"
                   {...field}
                   disabled={isFormDisabled}
-                  className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+                  className="bg-background"
                 />
               </FormControl>
               <FormMessage />
@@ -113,13 +134,11 @@ const SubtaskItem = ({ index, form, isFormDisabled, removeSubtask }) => {
           name={`subTask.${index}.description`}
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs dark:text-gray-300">
-                Description
-              </FormLabel>
+              <FormLabel className="text-xs font-medium">Description</FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="Subtask description"
-                  className="resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+                  className="resize-none bg-background min-h-[80px]"
                   {...field}
                   disabled={isFormDisabled}
                 />
@@ -136,24 +155,27 @@ const SubtaskItem = ({ index, form, isFormDisabled, removeSubtask }) => {
 // File attachment item component
 const FileAttachmentItem = ({ file, index, onRemove, isDisabled }) => {
   return (
-    <div className="flex items-center justify-between p-2 bg-muted dark:bg-gray-700 rounded-md">
+    <div className="flex items-center justify-between p-2.5 bg-secondary/20 rounded-md group hover:bg-secondary/30 transition-colors">
       <a
         href={file.link}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-sm truncate max-w-[300px] hover:underline dark:text-gray-100"
+        className="text-sm truncate max-w-[300px] hover:underline flex items-center gap-2 text-primary"
       >
-        {file.fileName}
+        <FileText className="h-4 w-4 flex-shrink-0" />
+        <span className="truncate">{file.fileName}</span>
       </a>
+
       <Button
         type="button"
         variant="ghost"
-        size="sm"
+        size="icon"
         onClick={() => onRemove(index)}
         disabled={isDisabled}
-        className="dark:text-gray-100"
+        className="h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
       >
         <X className="h-4 w-4" />
+        <span className="sr-only">Remove file</span>
       </Button>
     </div>
   );
@@ -161,14 +183,12 @@ const FileAttachmentItem = ({ file, index, onRemove, isDisabled }) => {
 
 // Main component
 const AddTaskPopup = React.memo(
-  ({ open, onOpenChange, currentStatus, taskData, isEdit }) => {
+  ({ open, onOpenChange, status, taskData, isEdit }) => {
     const [loading, setLoading] = useState(false);
     const [isFormDisabled, setIsFormDisabled] = useState(isEdit);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-    const [showSubtasks, setShowSubtasks] = useState(true);
 
     const fileInputRef = useRef(null);
-
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const projectId = useSelector((state) => state.project.currentProject?._id);
@@ -182,7 +202,6 @@ const AddTaskPopup = React.memo(
       projectMembers,
       open
     );
-    console.log(isEdit, taskData);
 
     // Get default values based on edit mode
     const getDefaultValues = useCallback(() => {
@@ -191,7 +210,7 @@ const AddTaskPopup = React.memo(
           title: taskData.title || "",
           description: taskData.description || "",
           priority: taskData.priority || "No",
-          status: currentStatus?._id || taskData.status || "",
+          status: status?._id || taskData.status || "",
           assignedTo: taskData.assignedTo || "",
           assignedBy: taskData.assignedBy || userId,
           projectId: projectId || "",
@@ -205,7 +224,7 @@ const AddTaskPopup = React.memo(
         title: "",
         description: "",
         priority: "No",
-        status: currentStatus?._id || "",
+        status: status?._id || "",
         assignedTo: "",
         assignedBy: userId,
         projectId: projectId || "",
@@ -213,7 +232,7 @@ const AddTaskPopup = React.memo(
         subTask: [],
         attachedFile: [],
       };
-    }, [taskData, currentStatus, userId, projectId, isEdit]);
+    }, [taskData, status, userId, projectId, isEdit]);
 
     // Initialize form with default values
     const form = useForm({
@@ -240,14 +259,14 @@ const AddTaskPopup = React.memo(
         form.setValue("projectId", projectId);
       }
 
-      if (currentStatus?._id && !form.getValues("status")) {
-        form.setValue("status", currentStatus._id);
+      if (status?._id && !form.getValues("status")) {
+        form.setValue("status", status._id);
       }
 
       if (userId && !form.getValues("assignedBy")) {
         form.setValue("assignedBy", userId);
       }
-    }, [projectId, currentStatus, userId, form]);
+    }, [projectId, status, userId, form]);
 
     // Handle file input change
     const handleFileChange = async (event) => {
@@ -259,7 +278,7 @@ const AddTaskPopup = React.memo(
         const currentFiles = form.getValues("attachedFile") || [];
         form.setValue("attachedFile", [...currentFiles, ...uploadedFiles]);
       } catch (error) {
-        showToast("Failed to upload files", "error");
+        toast.error("Failed to upload files"); // Use sonner's toast
         console.error("File upload error:", error);
       }
     };
@@ -299,7 +318,6 @@ const AddTaskPopup = React.memo(
 
     // Handle dialog close with confirmation if changes exist
     const handleDialogClose = useCallback(() => {
-      console.log("Dialog close triggered"); // Debugging
       if (hasUnsavedChanges) {
         if (
           window.confirm(
@@ -322,11 +340,11 @@ const AddTaskPopup = React.memo(
         if (isEdit && taskData) {
           res = await requestServer(`task/update/${taskData._id}`, values);
           dispatch(updateTask(res.data));
-          showToast("Task updated successfully", "success");
+          toast.success("Task updated successfully"); // Use sonner's toast
         } else {
           res = await requestServer("task/add", values);
           dispatch(addTask(res.data));
-          showToast("Task added successfully", "success");
+          toast.success("Task added successfully"); // Use sonner's toast
         }
 
         onOpenChange(false);
@@ -335,14 +353,13 @@ const AddTaskPopup = React.memo(
       } catch (error) {
         console.error("Error:", error);
         if (error.response?.data?.message === "Token not found") {
-          showToast("Session expired. Please login again.", "error");
+          toast.error("Session expired. Please login again."); // Use sonner's toast
           localStorage.removeItem("token");
           localStorage.removeItem("userState");
           navigate("/authenticate");
         } else {
-          showToast(
-            error.response?.data?.message || "Something went wrong",
-            "error"
+          toast.error(
+            error.response?.data?.message || "Something went wrong" // Use sonner's toast
           );
         }
       } finally {
@@ -350,50 +367,63 @@ const AddTaskPopup = React.memo(
       }
     };
 
+    // Get priority badge color
+    const getPriorityColor = (priority) => {
+      switch (priority) {
+        case "High":
+          return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
+        case "Medium":
+          return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
+        default:
+          return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
+      }
+    };
+
     return (
       <Dialog open={open} onOpenChange={handleDialogClose}>
         <DialogContent
-          className="sm:max-w-[500px] bg-white dark:bg-gray-900 max-h-[90vh] overflow-hidden"
+          className="sm:max-w-[550px] max-h-[90vh] overflow-hidden p-0"
           aria-describedby="task-form-description"
         >
-          <DialogHeader>
-            <DialogTitle className="text-gray-900 dark:text-gray-100">
-              {isEdit ? "Edit Task" : "Add Task"}
-            </DialogTitle>
-            <DialogDescription
-              id="task-form-description"
-              className="text-gray-600 dark:text-gray-300"
-            >
-              {isEdit
-                ? "Update this task by modifying the form fields."
-                : "Create a new task by filling out the form below."}
-            </DialogDescription>
-            {/* <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)} // Close the dialog
-              className="absolute top-2 right-2"
-            >
-              <X className="h-4 w-4" />
-            </Button> */}
+          <DialogHeader className="px-6 pt-6 pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl font-semibold">
+                  {isEdit ? "Edit Task" : "Add Task"}
+                </DialogTitle>
+                <DialogDescription
+                  id="task-form-description"
+                  className="mt-1.5"
+                >
+                  {isEdit
+                    ? "Update this task by modifying the form fields."
+                    : "Create a new task by filling out the form below."}
+                </DialogDescription>
+              </div>
+
+              {isEdit && (
+                <div
+                  onClick={() => setIsFormDisabled(!isFormDisabled)}
+                  className="h-9 w-9 cursor-pointer "
+                >
+                  {isFormDisabled ? (
+                    <Edit className="h-5 w-5" />
+                  ) : (
+                    <Save className="h-5 w-5" />
+                  )}
+                  <span className="sr-only">
+                    {isFormDisabled ? "Enable Editing" : "Disable Editing"}
+                  </span>
+                </div>
+              )}
+            </div>
           </DialogHeader>
 
-          {isEdit && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsFormDisabled(!isFormDisabled)}
-              className="mb-4 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
-            >
-              {isFormDisabled ? "Enable Editing" : "Disable Editing"}
-            </Button>
-          )}
-
-          <ScrollArea className="max-h-[calc(90vh-120px)] pr-4">
+          <ScrollArea className="max-h-[calc(90vh-120px)] px-6">
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4 m-0.5"
+                className="space-y-5 py-4"
               >
                 {/* Task Title */}
                 <FormField
@@ -401,7 +431,8 @@ const AddTaskPopup = React.memo(
                   name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="dark:text-gray-300">
+                      <FormLabel className="flex items-center gap-2 text-sm font-medium">
+                        <ListTodo className="h-4 w-4" />
                         Title<span className="text-destructive">*</span>
                       </FormLabel>
                       <FormControl>
@@ -409,7 +440,7 @@ const AddTaskPopup = React.memo(
                           placeholder="Enter task title"
                           {...field}
                           disabled={isFormDisabled}
-                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+                          className="bg-background"
                         />
                       </FormControl>
                       <FormMessage />
@@ -423,13 +454,14 @@ const AddTaskPopup = React.memo(
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="dark:text-gray-300">
-                        Description (optional)
+                      <FormLabel className="flex items-center gap-2 text-sm font-medium">
+                        <FileText className="h-4 w-4" />
+                        Description
                       </FormLabel>
                       <FormControl>
                         <Textarea
                           placeholder="Enter description"
-                          className="resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+                          className="resize-none bg-background min-h-[100px]"
                           {...field}
                           disabled={isFormDisabled}
                         />
@@ -439,51 +471,62 @@ const AddTaskPopup = React.memo(
                   )}
                 />
 
-                {/* Priority & Assignee */}
-                <div className="flex justify-between w-full gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Priority */}
                   <FormField
                     control={form.control}
                     name="priority"
                     render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormLabel className="dark:text-gray-300">
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2 text-sm font-medium">
+                          <Flag className="h-4 w-4" />
                           Priority
                         </FormLabel>
-                        <div className="flex items-center space-x-4">
-                          {["No", "Medium", "High"].map((priority) => (
-                            <div
-                              key={priority}
-                              className="flex items-center space-x-2"
-                            >
-                              <input
-                                type="radio"
-                                id={`priority-${priority}`}
-                                checked={field.value === priority}
-                                onChange={() => {
-                                  field.onChange(priority);
-                                }}
-                                disabled={isFormDisabled}
-                                className="h-4 w-4 text-violet-600 dark:text-violet-700 border-gray-300 dark:border-gray-600 rounded focus:ring-violet-500 dark:focus:ring-violet-600"
-                              />
-                              <label
-                                htmlFor={`priority-${priority}`}
-                                className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            disabled={isFormDisabled}
+                            className="flex flex-col space-y-1"
+                          >
+                            {["No", "Medium", "High"].map((priority) => (
+                              <div
+                                key={priority}
+                                className="flex items-center space-x-2"
                               >
-                                {priority}
-                              </label>
-                            </div>
-                          ))}
-                        </div>
+                                <RadioGroupItem
+                                  value={priority}
+                                  id={`priority-${priority}`}
+                                  checked={field.value === priority}
+                                />
+                                <Label
+                                  htmlFor={`priority-${priority}`}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Badge
+                                    variant="outline"
+                                    className={getPriorityColor(priority)}
+                                  >
+                                    {priority}
+                                  </Badge>
+                                </Label>
+                              </div>
+                            ))}
+                          </RadioGroup>
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  {/* Assignee */}
                   <FormField
                     control={form.control}
                     name="assignedTo"
                     render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormLabel className="dark:text-gray-300">
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2 text-sm font-medium">
+                          <User className="h-4 w-4" />
                           Assign To<span className="text-destructive">*</span>
                         </FormLabel>
                         <Select
@@ -492,10 +535,10 @@ const AddTaskPopup = React.memo(
                           disabled={isFormDisabled || membersLoading}
                         >
                           <FormControl>
-                            <SelectTrigger className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600">
+                            <SelectTrigger className="bg-background">
                               {membersLoading ? (
                                 <div className="flex items-center">
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin dark:text-gray-100" />
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                   <span>Loading...</span>
                                 </div>
                               ) : (
@@ -503,13 +546,9 @@ const AddTaskPopup = React.memo(
                               )}
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent className="bg-white dark:bg-gray-800 max-h-[200px]">
+                          <SelectContent className="max-h-[200px]">
                             {members.map((user) => (
-                              <SelectItem
-                                key={user._id}
-                                value={user._id}
-                                className="dark:text-gray-100"
-                              >
+                              <SelectItem key={user._id} value={user._id}>
                                 {user.name}
                               </SelectItem>
                             ))}
@@ -527,7 +566,8 @@ const AddTaskPopup = React.memo(
                   name="dueDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="dark:text-gray-300">
+                      <FormLabel className="flex items-center gap-2 text-sm font-medium">
+                        <Calendar className="h-4 w-4" />
                         Due Date
                       </FormLabel>
                       <FormControl>
@@ -535,7 +575,7 @@ const AddTaskPopup = React.memo(
                           type="date"
                           {...field}
                           disabled={isFormDisabled}
-                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+                          className="bg-background"
                         />
                       </FormControl>
                       <FormMessage />
@@ -543,127 +583,125 @@ const AddTaskPopup = React.memo(
                   )}
                 />
 
-                {/* File Attachments */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <FormLabel className="dark:text-gray-300">
-                      Attachments
-                    </FormLabel>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={fileLoading || isFormDisabled}
-                      className="dark:bg-gray-800 dark:text-gray-100 border-slate-300 dark:hover:bg-gray-700"
-                    >
-                      {fileLoading ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Paperclip className="h-4 w-4 mr-2" />
-                      )}
-                      {fileLoading ? "Uploading..." : "Attach Files"}
-                    </Button>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      className="hidden"
-                      onChange={handleFileChange}
-                      multiple
-                      disabled={isFormDisabled}
-                    />
-                  </div>
-
-                  {form.watch("attachedFile").length > 0 && (
-                    <div className="space-y-2">
-                      {form.watch("attachedFile").map((file, index) => (
-                        <FileAttachmentItem
-                          key={index}
-                          file={file}
-                          index={index}
-                          onRemove={removeFile}
-                          isDisabled={isFormDisabled}
+                <Accordion type="single" collapsible className="w-full">
+                  {/* File Attachments */}
+                  <AccordionItem value="attachments" className="border-b-0">
+                    <AccordionTrigger className="py-3 px-4 bg-secondary/10 rounded-md hover:bg-secondary/20 transition-colors">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Paperclip className="h-4 w-4" />
+                        Attachments ({form.watch("attachedFile").length})
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4 pb-2 px-1">
+                      <div className="space-y-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={fileLoading || isFormDisabled}
+                          className="w-full"
+                        >
+                          {fileLoading ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Paperclip className="h-4 w-4 mr-2" />
+                          )}
+                          {fileLoading ? "Uploading..." : "Attach Files"}
+                        </Button>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          className="hidden"
+                          onChange={handleFileChange}
+                          multiple
+                          disabled={isFormDisabled}
                         />
-                      ))}
-                    </div>
-                  )}
-                </div>
 
-                {/* Subtasks */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <FormLabel className="dark:text-gray-300">
-                      Subtasks
-                    </FormLabel>
-                    <div className="flex space-x-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowSubtasks(!showSubtasks)}
-                        className="dark:bg-gray-800 dark:text-gray-100 border-slate-300 dark:hover:bg-gray-700"
-                      >
-                        {showSubtasks ? "Hide" : "Show"}
-                        <ChevronDown
-                          className={`ml-2 h-4 w-4 transition-transform ${
-                            showSubtasks ? "rotate-180" : ""
-                          }`}
-                        />
-                      </Button>
+                        {form.watch("attachedFile").length > 0 && (
+                          <div className="space-y-2 mt-2">
+                            {form.watch("attachedFile").map((file, index) => (
+                              <FileAttachmentItem
+                                key={index}
+                                file={file}
+                                index={index}
+                                onRemove={removeFile}
+                                isDisabled={isFormDisabled}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
 
-                      {showSubtasks && (
+                  {/* Subtasks */}
+                  <AccordionItem value="subtasks" className="border-b-0 mt-2">
+                    <AccordionTrigger className="py-3 px-4 bg-secondary/10 rounded-md hover:bg-secondary/20 transition-colors">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <ListTodo className="h-4 w-4" />
+                        Subtasks ({form.watch("subTask").length})
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4 pb-2 px-1">
+                      <div className="space-y-3">
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           onClick={addSubtask}
                           disabled={isFormDisabled}
-                          className="dark:bg-gray-800 dark:text-gray-100 border-slate-300 dark:hover:bg-gray-700"
+                          className="w-full"
                         >
                           <Plus className="h-4 w-4 mr-2" />
-                          Add
+                          Add Subtask
                         </Button>
-                      )}
-                    </div>
-                  </div>
 
-                  {showSubtasks && form.watch("subTask").length > 0 && (
-                    <div className="space-y-3 mt-3">
-                      {form.watch("subTask").map((_, index) => (
-                        <SubtaskItem
-                          key={index}
-                          index={index}
-                          form={form}
-                          isFormDisabled={isFormDisabled}
-                          removeSubtask={removeSubtask}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
+                        {form.watch("subTask").length > 0 && (
+                          <div className="space-y-3 mt-3">
+                            {form.watch("subTask").map((_, index) => (
+                              <SubtaskItem
+                                key={index}
+                                index={index}
+                                form={form}
+                                isFormDisabled={isFormDisabled}
+                                removeSubtask={removeSubtask}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
 
                 {/* Submit Button */}
-                <Button
-                  type="submit"
-                  className="w-full bg-violet-600 dark:bg-violet-700 text-white hover:bg-violet-700 dark:hover:bg-violet-800"
-                  disabled={loading || fileLoading || isFormDisabled}
+                <div
+                  className="sticky bottom-0  pt-2 pb-4 bg-white
+                "
                 >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {isEdit ? "Updating..." : "Adding..."}
-                    </>
-                  ) : fileLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : isEdit ? (
-                    "Update Task"
-                  ) : (
-                    "Add Task"
-                  )}
-                </Button>
+                  <Button
+                    type="submit"
+                    className="w-full bg-violet-600 text-white"
+                    disabled={loading || fileLoading || isFormDisabled}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {isEdit ? "Updating..." : "Adding..."}
+                      </>
+                    ) : fileLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : isEdit ? (
+                      "Update Task"
+                    ) : (
+                      "Add Task"
+                    )}
+                  </Button>
+                </div>
               </form>
             </Form>
           </ScrollArea>
