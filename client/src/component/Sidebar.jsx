@@ -35,7 +35,7 @@ import {
 } from "../components/ui/alert-dialog";
 import socket from "@/utils/socket";
 import SidebarHeader from "./SidebarHeader";
-import SidebarContent from "./SidebarContent";
+import SidebarContent from "./SIdebarContent";
 import SidebarFooter from "./SidebarFooter";
 import ContextMenu from "./ContextMenu";
 
@@ -157,19 +157,23 @@ const Sidebar = ({ onCollapse }) => {
   );
 
   const handleContextMenu = useCallback((e, project, action) => {
+    console.log("Context menu triggered");
     e.preventDefault();
-    e.stopPropagation();
+    e.stopPropagation(); // Ensure event propagation is stopped
 
     if (action === "menu") {
       const rect = e.currentTarget.getBoundingClientRect();
+      console.log("Menu action triggered at position:", rect);
       setContextMenu({
         visible: true,
         position: { x: rect.left, y: rect.bottom },
         project,
       });
     } else if (action) {
+      console.log("Direct action triggered:", action);
       handleContextAction(project, action);
     } else {
+      console.log("Right-click triggered at position:", e.clientX, e.clientY);
       setContextMenu({
         visible: true,
         position: { x: e.clientX, y: e.clientY },
@@ -180,6 +184,7 @@ const Sidebar = ({ onCollapse }) => {
 
   const handleContextAction = useCallback(
     async (project, action) => {
+      console.log("Context menu action:", action);
       setContextMenu({
         visible: false,
         position: { x: 0, y: 0 },
@@ -188,6 +193,7 @@ const Sidebar = ({ onCollapse }) => {
 
       switch (action) {
         case "star":
+          console.log("Star action triggered");
           try {
             const updatedProject = {
               ...project,
@@ -210,14 +216,17 @@ const Sidebar = ({ onCollapse }) => {
           break;
 
         case "rename":
+          console.log("Rename action triggered");
           setRenameModal({ open: true, project, title: project.title });
           break;
 
         case "delete":
+          console.log("Delete action triggered");
           setDeleteModal({ open: true, project });
           break;
 
         case "share":
+          console.log("Share action triggered");
           setShareModal({ open: true, project, email: "" });
           break;
 
