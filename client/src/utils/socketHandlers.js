@@ -4,30 +4,23 @@ import { addStatus, updateStatus, deleteStatus } from "../store/statusSlice";
 import { addAssignTask } from "../store/assignTaskSlice";
 import { setDeleteProject, updateProject } from "../store/projectSlice";
 import { addSharedProject } from "@/store/sharedProjectSlice";
+import requestServer from "./requestServer";
 
 // Keep track of initialized socket to prevent duplicate event listeners
 let isInitialized = false;
 
 export const initializeSocketHandlers = (socket, dispatch) => {
   if (!socket || isInitialized) {
+    console.log("Socket handlers already initialized or socket not available");
     return;
   }
 
   console.log("Initializing socket event handlers...");
-  isInitialized = true;
 
-  // Cleanup previous listeners before adding new ones
-  socket.off("testConnection");
-  socket.off("statusCreated");
-  socket.off("statusUpdated");
-  socket.off("statusDeleted");
-  socket.off("taskCreated");
-  socket.off("taskUpdated");
-  socket.off("taskDeleted");
-  socket.off("taskAssigned");
-  socket.off("projectUpdated");
-  socket.off("projectInvitation");
-  socket.off("projectDeleted");
+  // Clean up previous listeners to prevent duplicates
+  removeAllHandlers(socket);
+
+  isInitialized = true;
 
   // Test connection
   socket.on("testConnection", (data) => {
@@ -60,64 +53,110 @@ export const initializeSocketHandlers = (socket, dispatch) => {
     }
   });
 
-  // Task events
-  socket.on("taskCreated", (data) => {
+  // Task events with notifications
+  socket.on("taskCreated", async (data) => {
     console.log("Task Created from socket:", data);
     if (data.task) {
+      // Check if task is already in store (prevents duplicates)
       dispatch(addTask(data.task));
       toast.success(data.message || "New task created");
+
+      // Send notification
+      try {
+        await requestServer("user/notification/add", {
+          userId: data.task.userId,
+          title: `Task Created: ${data.task.title}`,
+          type: "info",
+        });
+      } catch (error) {
+        console.error("Failed to send notification:", error);
+      }
     }
   });
 
-  socket.on("taskUpdated", (data) => {
+  socket.on("taskUpdated", async (data) => {
     console.log("Task Updated:", data);
     if (data.updatedTask) {
       dispatch(updateTask(data.updatedTask));
       toast.success(data.message || "Task updated");
+
+      // Send notification
+      await requestServer("user/notification/add", {
+        userId: data.updatedTask.userId,
+        title: `Task Updated: ${data.updatedTask.title}`,
+        type: "info",
+      });
     }
   });
 
-  socket.on("taskDeleted", (data) => {
+  socket.on("taskDeleted", async (data) => {
     console.log("Task Deleted:", data);
     if (data.taskId) {
       dispatch(deleteTask(data.taskId));
       toast.success(data.message || "Task deleted");
+
+      // Send notification
+      await requestServer("user/notification/add", {
+        userId: data.userId,
+        title: "A task was deleted",
+        type: "info",
+      });
     }
   });
 
-  socket.on("taskAssigned", (data) => {
+  socket.on("taskAssigned", async (data) => {
     console.log("Task Assigned:", data);
     if (data.newTask) {
       dispatch(addAssignTask(data.newTask));
       toast.success(data.message || "New task assigned to you");
+
+      // Send notification
+      await requestServer("user/notification/add", {
+        userId: data.newTask.userId,
+        title: `New Task Assigned: ${data.newTask.title}`,
+        type: "info",
+      });
     } else if (data.updatedTask) {
       dispatch(updateTask(data.updatedTask));
       toast.success(data.message || "Task assigned to you");
+
+      // Send notification
+      await requestServer("user/notification/add", {
+        userId: data.updatedTask.userId,
+        title: `Task Reassigned: ${data.updatedTask.title}`,
+        type: "info",
+      });
     }
   });
 
-  // Project events
-  socket.on("projectUpdated", (data) => {
+  // Project events with notifications
+  socket.on("projectUpdated", async (data) => {
     console.log("Project Updated:", data);
     if (data.project) {
       dispatch(updateProject(data.project));
       toast.success(data.message || "Project updated");
+
+      // Send notification
+      await requestServer("user/notification/add", {
+        userId: data.project.ownerId,
+        title: `Project Updated: ${data.project.name}`,
+        type: "info",
+      });
     }
   });
 
-  socket.on("projectInvitation", (data) => {
-    console.log("Project Invitation:", data);
-    if (data.newProject) {
-      dispatch(addSharedProject(data.newProject));
-      toast.success(data.message || "You've been invited to a project");
-    }
-  });
-
-  socket.on("projectDeleted", (data) => {
+  socket.on("projectDeleted", async (data) => {
     console.log("Project Deleted:", data);
     if (data.projectId) {
       dispatch(setDeleteProject(data.projectId));
       toast.success(data.message || "Project has been deleted");
+
+      // Send notification
+      await requestServer("user/notification/add", {
+        userId: data.ownerId,
+        title: "A project was deleted",
+        type: "info",
+      });
     }
   });
 
@@ -133,8 +172,25 @@ export const initializeSocketHandlers = (socket, dispatch) => {
   });
 };
 
-//Reset the initialization state - useful for testing and debugging
+// Reset the initialization state - useful for testing and debugging
+function removeAllHandlers(socket) {
+  const events = [
+    "testConnection",
+    "statusCreated",
+    "statusUpdated",
+    "statusDeleted",
+    "taskCreated",
+    "taskUpdated",
+    "taskDeleted",
+    "taskAssigned",
+    "projectUpdated",
+    "projectDeleted",
+  ];
 
+  events.forEach((event) => socket.off(event));
+}
+
+// Reset the initialization state - useful for testing and debugging
 export const resetSocketHandlers = () => {
   isInitialized = false;
 };

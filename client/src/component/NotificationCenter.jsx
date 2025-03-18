@@ -1,12 +1,11 @@
-"use client";
-
 import { useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { Bell, X, Check } from "lucide-react";
 import socket from "../utils/socket";
+import requestServer from "../utils/requestServer";
 
 const NotificationItem = ({ notification, onRead, onClose }) => {
-  const { message, type, timestamp, read } = notification;
+  const { _id, message, type, timestamp, read } = notification;
 
   const getTypeIcon = () => {
     switch (type) {
@@ -41,15 +40,17 @@ const NotificationItem = ({ notification, onRead, onClose }) => {
         <div className="flex gap-1">
           {!read && (
             <button
-              onClick={() => onRead(notification.id)}
+              onClick={() => onRead(_id)}
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              aria-label="Mark as read"
             >
               <Check className="h-4 w-4" />
             </button>
           )}
           <button
-            onClick={() => onClose(notification.id)}
+            onClick={() => onClose(_id)}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            aria-label="Delete notification"
           >
             <X className="h-4 w-4" />
           </button>
@@ -73,46 +74,25 @@ const NotificationCenter = () => {
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   useEffect(() => {
-    if (!socket || !user?._id) return;
+    if (!user?._id) return;
 
-    // Listen for project notifications
-    socket.on("projectInvitation", (data) => {
-      addNotification({
-        id: Date.now(),
-        message: data.message,
-        type: "project",
-        timestamp: new Date(),
-        read: false,
-      });
-    });
+    // Fetch notifications when the component mounts
+    getNotifications();
 
-    // Listen for task notifications
-    socket.on("taskAssigned", (data) => {
-      addNotification({
-        id: Date.now(),
-        message: data.message,
-        type: "task",
-        timestamp: new Date(),
-        read: false,
-      });
-    });
+    // Listen for socket notifications
+    const handleNotification = (data, type) => {
+      addNotification({ ...data, type, read: false });
+    };
 
-    // Listen for status notifications
-    socket.on("statusUpdated", (data) => {
-      addNotification({
-        id: Date.now(),
-        message: data.message,
-        type: "status",
-        timestamp: new Date(),
-        read: false,
-      });
-    });
+    socket.on("projectInvitation", (data) =>
+      handleNotification(data, "project")
+    );
+    socket.on("taskAssigned", (data) => handleNotification(data, "task"));
+    socket.on("statusUpdated", (data) => handleNotification(data, "status"));
 
     return () => {
       socket.off("projectInvitation");
@@ -121,18 +101,79 @@ const NotificationCenter = () => {
     };
   }, [user?._id]);
 
+  const getNotifications = async () => {
+    try {
+      if (!user?._id) return;
+
+      const res = await requestServer(`user/notification/get/${user._id}`);
+      if (res?.data) setNotifications(res.data.notifications);
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    }
+  };
+
+  const deleteNotification = async (notificationId) => {
+    try {
+      await requestServer("user/notification/delete", {
+        method: "POST",
+        data: {
+          userId: user._id,
+          notificationId,
+        },
+      });
+
+      setNotifications((prev) =>
+        prev.filter((notif) => notif._id !== notificationId)
+      );
+    } catch (error) {
+      console.error("Failed to delete notification:", error);
+    }
+  };
+
+  const markAsRead = async (id) => {
+    try {
+      await requestServer("user/notification/markRead", {
+        method: "POST",
+        data: {
+          userId: user._id,
+          notificationId: id,
+        },
+      });
+
+      setNotifications((prev) =>
+        prev.map((notif) =>
+          notif._id === id ? { ...notif, read: true } : notif
+        )
+      );
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await requestServer("user/notification/markAllRead", {
+        method: "POST",
+        data: {
+          userId: user._id,
+        },
+      });
+
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch (error) {
+      console.error("Failed to mark all notifications as read:", error);
+    }
+  };
+
   const addNotification = (notification) => {
-    setNotifications((prev) => [notification, ...prev]);
-  };
-
-  const markAsRead = (id) => {
-    setNotifications((prev) =>
-      prev.map((notif) => (notif.id === id ? { ...notif, read: true } : notif))
-    );
-  };
-
-  const removeNotification = (id) => {
-    setNotifications((prev) => prev.filter((notif) => notif.id !== id));
+    setNotifications((prev) => [
+      {
+        ...notification,
+        _id: notification._id || Date.now().toString(),
+        timestamp: notification.timestamp || new Date(),
+      },
+      ...prev,
+    ]);
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -140,8 +181,11 @@ const NotificationCenter = () => {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        className="relative p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+        className="relative p-2 text-white  dark:text-gray-400 dark:hover:text-gray-200 rounded-full hover:bg-violet-700 dark:hover:bg-gray-800"
         onClick={() => setIsOpen(!isOpen)}
+        aria-label="Notifications"
+        aria-expanded={isOpen}
+        aria-haspopup="true"
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
@@ -157,28 +201,24 @@ const NotificationCenter = () => {
             <h3 className="font-medium text-gray-800 dark:text-gray-200">
               Notifications
             </h3>
-            {notifications.length > 0 && (
+            {notifications.length > 0 && unreadCount > 0 && (
               <button
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                onClick={() => {
-                  setNotifications((prev) =>
-                    prev.map((n) => ({ ...n, read: true }))
-                  );
-                }}
+                onClick={markAllAsRead}
               >
                 Mark all as read
               </button>
             )}
           </div>
 
-          <div className="max-h-[300px] overflow-y-auto">
+          <div className="max-h-80 overflow-y-auto">
             {notifications.length > 0 ? (
               notifications.map((notification) => (
                 <NotificationItem
-                  key={notification.id}
+                  key={notification._id}
                   notification={notification}
                   onRead={markAsRead}
-                  onClose={removeNotification}
+                  onClose={deleteNotification}
                 />
               ))
             ) : (

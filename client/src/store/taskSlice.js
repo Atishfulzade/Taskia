@@ -12,7 +12,17 @@ const taskSlice = createSlice({
       state.tasks = action.payload; // Store fetched statuses
     },
     addTask: (state, action) => {
-      state.tasks.push(action.payload);
+      // Check if task already exists in the store
+      const exists = state.tasks.some(
+        (task) => task._id === action.payload._id
+      );
+      if (!exists) {
+        state.tasks.push(action.payload);
+      } else {
+        console.log(
+          `Task ${action.payload._id} already exists in store, skipping add`
+        );
+      }
     },
     deleteTask: (state, action) => {
       state.tasks = state.tasks.filter((task) => task._id !== action.payload);

@@ -92,7 +92,6 @@ function App() {
     validateUser();
   }, [dispatch, token]);
 
-  // Initialize WebSocket when authenticated
   useEffect(() => {
     if (isAuthenticated && user?._id && !socketInitialized.current) {
       console.log("Initializing WebSocket for user:", user._id);
@@ -113,14 +112,13 @@ function App() {
 
     // Cleanup function when user logs out or component unmounts
     return () => {
-      if (!isAuthenticated && socket.connected) {
+      if (!isAuthenticated && socketInitialized.current && socket.connected) {
         console.log("Disconnecting WebSocket due to logout");
         socket.disconnect();
         socketInitialized.current = false;
       }
     };
   }, [isAuthenticated, user?._id, dispatch]);
-
   return (
     <>
       <Suspense fallback={<Loader message="Loading application..." />}>

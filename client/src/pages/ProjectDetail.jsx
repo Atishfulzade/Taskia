@@ -109,13 +109,37 @@ const ProjectDetail = () => {
     };
   }, [projectId]);
 
+  // In ProjectDetail.jsx
+
+  // Improve the room joining logic
+  useEffect(() => {
+    if (!projectId || !socket.connected) return;
+
+    // Only join if we haven't already joined this room
+    if (!joinedRoom.current) {
+      console.log(`Joining project room for project: ${projectId}`);
+      joinProjectRoom(socket, projectId);
+      joinedRoom.current = true;
+    }
+
+    return () => {
+      if (joinedRoom.current && projectId) {
+        console.log(`Leaving project room for project: ${projectId}`);
+        leaveProjectRoom(socket, projectId);
+        joinedRoom.current = false;
+      }
+    };
+  }, [projectId]);
+
   // Reset joined room ref when project changes
   useEffect(() => {
     // When projectId changes, reset the joinedRoom ref
-    joinedRoom.current = false;
+    return () => {
+      joinedRoom.current = false;
+    };
   }, [projectId]);
 
-  // Handle task creation by the current user - avoiding duplicates
+  // Modify the handleTaskCreate function to use a more reliable approach
   const handleTaskCreate = useCallback(
     async (taskData) => {
       try {
@@ -128,12 +152,10 @@ const ProjectDetail = () => {
           // We'll let the socket event handle adding to Redux store
           // to avoid duplicate tasks
           console.log("Task created via API:", response.data._id);
-
-          // Add to set to track tasks created by this user
-          setCurrentUserTaskIds(
-            (prev) => new Set([...prev, response.data._id])
-          );
           toast.success("Task created successfully");
+
+          // Instead of tracking in a Set, we could check directly in Redux
+          // before adding to the store in the socket handler
         }
       } catch (error) {
         console.error("Error creating task:", error);

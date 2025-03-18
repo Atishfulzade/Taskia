@@ -120,12 +120,15 @@ const Sidebar = ({ onCollapse }) => {
       socket.connect();
     }
 
-    const handleProjectInvitation = (data) => {
-      console.log("Project invitation received:", data);
+    const handleProjectInvitation = async (data) => {
       if (data.newProject) {
         dispatch(addSharedProject(data.newProject));
         toast.success(data.message || "You've been invited to a project");
       }
+      await requestServer("user/notification/add", {
+        title: data.message,
+        type: "info",
+      });
     };
 
     socket.on("projectInvitation", handleProjectInvitation);

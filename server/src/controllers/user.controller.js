@@ -159,8 +159,9 @@ const getAllUser = async (req, res) => {
 
 // Add a notification to a user
 const addNotification = async (req, res) => {
+  const userId = req.user.id;
   try {
-    const { userId, title, type } = req.body;
+    const { title, type } = req.body;
 
     if (!userId) {
       return handleResponse(res, 400, "User ID is required");

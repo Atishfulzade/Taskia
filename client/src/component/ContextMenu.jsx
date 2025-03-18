@@ -12,33 +12,30 @@ const ContextMenu = ({ project, position, onAction, onClose }) => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      console.log("Clicked outside menu");
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         onClose();
       }
     };
 
     const handleEscapeKey = (event) => {
-      console.log("Escape key pressed");
       if (event.key === "Escape") {
         onClose();
       }
     };
 
     // Add event listeners
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
     document.addEventListener("keydown", handleEscapeKey);
 
     // Cleanup event listeners
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("click", handleClickOutside);
       document.removeEventListener("keydown", handleEscapeKey);
     };
   }, [onClose]);
 
   // Handle menu actions
   const handleMenuAction = (e, action) => {
-    console.log(`Menu action: ${action}`);
     e.stopPropagation(); // Stop event propagation
     onAction(project, action);
   };
@@ -46,23 +43,14 @@ const ContextMenu = ({ project, position, onAction, onClose }) => {
   return (
     <>
       {/* Invisible overlay to catch clicks outside menu */}
-      <div
-        className="fixed inset-0 z-40"
-        onClick={() => {
-          console.log("Overlay clicked");
-          onClose();
-        }}
-      />
+      <div className="fixed inset-0 z-40" onClick={onClose} />
 
       {/* Actual menu */}
       <div
         ref={menuRef}
         className="fixed z-50 bg-white dark:bg-gray-800 shadow-lg rounded-md border border-gray-200 dark:border-gray-700 py-1 w-48"
         style={{ top: adjustedPosition.y, left: adjustedPosition.x }}
-        onClick={(e) => {
-          console.log("Menu clicked");
-          e.stopPropagation();
-        }}
+        onClick={(e) => e.stopPropagation()} // Prevent clicks inside the menu from closing it
       >
         <button
           onClick={(e) => handleMenuAction(e, "rename")}
