@@ -9,10 +9,18 @@ const socketIo = require("socket.io");
 const MongoStore = require("connect-mongo");
 const mongoose = require("mongoose");
 const Project = require("./src/models/project.model.js");
-const { log } = require("console");
 
 // Load environment variables
 dotenv.config();
+
+if (
+  !process.env.MONGO_URI ||
+  !process.env.DATABASE ||
+  !process.env.SESSION_SECRET
+) {
+  console.error("❌ Missing required environment variables. Check .env file.");
+  process.exit(1);
+}
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -20,7 +28,7 @@ app.set("trust proxy", 1);
 
 // Session Middleware
 const sessionMiddleware = session({
-  secret: process.env.SESSION_SECRET || "your_secret_key",
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
@@ -35,7 +43,7 @@ const sessionMiddleware = session({
   },
 });
 
-// Middleware
+// Middleware setup
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:3000",
@@ -47,8 +55,11 @@ app.use(
 app.use(express.json());
 app.use(sessionMiddleware);
 
-// Database connection
-connect();
+// Connect to Database
+connect().catch((err) => {
+  console.error("❌ Database connection error:", err);
+  process.exit(1);
+});
 
 // Logging Middleware
 app.use((req, res, next) => {
@@ -61,122 +72,124 @@ app.get("/", (req, res) => {
   res.json({ message: "Welcome to Task Management API!" });
 });
 
-// Main Routes
+// API Routes
 app.use("/api/v1", routes);
 
-// Create HTTP server
+// HTTP Server setup
 const server = http.createServer(app);
 
-// Custom rate limiter middleware
-const rateLimit = (windowMs, max) => {
-  const eventCounts = new Map(); // Store event counts per socket
-
-  return (socket, next) => {
-    const now = Date.now();
-    const socketId = socket.id;
-
-    // Initialize event count for the socket
-    if (!eventCounts.has(socketId)) {
-      eventCounts.set(socketId, { count: 0, lastReset: now });
-    }
-
-    const socketData = eventCounts.get(socketId);
-
-    // Reset the count if the time window has passed
-    if (now - socketData.lastReset > windowMs) {
-      socketData.count = 0;
-      socketData.lastReset = now;
-    }
-
-    // Increment the event count
-    socketData.count += 1;
-
-    // Check if the event count exceeds the limit
-    if (socketData.count > max) {
-      console.log(`⚠️ Rate limit exceeded for socket ${socketId}`);
-      socket.disconnect(true); // Disconnect the socket
-      return;
-    }
-
-    next(); // Allow the event
-  };
-};
-
-// Initialize Socket.IO
+// Socket.IO setup
+// Socket setup in server.js file
 const io = socketIo(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: process.env.CLIENT_URL,
     methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true, // Important for session sharing
+    credentials: true,
   },
 });
-app.set("io", io);
+app.set("io", io); // Make Socket.IO instance accessible in controllers
 
-// Apply rate limiter middleware
-io.use(rateLimit(60 * 1000, 100)); // Allow 100 events per minute per socket
-
-// Wrap session middleware for use with WebSockets
-// Wrap session middleware for use with WebSockets
+// Use session middleware with Socket.IO
 io.use((socket, next) => {
-  sessionMiddleware(socket.request, {}, (err) => {
-    if (err) {
-      console.error("Session middleware error:", err);
-      return next(err);
-    }
-
-    next();
-  });
+  sessionMiddleware(socket.request, {}, next);
 });
 
 io.on("connection", async (socket) => {
-  console.log("🔌 New socket connection:", socket.id);
+  console.log(`🔌 Socket connected: ${socket.id}`);
 
-  const userId = socket.request.session.userId;
-  if (!userId) {
-    console.log("❌ Unauthenticated user attempted to connect");
-    socket.disconnect(true);
-    return;
+  try {
+    const session = socket.request.session;
+    const userId = session?.userId;
+
+    if (!userId) {
+      console.log(
+        "No user session found, proceeding with limited functionality"
+      );
+    } else {
+      console.log(`✅ User connected: ${userId}`);
+
+      // User joins their own room for personal notifications
+      socket.join(userId);
+      console.log(`📌 User ${userId} joined their personal room.`);
+    }
+
+    // Emit test connection event
+    socket.emit("testConnection", {
+      message: "WebSocket connected successfully!",
+      socketId: socket.id,
+    });
+
+    // Join project rooms - both owned and member projects
+    socket.on("joinProjectRooms", async (userId) => {
+      if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+        console.error("❌ Invalid userId:", userId);
+        return;
+      }
+
+      try {
+        // Find projects where user is owner or member
+        const userProjects = await Project.find({
+          $or: [{ userId }, { member: userId }],
+        });
+
+        console.log(`Found ${userProjects.length} projects for user ${userId}`);
+
+        // Join each project room
+        userProjects.forEach((project) => {
+          const projectRoomId = `project:${project._id.toString()}`;
+          socket.join(projectRoomId);
+          console.log(`📌 User ${userId} joined project room ${projectRoomId}`);
+        });
+
+        // Notify client that they've joined all rooms
+        socket.emit("joinedRooms", {
+          message: `Joined ${userProjects.length} project rooms`,
+          count: userProjects.length,
+        });
+      } catch (error) {
+        console.error("❌ Error joining project rooms:", error);
+        socket.emit("error", { message: "Failed to join project rooms" });
+      }
+    });
+
+    // Join a specific project room
+    socket.on("joinRoom", ({ roomId }) => {
+      if (!roomId) {
+        console.error("❌ Invalid room ID");
+        return;
+      }
+
+      socket.join(roomId);
+      console.log(`📌 Socket ${socket.id} joined room: ${roomId}`);
+    });
+
+    // Leave a specific project room
+    socket.on("leaveRoom", ({ roomId }) => {
+      if (!roomId) {
+        console.error("❌ Invalid room ID");
+        return;
+      }
+
+      socket.leave(roomId);
+      console.log(`📌 Socket ${socket.id} left room: ${roomId}`);
+    });
+
+    // Handle disconnection
+    socket.on("disconnect", () => {
+      console.log(`🔌 User disconnected: ${socket.id}`);
+    });
+
+    socket.on("error", (error) => {
+      console.error("❌ Socket error:", error);
+    });
+  } catch (error) {
+    console.error("❌ WebSocket connection error:", error);
   }
-
-  console.log(`🔌 Authenticated user connected: ${userId}`);
-
-  // Join user-specific room
-  socket.on("joinUserRoom", async (userId) => {
-    console.log(`joinUserRoom event received for userId: ${userId}`); // Debugging
-    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-      console.error("❌ Invalid userId:", userId);
-      return;
-    }
-
-    try {
-      socket.join(userId.toString());
-      console.log(`📌 User ${userId} joined their personal room`);
-
-      const projects = await Project.find({
-        $or: [{ userId }, { member: userId }],
-      });
-
-      projects.forEach((project) => {
-        socket.join(project._id.toString());
-        console.log(`📌 User ${userId} joined project room ${project._id}`);
-      });
-    } catch (error) {
-      console.error("Error joining rooms:", error);
-    }
-  });
-
-  socket.on("disconnect", () => {
-    console.log(`🔌 User disconnected: ${socket.id}`);
-  });
-
-  socket.on("error", (error) => {
-    console.error("❌ Socket error:", error);
-  });
 });
 
-// Graceful Shutdown
+// Graceful shutdown
 const gracefulShutdown = () => {
-  console.log("🔴 Shutting down server...");
+  console.log("🔴 Server shutting down...");
   io.close(() => {
     console.log("🛑 WebSocket server closed.");
     server.close(() => {
@@ -189,7 +202,7 @@ const gracefulShutdown = () => {
 process.on("SIGINT", gracefulShutdown);
 process.on("SIGTERM", gracefulShutdown);
 
-// Start Server
+// Start server
 server.listen(port, () => {
   console.log(`🚀 Server running on port ${port}`);
 });

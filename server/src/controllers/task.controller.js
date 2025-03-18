@@ -21,7 +21,7 @@ const addTask = async (req, res) => {
     }
 
     // Check if a task with the same title already exists
-    const isAlreadyExist = await Task.findOne({ title });
+    const isAlreadyExist = await Task.findOne({ title, projectId });
     if (isAlreadyExist) {
       return handleResponse(res, 400, msg.task.taskTitleAlreadyExists);
     }
@@ -29,7 +29,7 @@ const addTask = async (req, res) => {
     // Validate assignedTo field (Convert empty string to null)
     let validAssignedTo = null;
     if (assignedTo && isValidObjectId(assignedTo)) {
-      const userExists = await User.findById(assignedTo); // Assuming you have a User model
+      const userExists = await User.findById(assignedTo);
       if (!userExists) {
         return handleResponse(res, 400, msg.user.userNotExists);
       }
@@ -47,58 +47,91 @@ const addTask = async (req, res) => {
 
     await newTask.save();
 
-    // Notify assigned user via WebSocket
-    if (validAssignedTo) {
-      const io = req.app.get("io");
-      io.to(validAssignedTo).emit("newTaskAssigned", {
-        message: `A new task "${newTask.title}" has been assigned to you.`,
-        task: newTask,
-      });
+    const io = req.app.get("io");
+    if (!io) {
+      console.error("Socket instance not available");
+      return handleResponse(
+        res,
+        200,
+        msg.task.taskCreatedSuccessfully,
+        newTask
+      );
     }
+
+    const projectRoomId = `project:${projectId}`;
+    console.log(`Emitting taskCreated event to room: ${projectRoomId}`);
+
+    // Notify the assigned user personally
+    if (validAssignedTo) {
+      io.to(validAssignedTo.toString()).emit("taskAssigned", {
+        message: `A new task "${newTask.title}" has been assigned to you.`,
+        newTask,
+      });
+      console.log(
+        `Task assigned notification sent to user: ${validAssignedTo}`
+      );
+    }
+
+    // Notify all project members about the new task
+    io.to(projectRoomId).emit("taskCreated", {
+      message: `A new task "${newTask.title}" has been created.`,
+      task: newTask,
+    });
 
     return handleResponse(res, 200, msg.task.taskCreatedSuccessfully, newTask);
   } catch (error) {
+    console.error("Error creating task:", error);
     handleError(res, msg.task.errorCreatingTask, error);
   }
 };
-
 // Update an existing task
 const updateTask = async (req, res) => {
   try {
     const { id: taskId } = req.params;
-    const { assignedTo, title, ...others } = req.body;
+    const { assignedTo, ...others } = req.body;
 
     // Validate taskId format
     if (!mongoose.Types.ObjectId.isValid(taskId)) {
       return handleResponse(res, 400, msg.task.invalidTaskId);
     }
 
-    // if (!title) {
-    //   return handleResponse(res, 400, msg.task.allFieldsRequired);
-    // }
+    // Get the original task to check for changes
+    const originalTask = await Task.findById(taskId);
+    if (!originalTask) {
+      return handleResponse(res, 404, msg.task.taskNotFound);
+    }
 
     // Update task
     const updatedTask = await Task.findByIdAndUpdate(taskId, req.body, {
       new: true,
     });
 
-    if (!updatedTask) {
-      return handleResponse(res, 404, msg.task.taskNotFound);
-    }
+    const io = req.app.get("io");
+    const projectRoomId = `project:${updatedTask.projectId}`;
 
-    const validAssignedTo =
+    // Check if assignee has changed
+    const originalAssignee = originalTask.assignedTo
+      ? originalTask.assignedTo.toString()
+      : null;
+    const newAssignee =
       assignedTo && mongoose.Types.ObjectId.isValid(assignedTo)
         ? assignedTo
         : null;
 
-    // Notify assigned user via WebSocket
-    if (validAssignedTo) {
-      const io = req.app.get("io");
-      io.to(validAssignedTo).emit("taskUpdated", {
-        message: `Task "${updatedTask.title}" has been updated.`,
-        task: updatedTask,
+    // If there's a new assignee different from the original
+    if (newAssignee && newAssignee !== originalAssignee) {
+      // Notify the newly assigned user personally
+      io.to(newAssignee).emit("taskAssigned", {
+        message: `Task "${updatedTask.title}" has been assigned to you.`,
+        updatedTask,
       });
     }
+
+    // Notify all project members about the task update
+    io.to(projectRoomId).emit("taskUpdated", {
+      message: `Task "${updatedTask.title}" has been updated.`,
+      updatedTask,
+    });
 
     return handleResponse(
       res,
@@ -108,6 +141,40 @@ const updateTask = async (req, res) => {
     );
   } catch (error) {
     handleError(res, msg.task.errorUpdatingTask, error);
+  }
+};
+
+// Delete a task
+const deleteTask = async (req, res) => {
+  try {
+    const { id: taskId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(taskId)) {
+      return handleResponse(res, 400, msg.task.invalidTaskId);
+    }
+
+    const task = await Task.findById(taskId);
+    if (!task) {
+      return handleResponse(res, 404, msg.task.taskNotFound);
+    }
+
+    const projectId = task.projectId;
+    const io = req.app.get("io");
+    const projectRoomId = `project:${projectId}`;
+
+    // Delete the task
+    await Task.findByIdAndDelete(taskId);
+
+    // Notify all project members about the task deletion
+    io.to(projectRoomId).emit("taskDeleted", {
+      message: `Task "${task.title}" has been deleted.`,
+      taskId,
+      projectId,
+    });
+
+    return handleResponse(res, 200, msg.task.taskDeletedSuccessfully);
+  } catch (error) {
+    handleError(res, msg.task.errorDeletingTask, error);
   }
 };
 
@@ -129,27 +196,6 @@ const getAllTask = async (req, res) => {
     return handleResponse(res, 200, msg.task.taskFetchedSuccessfully, tasks);
   } catch (error) {
     handleError(res, msg.task.errorFetchingTask, error);
-  }
-};
-
-// Delete a task
-const deleteTask = async (req, res) => {
-  try {
-    const { id: taskId } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(taskId)) {
-      return handleResponse(res, 400, msg.task.invalidTaskId);
-    }
-
-    const task = await Task.findByIdAndDelete(taskId);
-
-    if (!task) {
-      return handleResponse(res, 404, msg.task.taskNotFound);
-    }
-
-    return handleResponse(res, 200, msg.task.taskDeletedSuccessfully);
-  } catch (error) {
-    handleError(res, msg.task.errorDeletingTask, error);
   }
 };
 

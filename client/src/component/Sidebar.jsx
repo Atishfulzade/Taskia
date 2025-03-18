@@ -1,125 +1,43 @@
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { io } from "socket.io-client"; // Import Socket.IO
-
-import {
-  Search,
-  Plus,
-  Star,
-  ChevronDown,
-  ChevronRight,
-  Settings,
-  Users,
-  Clock,
-  MoreHorizontal,
-  PanelLeft,
-  Folder,
-} from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
-import AddProjectPopup from "./AddProjectPopup";
+  PanelLeft,
+  Plus,
+  Search,
+  Settings,
+  Star,
+  Clock,
+  Users,
+  X,
+} from "lucide-react";
 import {
   setCurrentProject,
   setDeleteProject,
   updateProject,
-} from "@/store/projectSlice"; // Import setCurrentProject
-import requestServer from "@/utils/requestServer";
-import { toast } from "sonner"; // Import sonner's toast
-
-const ProjectItem = ({ project, isActive, onClick, onContextMenu }) => {
-  const dispatch = useDispatch();
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 5 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, height: 0 }}
-      transition={{ duration: 0.2 }}
-      className={cn(
-        "group flex items-center z-0 justify-between py-2 px-3 rounded-md my-1 cursor-pointer",
-        isActive
-          ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
-      )}
-      onClick={onClick}
-      onContextMenu={(e) => onContextMenu(e, project)}
-    >
-      <div className="flex items-center gap-2 overflow-hidden">
-        <Folder className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-        <span className="text-sm font-medium truncate">{project.title}</span>
-      </div>
-      <div className="flex items-center">
-        {project.isStarred && (
-          <Star className="h-3.5 w-3.5 text-yellow-500 mr-1" />
-        )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <div
-              className="h-6 w-6 flex justify-center items-center opacity-0 group-hover:opacity-100 rounded hover:bg-slate-200 dark:hover:bg-slate-600"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreHorizontal className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-            </div>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="w-48 bg-white dark:bg-slate-800"
-          >
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                onContextMenu(e, project, "rename");
-              }}
-              className="dark:hover:bg-slate-700"
-            >
-              Rename project
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                onContextMenu(e, project, "star");
-              }}
-              className="dark:hover:bg-slate-700"
-            >
-              {project.isStarred ? "Remove from favorites" : "Add to favorites"}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                onContextMenu(e, project, "share");
-              }}
-              className="dark:hover:bg-slate-700"
-            >
-              Share project
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-red-500 focus:text-red-500 dark:hover:bg-slate-700"
-              onClick={async (e) => {
-                e.stopPropagation();
-                onContextMenu(e, project, "delete");
-              }}
-            >
-              Delete project
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </motion.div>
-  );
-};
+} from "../store/projectSlice";
+import {
+  addSharedProject,
+  setSharedProjects,
+  removeSharedProject,
+} from "../store/sharedProjectSlice";
+import requestServer from "../utils/requestServer";
+import AddProjectPopup from "./AddProjectPopup";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+  AlertDialogFooter,
+  AlertDialogHeader,
+} from "../components/ui/alert-dialog";
+import socket from "@/utils/socket";
+import SidebarHeader from "./SidebarHeader";
+import SidebarContent from "./SidebarContent";
+import SidebarFooter from "./SidebarFooter";
+import ContextMenu from "./ContextMenu";
 
 const Sidebar = ({ onCollapse }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -131,128 +49,286 @@ const Sidebar = ({ onCollapse }) => {
     shared: true,
     recent: true,
   });
-  const searchInputRef = useRef(null);
-  const socket = io(import.meta.env.VITE_SERVER_URL, {
-    transports: ["websocket"],
-    reconnection: true,
-    withCredentials: true,
-    extraHeaders: {
-      Cookie: document.cookie,
-    },
+  const [contextMenu, setContextMenu] = useState({
+    visible: false,
+    position: { x: 0, y: 0 },
+    project: null,
   });
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    project: null,
+  });
+  const [renameModal, setRenameModal] = useState({
+    open: false,
+    project: null,
+    title: "",
+  });
+  const [shareModal, setShareModal] = useState({
+    open: false,
+    project: null,
+    email: "",
+  });
+
   const dispatch = useDispatch();
-  const navigate = useNavigate(); // Initialize useNavigate
-  const projects = useSelector((state) => state.project.projects);
+  const projects = useSelector((state) => state.project.projects || []);
   const currentProject = useSelector((state) => state.project.currentProject);
-  const [sharedProjects, setSharedProjects] = useState([]);
+  const sharedProjects = useSelector(
+    (state) => state.sharedproject.sharedProject || []
+  );
   const [selectedProjectId, setSelectedProjectId] = useState(
     currentProject?._id || null
   );
-  const handleSharedProject = async () => {
+
+  const searchInputRef = useRef(null);
+  const sidebarRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        contextMenu.visible &&
+        sidebarRef.current &&
+        !sidebarRef.current.contains(e.target)
+      ) {
+        setContextMenu({
+          visible: false,
+          position: { x: 0, y: 0 },
+          project: null,
+        });
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [contextMenu.visible]);
+
+  const fetchSharedProjects = useCallback(async () => {
     try {
       const res = await requestServer("project/member");
-      setSharedProjects(res.data);
-      socket.on("projectAdded", async (data) => {
-        console.log("data", data);
-
-        if (!data?.project?.title || !data?.project?._id) return;
-        const message = `You have been added to the project "${data.project.title}".`;
-        toast.success(message); // Use sonner's toast
-        dispatch(setProjects([...projects, data.project]));
-      });
+      if (res?.data) {
+        dispatch(setSharedProjects(res.data));
+      }
     } catch (error) {
-      console.log(error);
-      toast.error("Failed to fetch shared projects"); // Use sonner's toast
+      console.error("Failed to fetch shared projects:", error);
+      toast.error("Failed to fetch shared projects");
     }
-  };
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    const handleProjectInvitation = (data) => {
+      console.log("Project invitation received:", data);
+      if (data.newProject) {
+        dispatch(addSharedProject(data.newProject));
+        toast.success(data.message || "You've been invited to a project");
+      }
+    };
+
+    socket.on("projectInvitation", handleProjectInvitation);
+
+    return () => {
+      socket.off("projectInvitation", handleProjectInvitation);
+    };
+  }, [dispatch]);
+
   useEffect(() => {
     if (showSearch && searchInputRef.current) {
       searchInputRef.current.focus();
     }
-    handleSharedProject();
-  }, [showSearch]);
+    fetchSharedProjects();
+  }, [showSearch, fetchSharedProjects]);
 
-  // Handle project selection
-  const handleSelectProject = (project) => {
-    dispatch(setCurrentProject(project)); // Update Redux state
-    setSelectedProjectId(project._id); // Update local state
-  };
-
-  // Handle context menu actions
-  const handleContextAction = async (project, action) => {
-    switch (action) {
-      case "star":
-        // Toggle the starred status of the project
-        const updatedProject = { ...project, isStarred: !project.isStarred };
-        await requestServer(`project/update/${project._id}`, updatedProject);
-        dispatch(updateProject(updatedProject)); // Update the project in the Redux store
-        break;
-
-      case "rename":
-        // Handle renaming the project
-        const newTitle = prompt(
-          "Enter a new name for the project:",
-          project.title
-        );
-        if (newTitle && newTitle !== project.title) {
-          const renamedProject = { ...project, title: newTitle };
-          await requestServer(`project/update/${project._id}`, renamedProject);
-          dispatch(updateProject(renamedProject)); // Update the project in the Redux store
-        }
-        break;
-
-      case "delete":
-        // Handle deleting the project
-        if (window.confirm("Are you sure you want to delete this project?")) {
-          await requestServer(`project/delete/${project._id}`);
-          dispatch(setDeleteProject(project._id)); // Remove the project from the Redux store
-          if (selectedProjectId === project._id) {
-            dispatch(setCurrentProject(null)); // Clear the active project if it was deleted
-            setSelectedProjectId(null); // Clear the local state
-          }
-          toast.success("Project deleted successfully"); // Use sonner's toast
-        }
-        break;
-
-      case "share":
-        // Handle sharing the project
-        const email = prompt("Enter the email of the user to share with:");
-        if (email) {
-          await requestServer(`project/share/${project._id}`, { email });
-          toast.success(`Project shared with ${email}`); // Use sonner's toast
-        }
-        break;
-
-      default:
-        console.warn(`Unknown action: ${action}`);
-        break;
+  useEffect(() => {
+    if (currentProject?._id) {
+      setSelectedProjectId(currentProject._id);
     }
+  }, [currentProject]);
+
+  const handleSelectProject = useCallback(
+    (project) => {
+      dispatch(setCurrentProject(project));
+      setSelectedProjectId(project._id);
+    },
+    [dispatch]
+  );
+
+  const handleContextMenu = useCallback((e, project, action) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (action === "menu") {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setContextMenu({
+        visible: true,
+        position: { x: rect.left, y: rect.bottom },
+        project,
+      });
+    } else if (action) {
+      handleContextAction(project, action);
+    } else {
+      setContextMenu({
+        visible: true,
+        position: { x: e.clientX, y: e.clientY },
+        project,
+      });
+    }
+  }, []);
+
+  const handleContextAction = useCallback(
+    async (project, action) => {
+      setContextMenu({
+        visible: false,
+        position: { x: 0, y: 0 },
+        project: null,
+      });
+
+      switch (action) {
+        case "star":
+          try {
+            const updatedProject = {
+              ...project,
+              isStarred: !project.isStarred,
+            };
+            await requestServer(
+              `project/update/${project._id}`,
+              updatedProject
+            );
+            dispatch(updateProject(updatedProject));
+            toast.success(
+              `Project ${
+                updatedProject.isStarred ? "added to" : "removed from"
+              } favorites`
+            );
+          } catch (error) {
+            console.error("Failed to update project:", error);
+            toast.error("Failed to update project");
+          }
+          break;
+
+        case "rename":
+          setRenameModal({ open: true, project, title: project.title });
+          break;
+
+        case "delete":
+          setDeleteModal({ open: true, project });
+          break;
+
+        case "share":
+          setShareModal({ open: true, project, email: "" });
+          break;
+
+        default:
+          console.warn(`Unknown action: ${action}`);
+          break;
+      }
+    },
+    [dispatch]
+  );
+
+  const handleRenameProject = async () => {
+    if (!renameModal.title.trim()) {
+      toast.error("Project title cannot be empty");
+      return;
+    }
+
+    if (renameModal.title && renameModal.title !== renameModal.project.title) {
+      try {
+        const renamedProject = {
+          ...renameModal.project,
+          title: renameModal.title,
+        };
+        await requestServer(
+          `project/update/${renameModal.project._id}`,
+          renamedProject
+        );
+        dispatch(updateProject(renamedProject));
+        toast.success("Project renamed successfully");
+      } catch (error) {
+        console.error("Failed to rename project:", error);
+        toast.error("Failed to rename project");
+      }
+    }
+    setRenameModal({ open: false, project: null, title: "" });
   };
 
-  // Toggle section expansion
-  const toggleSection = (section) => {
+  const handleDeleteProject = async () => {
+    try {
+      if (deleteModal.project.isShared) {
+        await requestServer(`project/leave/${deleteModal.project._id}`);
+        dispatch(removeSharedProject(deleteModal.project._id));
+        toast.success("You have left the project");
+      } else {
+        await requestServer(`project/delete/${deleteModal.project._id}`);
+        dispatch(setDeleteProject(deleteModal.project._id));
+        toast.success("Project deleted successfully");
+      }
+
+      if (selectedProjectId === deleteModal.project._id) {
+        const remainingProjects = projects.filter(
+          (p) => p._id !== deleteModal.project._id
+        );
+        if (remainingProjects.length > 0) {
+          dispatch(setCurrentProject(remainingProjects[0]));
+        } else {
+          dispatch(setCurrentProject(null));
+          setSelectedProjectId(null);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+      toast.error("Failed to delete project");
+    }
+    setDeleteModal({ open: false, project: null });
+  };
+
+  const handleShareProject = async () => {
+    if (!shareModal.email.trim()) {
+      toast.error("Email address cannot be empty");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(shareModal.email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    try {
+      await requestServer(`project/share/${shareModal.project._id}`, {
+        email: shareModal.email,
+      });
+      toast.success(`Project shared with ${shareModal.email}`);
+    } catch (error) {
+      console.error("Failed to share project:", error);
+      toast.error("Failed to share project");
+    }
+    setShareModal({ open: false, project: null, email: "" });
+  };
+
+  const toggleSection = useCallback((section) => {
     setExpandedSections((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
-  };
+  }, []);
 
-  // Toggle sidebar collapse
-  const toggleCollapse = () => {
+  const toggleCollapse = useCallback(() => {
     setIsCollapsed(!isCollapsed);
     if (onCollapse) {
       onCollapse(!isCollapsed);
     }
-  };
+  }, [isCollapsed, onCollapse]);
 
-  // Filter projects based on search query
   const filteredProjects = searchQuery
     ? projects.filter((p) =>
         p.title.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : projects;
 
-  // Get recent projects
   const recentProjects = projects
     ?.filter((p) => p.lastAccessed)
     .sort((a, b) => new Date(b.lastAccessed) - new Date(a.lastAccessed))
@@ -260,298 +336,271 @@ const Sidebar = ({ onCollapse }) => {
 
   return (
     <>
-      <motion.div
-        initial={false}
-        animate={{ width: isCollapsed ? 60 : 280 }}
-        className="h-[calc(100vh-50px)] border-r border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex flex-col"
+      <div
+        ref={sidebarRef}
+        className={`h-[calc(100vh-50px)] border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col transition-all duration-300 ${
+          isCollapsed ? "w-16" : "w-72"
+        }`}
       >
-        {/* Sidebar Header */}
-        <div className="flex h-12 items-center justify-between border-b border-slate-300 dark:border-slate-700 px-3">
-          {!isCollapsed && (
-            <h3 className="font-medium text-slate-800 dark:text-slate-200">
-              Projects
-            </h3>
-          )}
+        <SidebarHeader
+          isCollapsed={isCollapsed}
+          toggleCollapse={toggleCollapse}
+          setShowAddProject={setShowAddProject}
+          setShowSearch={setShowSearch}
+          showSearch={showSearch}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+        />
 
-          <div className="flex items-center justify-center gap-1 relative ">
-            {!isCollapsed && (
-              <>
-                {showSearch ? (
-                  <div className="absolute w-[180px] z-20 right-10 top-1 bg-white dark:bg-slate-800">
-                    <Input
-                      ref={searchInputRef}
-                      type="text"
-                      placeholder="Search projects..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="h-8 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700"
-                      onBlur={() => {
-                        if (!searchQuery) setShowSearch(false);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Escape") {
-                          setSearchQuery("");
-                          setShowSearch(false);
-                        }
-                      }}
-                    />
-                    {searchQuery && (
-                      <button
-                        className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                        onClick={() => {
-                          setSearchQuery("");
-                          setShowSearch(false);
-                        }}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <button
-                    className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md"
-                    onClick={() => setShowSearch(true)}
-                  >
-                    <Search size={18} />
-                  </button>
-                )}
-              </>
-            )}
-
-            {!isCollapsed && (
-              <button
-                className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md"
-                onClick={() => setShowAddProject(true)}
-              >
-                <Plus size={18} />
-              </button>
-            )}
-
-            {showAddProject && <AddProjectPopup close={setShowAddProject} />}
-            <button
-              className="h-8 w-8 flex justify-center items-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md"
-              onClick={toggleCollapse}
-            >
-              <PanelLeft size={18} />
-            </button>
-          </div>
-        </div>
-
-        {/* Sidebar Content */}
         {isCollapsed ? (
           <div className="flex flex-col items-center py-4 gap-4">
             <button
-              className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md"
+              className="h-8 w-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
               onClick={() => {
                 setIsCollapsed(false);
                 setShowAddProject(true);
               }}
+              aria-label="Add new project"
             >
               <Plus className="h-4 w-4" />
             </button>
 
-            <button className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md">
+            <button
+              className="h-8 w-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+              aria-label="Favorites"
+            >
               <Star className="h-4 w-4" />
             </button>
 
-            <button className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md">
+            <button
+              className="h-8 w-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+              aria-label="Recent projects"
+            >
               <Clock className="h-4 w-4" />
             </button>
 
-            <button className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md">
+            <button
+              className="h-8 w-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+              aria-label="Shared projects"
+            >
               <Users className="h-4 w-4" />
             </button>
 
-            <button className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md">
+            <button
+              className="h-8 w-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+              aria-label="Settings"
+            >
               <Settings className="h-4 w-4" />
             </button>
           </div>
         ) : (
-          <ScrollArea className="flex-1">
-            <div className="px-3 py-2">
-              {/* Recent Projects Section */}
-              {recentProjects?.length > 0 && (
-                <div className="mb-4">
-                  <div
-                    className="flex items-center justify-between py-1 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 rounded px-1"
-                    onClick={() => toggleSection("recent")}
-                  >
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Recent
-                      </span>
-                    </div>
-                    <button className="h-5 w-5 flex items-center justify-center text-slate-500 dark:text-slate-400">
-                      {expandedSections.recent ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-
-                  <AnimatePresence>
-                    {expandedSections.recent && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                      >
-                        {recentProjects.map((project) => (
-                          <ProjectItem
-                            key={`recent-${project._id}`}
-                            project={project}
-                            isActive={selectedProjectId === project._id}
-                            onClick={() => handleSelectProject(project)}
-                            onContextMenu={(e, project, action) => {
-                              e.preventDefault();
-                              handleContextAction(project, action);
-                            }}
-                          />
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
-
-              {/* My Projects Section */}
-              <div className="mb-4">
-                <div
-                  className="flex items-center justify-between py-1 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 rounded px-1"
-                  onClick={() => toggleSection("myProjects")}
-                >
-                  <div className="flex items-center gap-1">
-                    <Folder className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                      My Projects
-                    </span>
-                    <Badge className="ml-1 h-5 px-1.5 text-xs bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 border-slate-300 dark:border-slate-600">
-                      {filteredProjects?.length}
-                    </Badge>
-                  </div>
-                  <button className="h-5 w-5 flex items-center justify-center text-slate-500 dark:text-slate-400">
-                    {expandedSections.myProjects ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-
-                <AnimatePresence>
-                  {expandedSections.myProjects && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                    >
-                      {filteredProjects?.length > 0 ? (
-                        filteredProjects?.map((project) => (
-                          <ProjectItem
-                            key={project._id}
-                            project={project}
-                            isActive={selectedProjectId === project._id}
-                            onClick={() => handleSelectProject(project)}
-                            onContextMenu={(e, project, action) => {
-                              e.preventDefault();
-                              handleContextAction(project, action);
-                            }}
-                          />
-                        ))
-                      ) : searchQuery ? (
-                        <div className="py-3 px-3 text-sm text-slate-500 dark:text-slate-400">
-                          No projects match your search
-                        </div>
-                      ) : (
-                        <div className="py-3 px-3 text-sm text-slate-500 dark:text-slate-400">
-                          No projects yet. Create your first project!
-                        </div>
-                      )}
-
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 mt-1"
-                        onClick={() => setShowAddProject(true)}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        <span className="text-sm">New Project</span>
-                      </Button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Shared Projects Section */}
-              <div className="mb-4">
-                <div
-                  className="flex items-center justify-between py-1 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 rounded px-1"
-                  onClick={() => toggleSection("shared")}
-                >
-                  <div className="flex items-center gap-1">
-                    <Users className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                      Shared with me
-                    </span>
-                    <Badge className="ml-1 h-5 px-1.5 text-xs bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 border-slate-300 dark:border-slate-600">
-                      {sharedProjects.length}
-                    </Badge>
-                  </div>
-                  <button className="h-5 w-5 flex items-center justify-center text-slate-500 dark:text-slate-400">
-                    {expandedSections.shared ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-
-                <AnimatePresence>
-                  {expandedSections.shared && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                    >
-                      {sharedProjects.map((project) => (
-                        <ProjectItem
-                          key={`shared-${project._id}`}
-                          project={project}
-                          isActive={selectedProjectId === project._id}
-                          onClick={() => handleSelectProject(project)}
-                          onContextMenu={(e, project, action) => {
-                            e.preventDefault();
-                            handleContextAction(project, action);
-                          }}
-                        />
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          </ScrollArea>
+          <SidebarContent
+            isCollapsed={isCollapsed}
+            expandedSections={expandedSections}
+            toggleSection={toggleSection}
+            recentProjects={recentProjects}
+            selectedProjectId={selectedProjectId}
+            handleSelectProject={handleSelectProject}
+            handleContextMenu={handleContextMenu}
+            filteredProjects={filteredProjects}
+            searchQuery={searchQuery}
+            setShowAddProject={setShowAddProject}
+            sharedProjects={sharedProjects}
+          />
         )}
 
-        {/* Sidebar Footer */}
-        <div className="border-t border-slate-300 dark:border-slate-700 p-3">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-slate-600 hover:text-slate-800 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
-            size="sm"
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            {!isCollapsed && <span className="text-sm">Settings</span>}
-          </Button>
-        </div>
-      </motion.div>
+        <SidebarFooter isCollapsed={isCollapsed} />
+      </div>
+
+      {contextMenu.visible && (
+        <ContextMenu
+          project={contextMenu.project}
+          position={contextMenu.position}
+          onAction={handleContextAction}
+          onClose={() =>
+            setContextMenu({
+              visible: false,
+              position: { x: 0, y: 0 },
+              project: null,
+            })
+          }
+        />
+      )}
+
+      {showAddProject && (
+        <AddProjectPopup
+          isOpen={showAddProject}
+          close={() => setShowAddProject(false)}
+          onAdd={(project) => {
+            setShowAddProject(false);
+          }}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      <AlertDialog
+        open={deleteModal.open}
+        onOpenChange={(open) =>
+          setDeleteModal({ open, project: open ? deleteModal.project : null })
+        }
+      >
+        <AlertDialogContent className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md mx-4">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-medium text-gray-900 dark:text-gray-100">
+              Delete Project
+            </AlertDialogTitle>
+            <AlertDialogDescription className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              Are you sure you want to delete "{deleteModal.project?.title}"?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 flex justify-end gap-2">
+            <AlertDialogCancel
+              onClick={() => setDeleteModal({ open: false, project: null })}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteProject}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Rename Project Modal */}
+      <AlertDialog
+        open={renameModal.open}
+        onOpenChange={(open) =>
+          setRenameModal({
+            open,
+            project: open ? renameModal.project : null,
+            title: open ? renameModal.title : "",
+          })
+        }
+      >
+        <AlertDialogContent className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md mx-4">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-medium text-gray-900 dark:text-gray-100">
+              Rename Project
+            </AlertDialogTitle>
+            <AlertDialogDescription className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              Enter a new name for the project.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="mt-4">
+            <label
+              htmlFor="projectTitle"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Project Title
+            </label>
+            <input
+              type="text"
+              id="projectTitle"
+              value={renameModal.title}
+              onChange={(e) =>
+                setRenameModal({ ...renameModal, title: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              placeholder="Enter project title"
+              autoFocus
+            />
+          </div>
+          <AlertDialogFooter className="mt-4 flex justify-end gap-2">
+            <AlertDialogCancel
+              onClick={() =>
+                setRenameModal({ open: false, project: null, title: "" })
+              }
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRenameProject}
+              disabled={!renameModal.title.trim()}
+              className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
+                !renameModal.title.trim()
+                  ? "bg-blue-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}
+            >
+              Save
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Share Project Modal */}
+      <AlertDialog
+        open={shareModal.open}
+        onOpenChange={(open) =>
+          setShareModal({
+            open,
+            project: open ? shareModal.project : null,
+            email: open ? shareModal.email : "",
+          })
+        }
+      >
+        <AlertDialogContent className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md mx-4">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-medium text-gray-900 dark:text-gray-100">
+              Share Project
+            </AlertDialogTitle>
+            <AlertDialogDescription className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              Enter the email address of the user you want to share this project
+              with.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="mt-4">
+            <label
+              htmlFor="shareEmail"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Email Address
+            </label>
+            <input
+              type="email"
+              id="shareEmail"
+              value={shareModal.email}
+              onChange={(e) =>
+                setShareModal({ ...shareModal, email: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              placeholder="Enter email address"
+              autoFocus
+            />
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              The user will receive an invitation to collaborate on this
+              project.
+            </p>
+          </div>
+          <AlertDialogFooter className="mt-4 flex justify-end gap-2">
+            <AlertDialogCancel
+              onClick={() =>
+                setShareModal({ open: false, project: null, email: "" })
+              }
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleShareProject}
+              disabled={!shareModal.email.trim()}
+              className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
+                !shareModal.email.trim()
+                  ? "bg-blue-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}
+            >
+              Share
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

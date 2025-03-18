@@ -8,7 +8,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -16,18 +16,18 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/Command";
+} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/Popover";
-import { Badge } from "@/components/ui/Badge";
+} from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import requestServer from "../utils/requestServer";
 import { useDebounce } from "../hooks/useDebounce";
-import { toast } from "sonner"; // Import sonner's toast
+import { toast } from "sonner";
 
 export function UserSearch({
   onSelectUser,
@@ -50,7 +50,7 @@ export function UserSearch({
   // Fetch users based on the search term
   useEffect(() => {
     const fetchUsers = async () => {
-      if (!debouncedSearchTerm) {
+      if (!debouncedSearchTerm || debouncedSearchTerm.length < 1) {
         setUsers([]);
         setLoading(false);
         return;
@@ -61,20 +61,40 @@ export function UserSearch({
         const response = await requestServer(
           `user/search?name=${debouncedSearchTerm}`
         );
-        setUsers(response.data.users || []);
+
+        // Check the structure of the response
+        if (response && response.data.users) {
+          // Directly set users from response.data if it's an array
+          if (Array.isArray(response.data.users)) {
+            setUsers(response.data.users);
+          }
+
+          // If we can't determine the structure, log it and set empty array
+          else {
+            console.error("Unexpected response structure:", response.data);
+            setUsers([]);
+          }
+        } else {
+          console.error("Invalid response:", response);
+          setUsers([]);
+        }
       } catch (error) {
         console.error("Error fetching users:", error);
-        toast.error("Failed to load users"); // Use sonner's toast
+        toast.error("Failed to load users");
+        setUsers([]);
       } finally {
         setLoading(false);
       }
     };
 
-    open && fetchUsers();
-  }, [debouncedSearchTerm]);
+    if (open) {
+      fetchUsers();
+    }
+  }, [debouncedSearchTerm, open]);
 
   // Filter out already selected users from search results
   const filteredUsers = useMemo(() => {
+    if (!users || !Array.isArray(users)) return [];
     return users.filter((user) => !selectedUserIds.includes(user._id));
   }, [users, selectedUserIds]);
 
@@ -158,58 +178,76 @@ export function UserSearch({
               onValueChange={setSearchTerm}
               className="border-none focus:ring-0 dark:bg-gray-800 dark:text-white"
             />
+
+            {/* Debug info - remove in production */}
+            <div className="px-2 py-1 text-xs text-muted-foreground">
+              Search: "{searchTerm}" | Results: {filteredUsers.length}
+            </div>
+
             <CommandList>
-              <CommandEmpty>
-                {loading ? (
-                  <div className="flex items-center justify-center py-6">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2 dark:text-gray-300" />
-                    <span>Searching...</span>
-                  </div>
-                ) : debouncedSearchTerm ? (
-                  "No users found."
-                ) : (
-                  <div className="py-6 text-center text-sm text-muted-foreground dark:text-gray-400">
-                    Type to search for users...
-                  </div>
-                )}
-              </CommandEmpty>
-              <CommandGroup>
-                <ScrollArea className="max-h-60">
-                  {filteredUsers.map((user) => (
-                    <CommandItem
-                      key={user._id}
-                      value={user._id}
-                      onSelect={() =>
-                        handleSelect(user._id, user.name, user.avatar)
-                      }
-                      className="flex items-center py-2 dark:hover:bg-gray-700"
-                      disabled={reachedMaxUsers}
-                    >
-                      <div className="flex items-center flex-1">
-                        {user.avatar ? (
-                          <img
-                            src={user.avatar || "/placeholder.svg"}
-                            alt={user.name}
-                            className="w-6 h-6 rounded-full mr-2"
-                          />
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center mr-2 dark:bg-gray-700">
-                            <User className="h-4 w-4 text-gray-500 dark:text-gray-300" />
+              {loading && (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2 dark:text-gray-300" />
+                  <span>Searching...</span>
+                </div>
+              )}
+
+              {!loading && filteredUsers.length === 0 && (
+                <CommandEmpty>
+                  {debouncedSearchTerm ? (
+                    "No users found."
+                  ) : (
+                    <div className="py-6 text-center text-sm text-muted-foreground dark:text-gray-400">
+                      Type to search for users...
+                    </div>
+                  )}
+                </CommandEmpty>
+              )}
+
+              {!loading && filteredUsers.length > 0 && (
+                <CommandGroup>
+                  <ScrollArea className="max-h-60">
+                    {filteredUsers.map((user) => {
+                      // Debugging: Log each user being rendered
+                      console.log("Rendering User:", user);
+
+                      return (
+                        <CommandItem
+                          key={user._id} // Ensure key is unique
+                          value={user._id}
+                          onSelect={() =>
+                            handleSelect(user._id, user.name, user.avatar)
+                          }
+                          className="flex items-center py-2 dark:hover:bg-gray-700"
+                          disabled={reachedMaxUsers}
+                        >
+                          <div className="flex items-center flex-1">
+                            {user.avatar ? (
+                              <img
+                                src={user.avatar || "/placeholder.svg"}
+                                alt={user.name}
+                                className="w-6 h-6 rounded-full mr-2"
+                              />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center mr-2 dark:bg-gray-700">
+                                <User className="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                              </div>
+                            )}
+                            <span className="truncate dark:text-white">
+                              {user?.name || "Unknown User"}
+                            </span>
                           </div>
-                        )}
-                        <span className="truncate dark:text-white">
-                          {user?.name}
-                        </span>
-                      </div>
-                      {selectedUserIds.includes(user._id) ? (
-                        <Check className="ml-auto h-4 w-4 text-primary dark:text-primary-400" />
-                      ) : (
-                        <UserPlus className="ml-auto h-4 w-4 opacity-50 dark:text-gray-300" />
-                      )}
-                    </CommandItem>
-                  ))}
-                </ScrollArea>
-              </CommandGroup>
+                          {selectedUserIds.includes(user._id) ? (
+                            <Check className="ml-auto h-4 w-4 text-primary dark:text-primary-400" />
+                          ) : (
+                            <UserPlus className="ml-auto h-4 w-4 opacity-50 dark:text-gray-300" />
+                          )}
+                        </CommandItem>
+                      );
+                    })}
+                  </ScrollArea>
+                </CommandGroup>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>

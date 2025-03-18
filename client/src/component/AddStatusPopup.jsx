@@ -49,32 +49,23 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
         setLoading(true);
         let res;
         if (isEdit) {
-          // Update status if in edit mode
           res = await requestServer(`status/update/${status._id}`, values);
           dispatch(updateStatus(res.data));
-          toast.success(res.data.message); // Use sonner's toast
+          toast.success(res.data.message);
         } else {
-          // Add new status if not in edit mode
           res = await requestServer("status/add", values);
-          dispatch(addStatus(res.message));
-          toast.success(res.data.message); // Use sonner's toast
+          dispatch(addStatus(res.data));
+          toast.success(res.message);
         }
-        setOpen(false); // Close the popup after successful submission
-        formik.resetForm();
+
+        // Delay closing to avoid any state update issues
+        setTimeout(() => {
+          setOpen(false);
+          formik.resetForm();
+        }, 100);
       } catch (error) {
         console.error("Error:", error);
-        if (error.response?.data?.message === "Token not found") {
-          toast.error("Invalid token! Please login again."); // Use sonner's toast
-          localStorage.removeItem("token");
-          localStorage.removeItem("userState");
-          dispatch(setCurrentProject(null));
-          dispatch(setProjects([]));
-          navigate("/authenticate");
-        } else {
-          toast.error(
-            error.response?.data?.message || "Something went wrong" // Use sonner's toast
-          );
-        }
+        toast.error(error.response?.data?.message || "Something went wrong");
       } finally {
         setLoading(false);
       }
@@ -92,10 +83,11 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
   }, [selectedColor]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(val) => setOpen(val)}>
       <DialogContent
         className="max-w-md bg-white dark:bg-gray-800"
         aria-describedby="status-form-description"
+        onPointerDown={(e) => e.stopPropagation()} // Prevent dialog close on click inside
       >
         <DialogHeader>
           <DialogTitle className="text-gray-900 dark:text-gray-100">
@@ -131,9 +123,8 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
             </p>
             <div className="flex flex-wrap gap-2">
               {bgColors.map((color, index) => (
-                <button
+                <div
                   key={index}
-                  type="button"
                   style={{ backgroundColor: color.primaryColor }}
                   onClick={() => setSelectedColor(color)}
                   className={`w-8 h-8 rounded-full border-2 ${

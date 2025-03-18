@@ -19,6 +19,7 @@ import { Trash } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { deleteTask } from "@/store/taskSlice";
 import { Button } from "@/components/ui/Button";
+import { toast } from "sonner";
 
 const priorityBadges = {
   High: {
@@ -87,7 +88,7 @@ const TaskItem = React.memo(
         dispatch(deleteTask(_id));
       } catch (error) {
         console.error("Error deleting task:", error);
-        showToast("Failed to delete task. Please try again.", "error");
+        toast.error("Failed to delete task. Please try again.", "error");
       }
     };
 

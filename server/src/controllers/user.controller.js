@@ -82,21 +82,18 @@ const loginUser = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
-    console.log("userId is " + user._id);
 
     // Save the user ID in the session
     req.session.userId = user._id;
-    console.log(req.session);
-
     req.session.save((err) => {
       if (err) {
-        console.error("Error saving session:", err);
-        return handleError(res, msg.authentication.loginFailure, err);
+        console.error("Session save error:", err);
+        return handleResponse(res, 500, msg.authentication.sessionSaveFailed);
       }
 
       // Return success response with the user and token
       return handleResponse(res, 200, msg.authentication.loginSuccess, {
-        user: { ...user.toObject(), password: undefined },
+        user: { ...user.toObject(), password: undefined }, // Exclude password from the response
         token,
       });
     });

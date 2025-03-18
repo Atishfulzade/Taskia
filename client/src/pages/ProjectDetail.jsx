@@ -1,142 +1,221 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { setTasks } from "../store/taskSlice";
+import { addTask, setTasks, updateTask, deleteTask } from "../store/taskSlice";
+import { setStatuses } from "../store/statusSlice";
 import requestServer from "../utils/requestServer";
-
-// Shadcn UI Components
-import { CardTitle } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Badge } from "@/components/ui/Badge";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/Popover";
-
-import { Search, Filter, ChevronsUpDown, Plus } from "lucide-react";
+import socket from "../utils/socket";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { joinProjectRoom, leaveProjectRoom } from "../utils/socketHandlers";
+import { Search, Plus, Loader2 } from "lucide-react";
 import BoardContainer from "../component/BoardContainer";
 import AddStatusPopup from "../component/AddStatusPopup";
-import { setStatuses } from "@/store/statusSlice";
 
 const ProjectDetail = () => {
-  const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showStatusPopup, setShowStatusPopup] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentUserTaskIds, setCurrentUserTaskIds] = useState(new Set());
+
+  // Track if we've already joined the project room
+  const joinedRoom = useRef(false);
 
   // Redux
   const dispatch = useDispatch();
-  const userId = useSelector((state) => state.user.user?._id);
+  const user = useSelector((state) => state.user.user);
   const projectId = useSelector((state) => state.project.currentProject?._id);
   const projectName = useSelector(
-    (state) => state.project.currentProject?.name
+    (state) =>
+      state.project.currentProject?.name || state.project.currentProject?.title
   );
   const tasks = useSelector((state) => state.task.tasks);
   const statuses = useSelector((state) => state.status.statuses);
 
   // Fetch and Update Functions
-  const fetchStatuses = async () => {
+  const fetchStatuses = useCallback(async () => {
     try {
       if (!projectId) return;
+      setIsLoading(true);
       const res = await requestServer(`status/all/${projectId}`);
-      dispatch(setStatuses(res.data));
+      if (res?.data) {
+        dispatch(setStatuses(res.data));
+      } else {
+        dispatch(setStatuses([]));
+      }
     } catch (error) {
       console.error("Error fetching statuses:", error);
+      dispatch(setStatuses([]));
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [projectId, dispatch]);
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       if (!projectId) return;
+      setIsLoading(true);
       const res = await requestServer(`task/all/${projectId}`);
-      dispatch(setTasks(res.data));
+      if (res?.data) {
+        dispatch(setTasks(res.data));
+      } else {
+        dispatch(setTasks([]));
+      }
     } catch (error) {
       console.error("Error fetching tasks:", error);
+      dispatch(setTasks([]));
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [projectId, dispatch]);
 
   // Load data on component mount and when projectId changes
   useEffect(() => {
-    const loadData = async () => {
-      if (projectId) {
-        setLoading(true);
-        await Promise.all([fetchStatuses(), fetchTasks()]);
-        setLoading(false);
-      } else {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [projectId, dispatch]);
+    if (projectId) {
+      console.log("Fetching data for project:", projectId);
+      fetchStatuses();
+      fetchTasks();
+    } else {
+      dispatch(setTasks([]));
+      dispatch(setStatuses([]));
+    }
+  }, [projectId, dispatch, fetchStatuses, fetchTasks]);
 
   // Refresh data when AddStatusPopup closes
   useEffect(() => {
     if (!showStatusPopup && projectId) {
       fetchStatuses();
     }
-  }, [showStatusPopup, projectId]);
+  }, [showStatusPopup, projectId, fetchStatuses]);
+
+  // Join project room for real-time updates when project changes
+  useEffect(() => {
+    if (!projectId || !socket.connected) return;
+
+    // Only join if we haven't already joined this room
+    if (!joinedRoom.current) {
+      console.log(`Joining project room for project: ${projectId}`);
+      joinProjectRoom(socket, projectId);
+      joinedRoom.current = true;
+    }
+
+    return () => {
+      if (joinedRoom.current) {
+        console.log(`Leaving project room for project: ${projectId}`);
+        leaveProjectRoom(socket, projectId);
+        joinedRoom.current = false;
+      }
+    };
+  }, [projectId]);
+
+  // Reset joined room ref when project changes
+  useEffect(() => {
+    // When projectId changes, reset the joinedRoom ref
+    joinedRoom.current = false;
+  }, [projectId]);
+
+  // Handle task creation by the current user - avoiding duplicates
+  const handleTaskCreate = useCallback(
+    async (taskData) => {
+      try {
+        const response = await requestServer("task/create", {
+          ...taskData,
+          projectId,
+        });
+
+        if (response.data) {
+          // We'll let the socket event handle adding to Redux store
+          // to avoid duplicate tasks
+          console.log("Task created via API:", response.data._id);
+
+          // Add to set to track tasks created by this user
+          setCurrentUserTaskIds(
+            (prev) => new Set([...prev, response.data._id])
+          );
+          toast.success("Task created successfully");
+        }
+      } catch (error) {
+        console.error("Error creating task:", error);
+        toast.error("Failed to create task");
+      }
+    },
+    [projectId]
+  );
+
+  // Filter tasks based on search query
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(
+      (task) =>
+        task.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [tasks, searchQuery]);
 
   return (
-    <div className="h-full w-full z-10 dark:bg-slate-900">
+    <div className="flex flex-col h-full w-full">
       {/* Project Header */}
-      <div className="flex justify-between items-center mb-2 p-2 border-b border-slate-300">
-        <div>
-          <CardTitle className="text-xl font-semibold flex gap-3.5 text-slate-800 dark:text-white">
-            {projectName || "Project Dashboard"}{" "}
-            <Badge>{tasks.length} Tasks</Badge>
-          </CardTitle>
-        </div>
-        <div className="flex items-center space-x-2">
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+        <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
+          {projectName || "Project Dashboard"}{" "}
+          <Badge variant="secondary" className="ml-2 text-xs">
+            {tasks.length} Tasks
+          </Badge>
+        </h1>
+      </div>
+
+      {/* Controls Bar */}
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
+              <Input
+                placeholder="Search tasks..."
+                className="pl-8 h-9 w-[200px] sm:w-[240px] text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+
           {/* Add Status Button */}
           {projectId && (
             <Button
               onClick={() => setShowStatusPopup(true)}
               size="sm"
-              className="bg-violet-600 text-white dark:bg-violet-700"
+              className="h-9 bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-700 dark:hover:bg-violet-800"
             >
-              <Plus className="h-4 w-4" /> Add status
+              <Plus className="h-4 w-4 mr-1" /> Add Status
             </Button>
           )}
-          <AddStatusPopup
-            open={showStatusPopup}
-            setOpen={setShowStatusPopup}
-            isEdit={false}
-            onSuccess={fetchStatuses}
-            projectId={projectId}
-          />
-
-          {/* Search */}
-          <div className="relative z-[1]">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400 dark:text-gray-500" />
-            <Input
-              placeholder="Search tasks..."
-              className="pl-8 dark:bg-gray-800 z-[1] dark:text-white dark:border-gray-700"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
         </div>
       </div>
 
-      {/* Loading Indicator */}
-      {loading && (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-gray-300"></div>
-          <span className="ml-2 dark:text-white">Loading...</span>
-        </div>
-      )}
+      {/* Main Content */}
+      <div className="flex-1 p-6 overflow-y-auto bg-slate-50 dark:bg-slate-900">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+          </div>
+        ) : (
+          <BoardContainer
+            projectId={projectId}
+            statuses={statuses}
+            tasks={filteredTasks}
+            onTaskCreate={handleTaskCreate}
+          />
+        )}
+      </div>
 
-      {/* Board Container */}
-      {!loading && (
-        <BoardContainer
-          projectId={projectId}
-          statuses={statuses}
-          tasks={tasks}
-          isLoading={loading}
-        />
-      )}
+      {/* Add Status Popup */}
+      <AddStatusPopup
+        open={showStatusPopup}
+        setOpen={setShowStatusPopup}
+        isEdit={false}
+        onSuccess={fetchStatuses}
+        projectId={projectId}
+      />
     </div>
   );
 };

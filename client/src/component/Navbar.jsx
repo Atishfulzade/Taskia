@@ -11,8 +11,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import logo from "../assets/logo-white.png";
 import UserProfile from "./UserProfile";
-import NotificationsComponent from "./NotificationsComponent";
 import { useTheme } from "@/components/ui/ThemeProvider";
+import NotificationCenter from "./NotificationCenter";
 
 const Navbar = () => {
   const { theme, setTheme } = useTheme();
@@ -97,8 +97,8 @@ const Navbar = () => {
         </button>
 
         {/* Notifications */}
-        <NotificationsComponent ref={notificationsRef} />
-
+        {/* <NotificationsComponent ref={notificationsRef} /> */}
+        <NotificationCenter />
         {/* New Button */}
         <button className="flex px-3 gap-2 py-2 hover:bg-violet-700 dark:hover:bg-violet-800 font-inter font-normal items-center rounded-lg text-white dark:text-gray-300">
           <IoAddCircleOutline size={20} />

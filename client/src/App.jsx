@@ -1,9 +1,9 @@
 import { Route, Routes, Navigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, Suspense, lazy, useRef } from "react";
-import { io } from "socket.io-client";
-import { toast, Toaster } from "sonner"; // Import sonner's toast
-
+import { toast, Toaster } from "sonner";
+import socket from "./utils/socket"; // Import the socket instance
+import { initializeSocketHandlers } from "./utils/socketHandlers"; // Import socket handlers
 import {
   setCurrentProject,
   setDeleteProject,
@@ -28,10 +28,11 @@ function App() {
   const user = useSelector((state) => state.user.user);
   const projects = useSelector((state) => state.project.projects);
   const assignedTask = useSelector((state) => state.assignTask.tasks);
+  const currentProject = useSelector((state) => state.project.currentProject);
   const token = localStorage.getItem("token");
+  const socketInitialized = useRef(false);
 
-  const socketRef = useRef(null); // Prevents unnecessary re-renders
-
+  // Validate user and fetch initial data
   useEffect(() => {
     if (!token) return;
 
@@ -51,12 +52,20 @@ function App() {
         const res = await requestServer("user/validate");
         if (res?.data) {
           dispatch(login(res.data.data.user));
-          localStorage.setItem("user", JSON.stringify(res.data));
+          localStorage.setItem("user", JSON.stringify(res.data.data.user));
+          toast.success("User validated successfully!");
         } else {
           throw new Error("Invalid authentication response");
         }
 
-        if (!projects.length) {
+        // Initialize socket after user validation
+        if (res?.data?.data?.user?._id && !socket.connected) {
+          console.log("Connecting socket after user validation...");
+          socket.connect();
+        }
+
+        // Fetch projects if not already in state
+        if (!projects?.length) {
           const projectsRes = await requestServer("project/all");
           if (projectsRes?.data?.length) {
             dispatch(setProjects(projectsRes.data));
@@ -64,6 +73,7 @@ function App() {
           }
         }
 
+        // Fetch assigned tasks if not already in state
         if (!assignedTask.length) {
           const assignTaskRes = await requestServer("task/assign");
           if (assignTaskRes?.data?.length) {
@@ -72,6 +82,7 @@ function App() {
         }
       } catch (error) {
         console.error("Authentication validation failed:", error);
+        toast.error("Authentication failed. Please log in again.");
         dispatch(logout());
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -79,83 +90,36 @@ function App() {
     };
 
     validateUser();
-  }, [dispatch]);
+  }, [dispatch, token]);
 
-  // WebSocket Connection - Optimized
+  // Initialize WebSocket when authenticated
   useEffect(() => {
-    if (!isAuthenticated || !user?._id) return;
-    if (socketRef.current) return; // Prevent multiple WebSocket connections
+    if (isAuthenticated && user?._id && !socketInitialized.current) {
+      console.log("Initializing WebSocket for user:", user._id);
 
-    console.log("🔄 Establishing WebSocket connection...");
+      // Connect socket if not already connected
+      if (!socket.connected) {
+        socket.connect();
+      }
 
-    const socket = io(import.meta.env.VITE_SERVER_URL, {
-      transports: ["websocket"],
-      reconnection: true,
-      withCredentials: true,
-      extraHeaders: {
-        Cookie: document.cookie,
-      },
-    });
+      // Initialize socket handlers only once
+      initializeSocketHandlers(socket, dispatch);
+      socketInitialized.current = true;
 
-    socketRef.current = socket;
+      // Join user's personal room for notifications
+      console.log("Emitting joinProjectRooms for user:", user._id);
+      socket.emit("joinProjectRooms", user._id);
+    }
 
-    socket.on("connect", () =>
-      console.log("✅ WebSocket connected:", socket.id)
-    );
-    socket.on("connect_error", (error) =>
-      console.error("❌ WebSocket error:", error)
-    );
-
-    socket.emit("joinUserRoom", user._id);
-
-    socket.on("newTaskAssigned", async (data) => {
-      if (!data?.task?.title || !data?.task?.assignedTo) return;
-      const message = `A new task "${data.task.title}" has been assigned to you.`;
-      toast.info(message); // Use sonner's toast
-      dispatch(addAssignTask(data.task));
-    });
-
-    socket.on("projectUpdated", async (data) => {
-      if (!data?.project?.title || !data?.project?._id) return;
-      const message = `The project "${data.project.title}" has been updated.`;
-      toast.info(message); // Use sonner's toast
-      dispatch(
-        updateProject((prevProjects) =>
-          prevProjects.map((p) =>
-            p._id === data.project._id ? data.project : p
-          )
-        )
-      );
-    });
-
-    socket.on("projectDeleted", async (data) => {
-      if (!data?.project?._id) return;
-      const message = `The project "${data.project.title}" has been deleted.`;
-      toast.info(message); // Use sonner's toast
-      const updatedProjects = projects.filter(
-        (p) => p._id !== data.project._id
-      );
-      dispatch(setDeleteProject(updatedProjects._id));
-    });
-
-    socket.on("taskUpdated", async (data) => {
-      if (!data?.task?.title || !data?.task?._id) return;
-      const message = `The task "${data.task.title}" has been updated.`;
-      toast.info(message); // Use sonner's toast
-      dispatch(addAssignTask(data.task));
-    });
-
-    socket.on("error", (error) => {
-      console.error("❌ WebSocket error:", error);
-      toast.error("An error occurred with the WebSocket connection."); // Use sonner's toast
-    });
-
+    // Cleanup function when user logs out or component unmounts
     return () => {
-      console.log("🔌 Disconnecting WebSocket...");
-      socket.disconnect();
-      socketRef.current = null;
+      if (!isAuthenticated && socket.connected) {
+        console.log("Disconnecting WebSocket due to logout");
+        socket.disconnect();
+        socketInitialized.current = false;
+      }
     };
-  }, [isAuthenticated, user?._id]); // Optimized dependencies
+  }, [isAuthenticated, user?._id, dispatch]);
 
   return (
     <>
@@ -163,15 +127,15 @@ function App() {
         <Toaster />
         <Routes>
           <Route path="/" element={<Welcome />} />
-          <Route path="authenticate" element={<Authentication />} />
+          <Route path="/authenticate" element={<Authentication />} />
           {isAuthenticated ? (
-            <Route path="dashboard" element={<Layout />}>
+            <Route path="/dashboard" element={<Layout />}>
               <Route index element={<Dashboard />} />
             </Route>
           ) : (
             <Route path="*" element={<Navigate to="/authenticate" replace />} />
           )}
-          <Route path="error" element={<Error />} />
+          <Route path="/error" element={<Error />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

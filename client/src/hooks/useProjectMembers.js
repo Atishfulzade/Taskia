@@ -1,49 +1,65 @@
 import requestServer from "@/utils/requestServer";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { toast } from "sonner"; // Import sonner's toast
+import { toast } from "sonner";
 
 export function useProjectMembers(projectId) {
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState([]);
+  const memberCache = useRef(new Map()); // Store already fetched members
   const memberIds = useSelector(
-    (state) => state.project.currentProject?.member
+    (state) => state.project.currentProject?.member || []
   );
+
+  // Memoize memberIds to prevent unnecessary re-renders
+  const stableMemberIds = useMemo(() => memberIds, [JSON.stringify(memberIds)]);
 
   useEffect(() => {
     async function fetchMembers() {
+      setLoading(true);
+
+      // Filter out members already in cache
+      const newMemberIds = stableMemberIds.filter(
+        (id) => !memberCache.current.has(id)
+      );
+
+      if (newMemberIds.length === 0) {
+        setMembers(stableMemberIds.map((id) => memberCache.current.get(id)));
+        setLoading(false);
+        return;
+      }
+
       try {
-        // Fetch user details for each member ID
-        const memberRequests = memberIds.map(
-          (userId) => requestServer(`/user/u/${userId}`) // Assuming requestServer is a function that makes an API call
+        const memberRequests = newMemberIds.map((userId) =>
+          requestServer(`/user/u/${userId}`)
         );
-
-        // Wait for all member requests to resolve
         const memberResponses = await Promise.all(memberRequests);
-
-        // Extract JSON data from responses
         const memberData = await Promise.all(
           memberResponses.map((res) => res.data)
         );
 
-        // Set the fetched member data
-        setMembers(memberData);
-        setLoading(false);
+        // Store fetched members in cache
+        newMemberIds.forEach((id, index) => {
+          memberCache.current.set(id, memberData[index]);
+        });
+
+        // Update state with cached + new members
+        setMembers(stableMemberIds.map((id) => memberCache.current.get(id)));
       } catch (err) {
-        setLoading(false);
-        toast.error("Error fetching members"); // Use sonner's toast
+        toast.error("Error fetching members");
         console.error("Error fetching members:", err);
+      } finally {
+        setLoading(false);
       }
     }
 
-    if (projectId && memberIds.length > 0) {
+    if (projectId && stableMemberIds.length > 0) {
       fetchMembers();
     } else {
-      // Reset members if no projectId or no memberIds
       setMembers([]);
       setLoading(false);
     }
-  }, [projectId, memberIds]); // Depend on projectId and memberIds
+  }, [projectId, stableMemberIds]);
 
   return { members, loading };
 }

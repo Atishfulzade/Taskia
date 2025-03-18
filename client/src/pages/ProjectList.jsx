@@ -1,4 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
+"use client";
+
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { updateTask, setTasks } from "../store/taskSlice";
+import requestServer from "../utils/requestServer";
 import {
   DndContext,
   closestCenter,
@@ -9,37 +14,37 @@ import {
   DragOverlay,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import requestServer from "../utils/requestServer";
-import { updateTask, setTasks } from "../store/taskSlice";
 
-// Components
-import PrioritySection from "../component/PrioritySection";
-import Task from "../component/Task";
-import { Input } from "../components/ui/Input";
+// UI Components
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../components/ui/Select";
-import { Button } from "../components/ui/Button";
-
-import { Badge } from "../components/ui/Badge";
-import { Skeleton } from "../components/ui/Skeleton";
-import { Alert, AlertDescription } from "../components/ui/Alert";
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 // Icons
-import { TbStack2 } from "react-icons/tb";
-import { PiGitMergeDuotone } from "react-icons/pi";
-import { RiExpandUpDownLine } from "react-icons/ri";
-import { IoSearch, IoAddCircleOutline } from "react-icons/io5";
-import { GoPeople, GoPerson } from "react-icons/go";
-import { LuRefreshCw } from "react-icons/lu";
-import { BiErrorCircle } from "react-icons/bi";
-import { Plus } from "lucide-react";
+import {
+  Search,
+  Plus,
+  AlertCircle,
+  ArrowDownUp,
+  FolderOpen,
+  Layers,
+  User,
+} from "lucide-react";
+
+// Components
+import PrioritySection from "../component/PrioritySection";
+import Task from "../component/Task";
 
 const ProjectList = () => {
   // Redux hooks
@@ -98,66 +103,78 @@ const ProjectList = () => {
   // Load tasks when the component mounts or projectId changes
   useEffect(() => {
     fetchTasks();
-  }, []);
+  }, [fetchTasks]);
 
   // Update task priority in the backend & Redux store
-  const updateCurrentTask = async (updatedTask) => {
-    try {
-      dispatch(updateTask(updatedTask)); // Optimistically update Redux store
-      await requestServer(`task/update/${updatedTask._id}`, updatedTask);
-    } catch (error) {
-      console.error("Error updating task:", error);
-      // If the update fails, refresh tasks to get the correct state
-      fetchTasks();
-    }
-  };
+  const updateCurrentTask = useCallback(
+    async (updatedTask) => {
+      try {
+        dispatch(updateTask(updatedTask)); // Optimistically update Redux store
+        await requestServer(`task/update/${updatedTask._id}`, updatedTask);
+      } catch (error) {
+        console.error("Error updating task:", error);
+        // If the update fails, refresh tasks to get the correct state
+        fetchTasks();
+      }
+    },
+    [dispatch, fetchTasks]
+  );
 
   // Handle Drag Start
-  const handleDragStart = (event) => {
-    const { active } = event;
-    setActiveId(active.id);
+  const handleDragStart = useCallback(
+    (event) => {
+      const { active } = event;
+      setActiveId(active.id);
 
-    // Find the dragged task
-    const draggedTask = storedTasks.find((task) => task._id === active.id);
-    setActiveTask(draggedTask);
-  };
+      // Find the dragged task
+      const draggedTask = storedTasks.find((task) => task._id === active.id);
+      setActiveTask(draggedTask);
+    },
+    [storedTasks]
+  );
 
   // Handle Drag End
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
+  const handleDragEnd = useCallback(
+    (event) => {
+      const { active, over } = event;
 
-    setActiveId(null);
-    setActiveTask(null);
+      setActiveId(null);
+      setActiveTask(null);
 
-    if (!over) return;
+      if (!over) return;
 
-    const taskId = active.id;
-    const newPriority = over.data.current?.priority;
+      const taskId = active.id;
+      const newPriority = over.data.current?.priority;
 
-    if (!newPriority) return;
+      if (!newPriority) return;
 
-    const draggedTask = storedTasks.find((task) => task._id === taskId);
-    if (draggedTask && draggedTask.priority !== newPriority) {
-      const updatedTask = { ...draggedTask, priority: newPriority };
-      updateCurrentTask(updatedTask);
-    }
-  };
+      const draggedTask = storedTasks.find((task) => task._id === taskId);
+      if (draggedTask && draggedTask.priority !== newPriority) {
+        const updatedTask = { ...draggedTask, priority: newPriority };
+        updateCurrentTask(updatedTask);
+      }
+    },
+    [storedTasks, updateCurrentTask]
+  );
 
   // Toggle dropdowns for priority sections
-  const toggleDropdown = (priority) =>
-    setOpenDropdowns((prev) => ({ ...prev, [priority]: !prev[priority] }));
+  const toggleDropdown = useCallback(
+    (priority) =>
+      setOpenDropdowns((prev) => ({ ...prev, [priority]: !prev[priority] })),
+    []
+  );
 
   // Toggle all dropdowns
-  const toggleAllDropdowns = (value) => {
+  const toggleAllDropdowns = useCallback((value) => {
     setOpenDropdowns({
       High: value,
       Medium: value,
       No: value,
     });
-  };
+  }, []);
 
   // Filter and sort tasks
-  const getFilteredTasks = () => {
+  const filteredTasks = useMemo(() => {
     let filtered = [...storedTasks];
 
     // Apply view mode filter
@@ -183,11 +200,14 @@ const ProjectList = () => {
         filtered.sort((a, b) => {
           if (!a.dueDate) return 1;
           if (!b.dueDate) return -1;
-          return new Date(a.dueDate) - new Date(b.dueDate);
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
         });
         break;
       case "created":
-        filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        filtered.sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
         break;
       case "alphabetical":
         filtered.sort((a, b) => a.title.localeCompare(b.title));
@@ -198,32 +218,33 @@ const ProjectList = () => {
     }
 
     return filtered;
-  };
+  }, [storedTasks, viewMode, searchQuery, sortBy, userId]);
 
   // Task counts
-  const getTaskCounts = () => {
-    const filtered = getFilteredTasks();
-    const total = filtered.length;
-    const highCount = filtered.filter(
+  const { total, highCount, mediumCount, noCount } = useMemo(() => {
+    const highCount = filteredTasks.filter(
       (task) => task.priority === "High"
     ).length;
-    const mediumCount = filtered.filter(
+    const mediumCount = filteredTasks.filter(
       (task) => task.priority === "Medium"
     ).length;
-    const noCount = filtered.filter((task) => task.priority === "No").length;
+    const noCount = filteredTasks.filter(
+      (task) => task.priority === "No"
+    ).length;
 
-    return { total, highCount, mediumCount, noCount };
-  };
-
-  const { total, highCount, mediumCount, noCount } = getTaskCounts();
-  const filteredTasks = getFilteredTasks();
+    return {
+      total: filteredTasks.length,
+      highCount,
+      mediumCount,
+      noCount,
+    };
+  }, [filteredTasks]);
 
   // Handle adding a new task
-  const handleAddTask = (priority) => {
-    // You would typically open a modal or navigate to create a task
+  const handleAddTask = useCallback((priority) => {
     console.log(`Adding new task with ${priority} priority`);
     // Implement your add task logic here
-  };
+  }, []);
 
   return (
     <div className="flex flex-col h-full w-full">
@@ -231,7 +252,7 @@ const ProjectList = () => {
       <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
         <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
           {projectName || "Project Tasks"}{" "}
-          <Badge className="text-xs dark:bg-slate-700 dark:text-slate-200">
+          <Badge variant="secondary" className="ml-2 text-xs">
             {total} tasks
           </Badge>
         </h1>
@@ -247,9 +268,9 @@ const ProjectList = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => toggleAllDropdowns(true)}
-                className="h-8 text-xs sm:text-sm cursor-pointer border-slate-300 text-slate-700 dark:border-slate-600 dark:text-slate-200"
+                className="h-9 text-sm border-slate-300 text-slate-700 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
               >
-                <PiGitMergeDuotone size={14} className="mr-1" />
+                <FolderOpen className="h-4 w-4 mr-1.5" />
                 <span className="hidden sm:inline">Expand All</span>
               </Button>
 
@@ -257,35 +278,56 @@ const ProjectList = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => toggleAllDropdowns(false)}
-                className="h-8 text-xs sm:text-sm cursor-pointer border-slate-300 text-slate-700 dark:border-slate-600 dark:text-slate-200"
+                className="h-9 text-sm border-slate-300 text-slate-700 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
               >
-                <TbStack2 size={14} className="mr-1" />
+                <Layers className="h-4 w-4 mr-1.5" />
                 <span className="hidden sm:inline">Collapse All</span>
               </Button>
             </div>
+
+            <Separator
+              orientation="vertical"
+              className="h-8 mx-1 hidden sm:block"
+            />
+
+            <Button
+              variant={viewMode === "all" ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("all")}
+              className="h-9 text-sm"
+            >
+              All Tasks
+            </Button>
+
+            <Button
+              variant={viewMode === "me" ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("me")}
+              className="h-9 text-sm"
+            >
+              <User className="h-4 w-4 mr-1.5" />
+              <span>My Tasks</span>
+            </Button>
           </div>
 
           {/* Right controls */}
           <div className="flex items-center gap-2">
             {/* Search */}
             <div className="relative">
-              <IoSearch
-                className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500"
-                size={14}
-              />
+              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
               <Input
                 type="text"
                 placeholder="Search tasks..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-8 text-xs sm:text-sm w-[140px] sm:w-[180px] dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"
+                className="pl-8 h-9 text-sm w-[140px] sm:w-[180px] dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"
               />
             </div>
 
             {/* Sort By */}
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[140px] h-8 text-xs sm:text-sm border-slate-300 text-slate-700 dark:border-slate-600 dark:text-slate-200 dark:bg-slate-700">
-                <RiExpandUpDownLine size={14} className="mr-1" />
+              <SelectTrigger className="w-[140px] h-9 text-sm border-slate-300 text-slate-700 dark:border-slate-600 dark:text-slate-200 dark:bg-slate-700">
+                <ArrowDownUp className="h-4 w-4 mr-1.5" />
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent className="text-slate-700 border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200">
@@ -299,32 +341,32 @@ const ProjectList = () => {
             {/* Add Task Button */}
             <Button
               size="sm"
-              variant="default"
               onClick={() => handleAddTask("No")}
-              className="h-8 text-xs sm:text-sm text-slate-50 cursor-pointer bg-violet-600 dark:bg-violet-700"
+              className="h-9 text-sm text-white bg-violet-600 hover:bg-violet-700 dark:bg-violet-700 dark:hover:bg-violet-800"
             >
-              <Plus size={16} className="" />
+              <Plus className="h-4 w-4 mr-1.5" />
               <span>New Task</span>
             </Button>
           </div>
         </div>
       </div>
 
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive" className="m-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Main Content */}
       <div className="flex-1 p-6 overflow-y-auto bg-slate-50 dark:bg-slate-900">
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <BiErrorCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="border rounded-lg border-slate-200 dark:border-slate-800 overflow-hidden"
+                className="border rounded-lg border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-800"
               >
                 <div className="p-4 flex justify-between items-center">
                   <div className="flex items-center gap-2">
@@ -348,23 +390,23 @@ const ProjectList = () => {
             <div className="space-y-4">
               {total === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-lg">
-                    <IoAddCircleOutline
-                      size={48}
-                      className="mx-auto mb-4 text-slate-400 dark:text-slate-500"
-                    />
+                  <div className="bg-white dark:bg-slate-800 p-8 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div className="h-16 w-16 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mx-auto mb-4">
+                      <Plus className="h-8 w-8 text-slate-400 dark:text-slate-500" />
+                    </div>
                     <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 mb-2">
                       No tasks found
                     </h3>
-                    <p className="text-slate-500 dark:text-slate-400 mb-4">
+                    <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-md">
                       {searchQuery
                         ? "No tasks match your search criteria. Try a different search term or clear the search."
                         : "Get started by creating your first task."}
                     </p>
                     <Button
                       onClick={() => handleAddTask("No")}
-                      className="text-slate-300 dark:bg-violet-700"
+                      className="bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-700 dark:hover:bg-violet-800"
                     >
+                      <Plus className="h-4 w-4 mr-1.5" />
                       Create a task
                     </Button>
                   </div>
