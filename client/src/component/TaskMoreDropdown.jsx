@@ -15,6 +15,11 @@ const TaskMoreDropdown = ({ setShowMore, status }) => {
   // Close dropdown when clicking outside
   const handleClickOutside = (e) => {
     if (popupRef.current && !popupRef.current.contains(e.target)) {
+      // Don't close if the click is on the dialog
+      const dialogElement = document.querySelector("[role='dialog']");
+      if (dialogElement && dialogElement.contains(e.target)) {
+        return;
+      }
       setShowMore(false);
     }
   };
@@ -44,6 +49,24 @@ const TaskMoreDropdown = ({ setShowMore, status }) => {
     }
   };
 
+  // Handle edit click with stopPropagation
+  const handleEditClick = (e) => {
+    e.stopPropagation(); // Prevent event bubbling
+    setEditStatus(true);
+  };
+
+  // Handle edit dialog close
+  const handleEditClose = (val) => {
+    setEditStatus(val);
+    // Don't close the dropdown when dialog closes
+    if (!val) {
+      // Small delay to prevent immediate closing
+      setTimeout(() => {
+        setShowMore(true);
+      }, 0);
+    }
+  };
+
   return (
     <div
       ref={popupRef}
@@ -53,7 +76,7 @@ const TaskMoreDropdown = ({ setShowMore, status }) => {
       {editStatus && (
         <AddStatusPopup
           open={editStatus}
-          setOpen={setEditStatus}
+          setOpen={handleEditClose}
           isEdit={true}
           status={status}
         />
@@ -63,7 +86,7 @@ const TaskMoreDropdown = ({ setShowMore, status }) => {
       <div className="space-y-1">
         {/* Edit Option */}
         <div
-          onClick={() => setEditStatus(!editStatus)}
+          onClick={handleEditClick}
           className="flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
         >
           <GoPencil className="text-slate-600 dark:text-slate-300" />

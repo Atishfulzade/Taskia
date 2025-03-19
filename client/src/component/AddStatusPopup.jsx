@@ -1,24 +1,21 @@
-import React, { useState, useEffect } from "react";
-import { useFormik } from "formik";
-import * as Yup from "yup";
-import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner"; // Import sonner's toast
-
+import { Button } from "@/components/ui/Button";
+import { DialogHeader } from "@/components/ui/Dialog";
+import { Input } from "@/components/ui/Input";
+import bgColors from "@/utils/constant";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
-} from "@/components/ui/Dialog";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Checkbox } from "@/components/ui/Checkbox"; // Import a Checkbox component
-import requestServer from "../utils/requestServer";
-import { addStatus, updateStatus } from "../store/statusSlice";
-import { setCurrentProject, setProjects } from "../store/projectSlice";
-import bgColors from "../utils/constant";
+  DialogTitle,
+} from "@radix-ui/react-dialog";
+import { useFormik } from "formik";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import * as Yup from "yup";
+import { addStatus, updateStatus } from "../store/statusSlice"; // Make sure to import these
+import requestServer from "../utils/requestServer"; // Make sure to import this
+import { toast } from "sonner"; // Make sure to import this
 
 const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
   const [loading, setLoading] = useState(false);
@@ -58,7 +55,7 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
           toast.success(res.message);
         }
 
-        // Delay closing to avoid any state update issues
+        // Close the dialog without affecting other states
         setTimeout(() => {
           setOpen(false);
           formik.resetForm();
@@ -82,20 +79,34 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
     formik.setFieldValue("color", selectedColor);
   }, [selectedColor]);
 
+  // Handle dialog close while preserving dropdown state
+  const handleDialogChange = (val) => {
+    // Prevent event propagation
+    if (!val) {
+      setOpen(val);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(val) => setOpen(val)}>
+    <Dialog open={open} onOpenChange={handleDialogChange}>
       <DialogContent
-        className="max-w-md bg-white dark:bg-gray-800"
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg"
         aria-describedby="status-form-description"
         onPointerDown={(e) => e.stopPropagation()} // Prevent dialog close on click inside
+        onClick={(e) => e.stopPropagation()} // Additional prevention for bubbling
+        style={{
+          zIndex: 50,
+          maxHeight: "90vh",
+          overflow: "auto",
+        }}
       >
-        <DialogHeader>
-          <DialogTitle className="text-gray-900 dark:text-gray-100">
+        <DialogHeader className="mb-4">
+          <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
             {isEdit ? "Edit Status" : "Add Status"}
           </DialogTitle>
           <DialogDescription
             id="status-form-description"
-            className="text-gray-600 dark:text-gray-300"
+            className="text-sm text-gray-600 dark:text-gray-300"
           >
             Create a new status by filling out the form below.
           </DialogDescription>
@@ -110,14 +121,15 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
             onBlur={formik.handleBlur}
             value={formik.values.title}
             placeholder="Enter Status (e.g. 'Todo', 'In Progress')"
-            className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+            className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 p-2 rounded"
+            onClick={(e) => e.stopPropagation()} // Prevent event bubbling
           />
           {formik.touched.title && formik.errors.title && (
             <p className="text-red-500 text-sm">{formik.errors.title}</p>
           )}
 
           {/* Color Selection */}
-          <div>
+          <div onClick={(e) => e.stopPropagation()}>
             <p className="text-sm text-slate-600 dark:text-gray-300 mb-2">
               Select color
             </p>
@@ -126,7 +138,10 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
                 <div
                   key={index}
                   style={{ backgroundColor: color.primaryColor }}
-                  onClick={() => setSelectedColor(color)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedColor(color);
+                  }}
                   className={`w-8 h-8 rounded-full border-2 ${
                     selectedColor.primaryColor === color.primaryColor
                       ? "border-violet-700 dark:border-violet-500"
@@ -143,7 +158,8 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
             type="submit"
             disabled={loading}
             variant="default"
-            className="bg-violet-600 dark:bg-violet-700 hover:bg-violet-700 dark:hover:bg-violet-800 text-white"
+            className="bg-violet-600 dark:bg-violet-700 hover:bg-violet-700 dark:hover:bg-violet-800 text-white py-2 px-4 rounded mt-2"
+            onClick={(e) => e.stopPropagation()} // Prevent event bubbling
           >
             {loading
               ? isEdit

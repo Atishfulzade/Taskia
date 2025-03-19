@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { addTask, setTasks, updateTask, deleteTask } from "../store/taskSlice";
+import { setTasks } from "../store/taskSlice";
 import { setStatuses } from "../store/statusSlice";
 import requestServer from "../utils/requestServer";
 import socket from "../utils/socket";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
 import { toast } from "sonner";
 import { joinProjectRoom, leaveProjectRoom } from "../utils/socketHandlers";
 import { Search, Plus, Loader2 } from "lucide-react";
@@ -17,7 +17,6 @@ const ProjectDetail = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showStatusPopup, setShowStatusPopup] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentUserTaskIds, setCurrentUserTaskIds] = useState(new Set());
 
   // Track if we've already joined the project room
   const joinedRoom = useRef(false);
@@ -109,9 +108,6 @@ const ProjectDetail = () => {
     };
   }, [projectId]);
 
-  // In ProjectDetail.jsx
-
-  // Improve the room joining logic
   useEffect(() => {
     if (!projectId || !socket.connected) return;
 
@@ -149,13 +145,8 @@ const ProjectDetail = () => {
         });
 
         if (response.data) {
-          // We'll let the socket event handle adding to Redux store
-          // to avoid duplicate tasks
           console.log("Task created via API:", response.data._id);
           toast.success("Task created successfully");
-
-          // Instead of tracking in a Set, we could check directly in Redux
-          // before adding to the store in the socket handler
         }
       } catch (error) {
         console.error("Error creating task:", error);

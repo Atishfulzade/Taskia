@@ -75,7 +75,6 @@ const Dashboard = () => {
           </TabsList>
         </Tabs>
 
-        {/* Right Actions */}
         {/* Search */}
         <div className="relative z-[1]">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground dark:text-gray-400" />
