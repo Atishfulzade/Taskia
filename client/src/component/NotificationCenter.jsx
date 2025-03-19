@@ -4,6 +4,7 @@ import { Bell, X, Check } from "lucide-react";
 import socket from "../utils/socket";
 import requestServer from "../utils/requestServer";
 import { addSharedProject } from "@/store/sharedProjectSlice";
+import { updateStatus } from "@/store/statusSlice";
 
 const NotificationItem = ({ notification, onRead, onClose }) => {
   const { _id, message, type, timestamp, read, fromSocket } = notification;
@@ -101,7 +102,11 @@ const NotificationCenter = () => {
       handleNotification(data, "project");
     });
     socket.on("taskAssigned", (data) => handleNotification(data, "task"));
-    socket.on("statusUpdated", (data) => handleNotification(data, "status"));
+    socket.on("statusUpdated", (data) => {
+      console.log(data.updatedStatus);
+      dispatch(updateStatus(data.updatedStatus));
+      handleNotification(data, "status");
+    });
 
     return () => {
       socket.off("projectInvitation");

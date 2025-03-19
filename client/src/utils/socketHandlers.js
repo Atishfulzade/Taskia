@@ -5,6 +5,7 @@ import { addAssignTask } from "../store/assignTaskSlice";
 import { setDeleteProject, updateProject } from "../store/projectSlice";
 import {
   addSharedProject,
+  removeSharedProject,
   updateSharedProject,
 } from "@/store/sharedProjectSlice";
 import requestServer from "./requestServer";
@@ -147,12 +148,11 @@ export const initializeSocketHandlers = (socket, dispatch) => {
   socket.on("projectDeleted", async (data) => {
     console.log("Project Deleted:", data);
     if (data.projectId) {
-      dispatch(setDeleteProject(data.projectId));
+      dispatch(removeSharedProject(data.projectId));
       toast.success(data.message || "Project has been deleted");
 
       // Send notification
       await requestServer("user/notification/add", {
-        userId: data.ownerId,
         title: data.message,
         type: "info",
       });

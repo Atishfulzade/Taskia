@@ -62,9 +62,10 @@ const TaskMoreDropdown = ({ setShowMore, status }) => {
     if (!val) {
       // Small delay to prevent immediate closing
       setTimeout(() => {
-        setShowMore(true);
+        setShowMore(false);
       }, 0);
     }
+    // setShowMore(false);
   };
 
   return (
