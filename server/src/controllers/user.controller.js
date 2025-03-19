@@ -144,15 +144,14 @@ const getAllUser = async (req, res) => {
       ? { name: { $regex: `.*${term}.*`, $options: "i" } }
       : {};
 
-    const users = await User.find(query);
+    const users = await User.find(query).select("_id name email");
 
-    if (!users.length) {
+    if (users.length === 0) {
       return handleResponse(res, 404, "No users found");
     }
 
     return handleResponse(res, 200, "Users fetched successfully", { users });
   } catch (error) {
-    // Handle error and return error response
     handleError(res, "Error fetching users", error);
   }
 };
@@ -201,8 +200,8 @@ const addNotification = async (req, res) => {
 // Delete a notification from a user
 const deleteNotification = async (req, res) => {
   try {
-    const { userId, notificationId } = req.body;
-
+    const { notificationId } = req.body;
+    const userId = req.body.userId;
     if (!userId || !notificationId) {
       return handleResponse(
         res,
@@ -256,13 +255,85 @@ const getUserNotifications = async (req, res) => {
     handleError(res, "Internal Server Error", error);
   }
 };
+const markNotificationAsRead = async (req, res) => {
+  console.log("markNotificationAsRead called", req, res);
+  try {
+    const { userId, notificationId } = req.body;
 
+    if (!userId || !notificationId) {
+      return handleResponse(
+        res,
+        400,
+        "User ID and Notification ID are required"
+      );
+    }
+
+    if (
+      !mongoose.Types.ObjectId.isValid(userId) ||
+      !mongoose.Types.ObjectId.isValid(notificationId)
+    ) {
+      return handleResponse(res, 400, "Invalid User ID or Notification ID");
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return handleResponse(res, 404, "User not found");
+    }
+
+    const notification = user.notifications.id(notificationId);
+    if (!notification) {
+      return handleResponse(res, 404, "Notification not found");
+    }
+
+    notification.read = true;
+    await user.save();
+
+    return handleResponse(res, 200, "Notification marked as read", {
+      notifications: user.notifications,
+    });
+  } catch (error) {
+    handleError(res, "Failed to mark notification as read", error);
+  }
+};
+
+// Mark all notifications as read
+const markAllNotificationsAsRead = async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return handleResponse(res, 400, "User ID is required");
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return handleResponse(res, 400, "Invalid User ID");
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return handleResponse(res, 404, "User not found");
+    }
+
+    user.notifications.forEach((notification) => {
+      notification.read = true;
+    });
+    await user.save();
+
+    return handleResponse(res, 200, "All notifications marked as read", {
+      notifications: user.notifications,
+    });
+  } catch (error) {
+    handleError(res, "Failed to mark all notifications as read", error);
+  }
+};
 module.exports = {
   registerUser,
   addNotification,
   loginUser,
   logOutUser,
   getUserNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
   getAllUser,
   getUserById,
   deleteNotification,

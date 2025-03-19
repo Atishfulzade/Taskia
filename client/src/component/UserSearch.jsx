@@ -1,51 +1,51 @@
-import { useState, useEffect, useMemo } from "react";
-import {
-  Check,
-  ChevronsUpDown,
-  User,
-  X,
-  Loader2,
-  UserPlus,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
-import requestServer from "../utils/requestServer";
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { User, X, Loader2, Search } from "lucide-react";
 import { useDebounce } from "../hooks/useDebounce";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import requestServer from "../utils/requestServer";
 import { toast } from "sonner";
 
 export function UserSearch({
   onSelectUser,
   defaultValue = [],
   maxUsers = Number.POSITIVE_INFINITY,
-  placeholder = "Select users",
-  className,
+  placeholder = "Search users...",
+  className = "",
 }) {
-  const [open, setOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState(defaultValue || []);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUsers, setSelectedUsers] = useState([]);
-  const [loadingSelectedUsers, setLoadingSelectedUsers] = useState(false);
+  const dropdownRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   // Debounce the search term
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Handle clicks outside the dropdown to close it
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target) &&
+        searchInputRef.current &&
+        !searchInputRef.current.contains(event.target)
+      ) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Fetch users based on the search term
   useEffect(() => {
@@ -58,24 +58,19 @@ export function UserSearch({
 
       setLoading(true);
       try {
+        console.log("Fetching users with search term:", debouncedSearchTerm);
+
         const response = await requestServer(
-          `user/search?name=${debouncedSearchTerm}`
+          `user/search?name=${encodeURIComponent(debouncedSearchTerm)}`
         );
 
-        // Check the structure of the response
-        if (response && response.data.users) {
-          // Directly set users from response.data if it's an array
-          if (Array.isArray(response.data.users)) {
-            setUsers(response.data.users);
-          }
+        console.log("API Response:", response);
 
-          // If we can't determine the structure, log it and set empty array
-          else {
-            console.error("Unexpected response structure:", response.data);
-            setUsers([]);
-          }
+        if (response && response.data && Array.isArray(response.data.users)) {
+          console.log("Users found:", response.data.users);
+          setUsers(response.data.users);
         } else {
-          console.error("Invalid response:", response);
+          console.error("Invalid response structure:", response);
           setUsers([]);
         }
       } catch (error) {
@@ -87,35 +82,41 @@ export function UserSearch({
       }
     };
 
-    if (open) {
+    if (isOpen) {
       fetchUsers();
     }
-  }, [debouncedSearchTerm, open]);
+  }, [debouncedSearchTerm, isOpen]);
 
-  // Filter out already selected users from search results
-  const filteredUsers = useMemo(() => {
-    if (!users || !Array.isArray(users)) return [];
-    return users.filter((user) => !selectedUserIds.includes(user._id));
-  }, [users, selectedUserIds]);
+  // Load selected users' details when component mounts or defaultValue changes
+  useEffect(() => {
+    if (!defaultValue || defaultValue.length === 0) {
+      setSelectedUsers([]);
+      return;
+    }
 
-  const handleSelect = (userId, userName, userAvatar) => {
+    setSelectedUserIds(defaultValue);
+  }, [defaultValue]);
+
+  const handleSelect = (user) => {
     if (
-      !selectedUserIds.includes(userId) &&
+      !selectedUserIds.includes(user._id) &&
       selectedUserIds.length < maxUsers
     ) {
-      const updatedSelectedUserIds = [...selectedUserIds, userId];
+      const updatedSelectedUserIds = [...selectedUserIds, user._id];
       setSelectedUserIds(updatedSelectedUserIds);
 
-      // Also update the selected users array with the user information
-      const newUser = { _id: userId, name: userName, avatar: userAvatar };
-      setSelectedUsers([...selectedUsers, newUser]);
+      const newUser = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar || null,
+      };
 
+      setSelectedUsers((prev) => [...prev, newUser]);
       onSelectUser(updatedSelectedUserIds);
-
-      // Clear search term after selection
       setSearchTerm("");
     }
-    setOpen(false);
+    setIsOpen(false);
   };
 
   const removeUser = (userId) => {
@@ -134,129 +135,84 @@ export function UserSearch({
   };
 
   const reachedMaxUsers = selectedUserIds.length >= maxUsers;
+  const filteredUsers = users.filter(
+    (user) => !selectedUserIds.includes(user._id)
+  );
 
   return (
-    <div className={cn("space-y-2", className)}>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className="w-full justify-between dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-            disabled={reachedMaxUsers && selectedUserIds.length > 0}
-          >
-            <span className="flex items-center">
-              {loadingSelectedUsers ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2 dark:text-gray-300" />
-                  <span>Loading users...</span>
-                </>
-              ) : selectedUserIds.length > 0 ? (
-                <>
-                  <span>{selectedUserIds.length} selected</span>
-                  {!reachedMaxUsers && (
-                    <span className="ml-2 text-muted-foreground dark:text-gray-400">
-                      • Add more
-                    </span>
-                  )}
-                </>
-              ) : (
-                placeholder
-              )}
-            </span>
-            {!reachedMaxUsers && (
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 dark:text-gray-300" />
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64 p-0 bg-white dark:bg-gray-800 dark:border-gray-700">
-          <Command>
-            <CommandInput
-              placeholder="Search users..."
-              value={searchTerm}
-              onValueChange={setSearchTerm}
-              className="border-none focus:ring-0 dark:bg-gray-800 dark:text-white"
-            />
+    <div className={`relative ${className}`}>
+      {/* Search Input */}
+      <div className="relative">
+        <Input
+          ref={searchInputRef}
+          type="text"
+          placeholder={
+            selectedUserIds.length > 0
+              ? `${selectedUserIds.length} selected • Add more`
+              : placeholder
+          }
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onFocus={() => setIsOpen(true)}
+          className="w-full pr-10 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+          disabled={reachedMaxUsers}
+        />
+        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+          ) : (
+            <Search className="h-4 w-4 text-gray-400" />
+          )}
+        </div>
+      </div>
 
-            {/* Debug info - remove in production */}
-            <div className="px-2 py-1 text-xs text-muted-foreground">
-              Search: "{searchTerm}" | Results: {filteredUsers.length}
+      {/* Dropdown Results */}
+      {isOpen && (
+        <div
+          ref={dropdownRef}
+          className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 overflow-auto border border-gray-200 dark:border-gray-700"
+        >
+          {loading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin mr-2 dark:text-gray-300" />
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                Searching...
+              </span>
             </div>
-
-            <CommandList>
-              {loading && (
-                <div className="flex items-center justify-center py-6">
-                  <Loader2 className="h-4 w-4 animate-spin mr-2 dark:text-gray-300" />
-                  <span>Searching...</span>
-                </div>
-              )}
-
-              {!loading && filteredUsers.length === 0 && (
-                <CommandEmpty>
-                  {debouncedSearchTerm ? (
-                    "No users found."
-                  ) : (
-                    <div className="py-6 text-center text-sm text-muted-foreground dark:text-gray-400">
-                      Type to search for users...
+          ) : filteredUsers.length > 0 ? (
+            <ul className="py-1">
+              {filteredUsers.map((user) => (
+                <li
+                  key={user._id}
+                  className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex items-center justify-between"
+                  onClick={() => handleSelect(user)}
+                >
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center mr-2 dark:bg-gray-700">
+                      <User className="h-4 w-4 text-gray-500 dark:text-gray-300" />
                     </div>
-                  )}
-                </CommandEmpty>
-              )}
+                    <span className="text-sm dark:text-white">{user.name}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : debouncedSearchTerm ? (
+            <div className="py-4 px-3 text-center text-sm text-gray-500 dark:text-gray-400">
+              No users found matching "{debouncedSearchTerm}"
+            </div>
+          ) : (
+            <div className="py-4 px-3 text-center text-sm text-gray-500 dark:text-gray-400">
+              Type to search for users...
+            </div>
+          )}
+        </div>
+      )}
 
-              {!loading && filteredUsers.length > 0 && (
-                <CommandGroup>
-                  <ScrollArea className="max-h-60">
-                    {filteredUsers.map((user) => {
-                      // Debugging: Log each user being rendered
-                      console.log("Rendering User:", user);
-
-                      return (
-                        <CommandItem
-                          key={user._id} // Ensure key is unique
-                          value={user._id}
-                          onSelect={() =>
-                            handleSelect(user._id, user.name, user.avatar)
-                          }
-                          className="flex items-center py-2 dark:hover:bg-gray-700"
-                          disabled={reachedMaxUsers}
-                        >
-                          <div className="flex items-center flex-1">
-                            {user.avatar ? (
-                              <img
-                                src={user.avatar || "/placeholder.svg"}
-                                alt={user.name}
-                                className="w-6 h-6 rounded-full mr-2"
-                              />
-                            ) : (
-                              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center mr-2 dark:bg-gray-700">
-                                <User className="h-4 w-4 text-gray-500 dark:text-gray-300" />
-                              </div>
-                            )}
-                            <span className="truncate dark:text-white">
-                              {user?.name || "Unknown User"}
-                            </span>
-                          </div>
-                          {selectedUserIds.includes(user._id) ? (
-                            <Check className="ml-auto h-4 w-4 text-primary dark:text-primary-400" />
-                          ) : (
-                            <UserPlus className="ml-auto h-4 w-4 opacity-50 dark:text-gray-300" />
-                          )}
-                        </CommandItem>
-                      );
-                    })}
-                  </ScrollArea>
-                </CommandGroup>
-              )}
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-
-      {selectedUsers.length > 0 ? (
+      {/* Selected Users */}
+      {selectedUsers.length > 0 && (
         <div className="mt-2">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-sm text-muted-foreground dark:text-gray-400">
+            <span className="text-sm text-gray-500 dark:text-gray-400">
               {selectedUsers.length}{" "}
               {selectedUsers.length === 1 ? "user" : "users"} selected
               {maxUsers < Number.POSITIVE_INFINITY && ` (max: ${maxUsers})`}
@@ -271,49 +227,30 @@ export function UserSearch({
             </Button>
           </div>
           <div className="flex flex-wrap gap-2">
-            {loadingSelectedUsers ? (
-              <div className="w-full">
-                {Array.from({ length: selectedUserIds.length }).map((_, i) => (
-                  <Skeleton
-                    key={i}
-                    className="h-7 w-24 rounded-full inline-block mr-2 mb-2 dark:bg-gray-700"
-                  />
-                ))}
-              </div>
-            ) : (
-              selectedUsers.map((user) => (
-                <Badge
-                  key={user._id}
-                  variant="secondary"
-                  className="flex items-center gap-1 py-1 px-2 hover:bg-secondary/80 transition-colors dark:bg-gray-700 dark:hover:bg-gray-600"
+            {selectedUsers.map((user) => (
+              <Badge
+                key={user._id}
+                variant="secondary"
+                className="flex items-center gap-1 py-1 px-2 hover:bg-secondary/80 transition-colors dark:bg-gray-700 dark:hover:bg-gray-600"
+              >
+                <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center dark:bg-gray-600">
+                  <User className="h-3 w-3 text-gray-500 dark:text-gray-300" />
+                </div>
+                <span className="max-w-[100px] truncate dark:text-white">
+                  {user.name}
+                </span>
+                <button
+                  onClick={() => removeUser(user._id)}
+                  className="ml-1 rounded-full hover:bg-gray-200 p-1 transition-colors dark:hover:bg-gray-600"
+                  aria-label={`Remove ${user.name}`}
                 >
-                  {user.avatar ? (
-                    <img
-                      src={user.avatar || "/placeholder.svg"}
-                      alt={user.name}
-                      className="w-5 h-5 rounded-full"
-                    />
-                  ) : (
-                    <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center dark:bg-gray-600">
-                      <User className="h-3 w-3 text-gray-500 dark:text-gray-300" />
-                    </div>
-                  )}
-                  <span className="max-w-[100px] truncate dark:text-white">
-                    {user.name}
-                  </span>
-                  <button
-                    onClick={() => removeUser(user._id)}
-                    className="ml-1 rounded-full hover:bg-gray-200 p-1 transition-colors dark:hover:bg-gray-600"
-                    aria-label={`Remove ${user.name}`}
-                  >
-                    <X className="h-3 w-3 dark:text-gray-300" />
-                  </button>
-                </Badge>
-              ))
-            )}
+                  <X className="h-3 w-3 dark:text-gray-300" />
+                </button>
+              </Badge>
+            ))}
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

@@ -1,16 +1,22 @@
 const mongoose = require("mongoose");
+
+const notificationSchema = new mongoose.Schema(
+  {
+    message: { type: String, required: true },
+    type: { type: String, enum: ["info", "warning", "error"], default: "info" }, // Enum for type
+    createdAt: { type: Date, default: Date.now },
+    read: { type: Boolean, default: false }, // Correct boolean field
+  },
+  { timestamps: true },
+  { _id: false } // This prevents Mongoose from auto-generating an ID for each notification
+);
+
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    notifications: [
-      {
-        message: { type: String, required: true },
-        type: { type: String, default: "info" },
-        createdAt: { type: Date, default: Date.now },
-      },
-    ],
+    notifications: [notificationSchema], // Embedding notification schema
   },
   { timestamps: true }
 );

@@ -115,11 +115,8 @@ const NotificationCenter = () => {
   const deleteNotification = async (notificationId) => {
     try {
       await requestServer("user/notification/delete", {
-        method: "POST",
-        data: {
-          userId: user._id,
-          notificationId,
-        },
+        userId: user._id,
+        notificationId,
       });
 
       setNotifications((prev) =>
@@ -133,11 +130,8 @@ const NotificationCenter = () => {
   const markAsRead = async (id) => {
     try {
       await requestServer("user/notification/markRead", {
-        method: "POST",
-        data: {
-          userId: user._id,
-          notificationId: id,
-        },
+        userId: user._id,
+        notificationId: id,
       });
 
       setNotifications((prev) =>
@@ -153,10 +147,7 @@ const NotificationCenter = () => {
   const markAllAsRead = async () => {
     try {
       await requestServer("user/notification/markAllRead", {
-        method: "POST",
-        data: {
-          userId: user._id,
-        },
+        userId: user._id,
       });
 
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));

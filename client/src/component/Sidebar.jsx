@@ -188,11 +188,9 @@ const Sidebar = ({ onCollapse }) => {
   const handleContextAction = useCallback(
     async (project, action) => {
       console.log("Context menu action:", action);
-      setContextMenu({
-        visible: false,
-        position: { x: 0, y: 0 },
-        project: null,
-      });
+
+      // Don't close the menu immediately for all actions
+      // Only close it after the action is processed
 
       switch (action) {
         case "star":
@@ -212,29 +210,65 @@ const Sidebar = ({ onCollapse }) => {
                 updatedProject.isStarred ? "added to" : "removed from"
               } favorites`
             );
+            // Close the menu after the action is complete
+            setContextMenu({
+              visible: false,
+              position: { x: 0, y: 0 },
+              project: null,
+            });
           } catch (error) {
             console.error("Failed to update project:", error);
             toast.error("Failed to update project");
+            // Close the menu even if there's an error
+            setContextMenu({
+              visible: false,
+              position: { x: 0, y: 0 },
+              project: null,
+            });
           }
           break;
 
         case "rename":
           console.log("Rename action triggered");
+          // For modal actions, close the context menu first, then open the modal
+          setContextMenu({
+            visible: false,
+            position: { x: 0, y: 0 },
+            project: null,
+          });
           setRenameModal({ open: true, project, title: project.title });
           break;
 
         case "delete":
           console.log("Delete action triggered");
+          // For modal actions, close the context menu first, then open the modal
+          setContextMenu({
+            visible: false,
+            position: { x: 0, y: 0 },
+            project: null,
+          });
           setDeleteModal({ open: true, project });
           break;
 
         case "share":
           console.log("Share action triggered");
+          // For modal actions, close the context menu first, then open the modal
+          setContextMenu({
+            visible: false,
+            position: { x: 0, y: 0 },
+            project: null,
+          });
           setShareModal({ open: true, project, email: "" });
           break;
 
         default:
           console.warn(`Unknown action: ${action}`);
+          // Close the menu for unknown actions
+          setContextMenu({
+            visible: false,
+            position: { x: 0, y: 0 },
+            project: null,
+          });
           break;
       }
     },
@@ -423,20 +457,37 @@ const Sidebar = ({ onCollapse }) => {
 
         <SidebarFooter isCollapsed={isCollapsed} />
       </div>
-
       {contextMenu.visible && (
-        <ContextMenu
-          project={contextMenu.project}
-          position={contextMenu.position}
-          onAction={handleContextAction}
-          onClose={() =>
-            setContextMenu({
-              visible: false,
-              position: { x: 0, y: 0 },
-              project: null,
-            })
-          }
-        />
+        <>
+          {/* Add an overlay div that covers the entire screen */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => {
+              setContextMenu({
+                visible: false,
+                position: { x: 0, y: 0 },
+                project: null,
+              });
+            }}
+          />
+
+          {/* Render the context menu */}
+          <ContextMenu
+            project={contextMenu.project}
+            position={contextMenu.position}
+            onAction={(project, action) => {
+              // Handle the action without immediately closing the menu
+              handleContextAction(project, action);
+            }}
+            onClose={() => {
+              setContextMenu({
+                visible: false,
+                position: { x: 0, y: 0 },
+                project: null,
+              });
+            }}
+          />
+        </>
       )}
 
       {showAddProject && (

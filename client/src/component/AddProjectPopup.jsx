@@ -1,5 +1,4 @@
 import { useFormik } from "formik";
-import React from "react";
 import requestServer from "../utils/requestServer";
 import { useDispatch, useSelector } from "react-redux";
 import { setCurrentProject, setProjects } from "../store/projectSlice";
@@ -15,8 +14,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "../components/ui/Dialog"; // ShadCN Dialog
-import { UserSearch } from "./UserSearch";
 import { toast } from "sonner"; // Import sonner's toast
+import { UserSearch } from "./UserSearch";
 
 const AddProjectPopup = ({ close }) => {
   const dispatch = useDispatch();
@@ -36,6 +35,7 @@ const AddProjectPopup = ({ close }) => {
     }),
     onSubmit: async (values, { resetForm }) => {
       try {
+        console.log("Submitting project with values:", values);
         const res = await requestServer("project/add", { ...values, userId });
         dispatch(setCurrentProject(res.data.newProject));
         dispatch(setProjects(res.data?.allProjects));
@@ -58,6 +58,11 @@ const AddProjectPopup = ({ close }) => {
       }
     },
   });
+
+  const handleUserSelect = (selectedUserIds) => {
+    console.log("Selected user IDs:", selectedUserIds);
+    formik.setFieldValue("member", selectedUserIds);
+  };
 
   return (
     <Dialog open={true} onOpenChange={() => close(false)}>
@@ -127,9 +132,7 @@ const AddProjectPopup = ({ close }) => {
               Add Member<sup className="text-red-500">*</sup>
             </Label>
             <UserSearch
-              onSelectUser={(selectedUserIds) => {
-                formik.setFieldValue("member", selectedUserIds); // This sets the member field to an array of user IDs
-              }}
+              onSelectUser={handleUserSelect}
               defaultValue={formik.values.member}
             />
             {formik.touched.member && formik.errors.member && (
