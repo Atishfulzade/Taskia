@@ -1,4 +1,4 @@
-import { Route, Routes, Navigate } from "react-router-dom";
+import { Route, Routes, Navigate, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, Suspense, lazy, useRef } from "react";
 import { toast, Toaster } from "sonner";
@@ -24,6 +24,7 @@ const Error = lazy(() => import("./pages/Error.jsx"));
 
 function App() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
   const user = useSelector((state) => state.user.user);
   const projects = useSelector((state) => state.project.projects);
@@ -80,6 +81,7 @@ function App() {
             dispatch(addAssignTask(assignTaskRes.data));
           }
         }
+        navigate("/dashboard");
       } catch (error) {
         console.error("Authentication validation failed:", error);
         toast.error("Authentication failed. Please log in again.");
@@ -90,7 +92,7 @@ function App() {
     };
 
     validateUser();
-  }, [dispatch, token]);
+  }, [token]);
 
   useEffect(() => {
     if (isAuthenticated && user?._id && !socketInitialized.current) {

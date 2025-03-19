@@ -3,7 +3,10 @@ import { addTask, updateTask, deleteTask } from "../store/taskSlice";
 import { addStatus, updateStatus, deleteStatus } from "../store/statusSlice";
 import { addAssignTask } from "../store/assignTaskSlice";
 import { setDeleteProject, updateProject } from "../store/projectSlice";
-import { addSharedProject } from "@/store/sharedProjectSlice";
+import {
+  addSharedProject,
+  updateSharedProject,
+} from "@/store/sharedProjectSlice";
 import requestServer from "./requestServer";
 
 // Keep track of initialized socket to prevent duplicate event listeners
@@ -25,7 +28,6 @@ export const initializeSocketHandlers = (socket, dispatch) => {
   // Test connection
   socket.on("testConnection", (data) => {
     console.log("Socket connection test:", data);
-    toast.success(data.message || "WebSocket connected");
   });
 
   // Status events
@@ -33,7 +35,6 @@ export const initializeSocketHandlers = (socket, dispatch) => {
     console.log("Status Created:", data);
     if (data.newStatus) {
       dispatch(addStatus(data.newStatus));
-      toast.success(data.message || "New status created");
     }
   });
 
@@ -41,7 +42,6 @@ export const initializeSocketHandlers = (socket, dispatch) => {
     console.log("Status Updated:", data);
     if (data.updatedStatus) {
       dispatch(updateStatus(data.updatedStatus));
-      toast.success(data.message || "Status updated");
     }
   });
 
@@ -49,7 +49,6 @@ export const initializeSocketHandlers = (socket, dispatch) => {
     console.log("Status Deleted:", data);
     if (data.statusId) {
       dispatch(deleteStatus(data.statusId));
-      toast.success(data.message || "Status deleted");
     }
   });
 
@@ -83,7 +82,7 @@ export const initializeSocketHandlers = (socket, dispatch) => {
       // Send notification
       await requestServer("user/notification/add", {
         userId: data.updatedTask.userId,
-        title: `Task Updated: ${data.updatedTask.title}`,
+        title: data.message,
         type: "info",
       });
     }
@@ -98,7 +97,7 @@ export const initializeSocketHandlers = (socket, dispatch) => {
       // Send notification
       await requestServer("user/notification/add", {
         userId: data.userId,
-        title: "A task was deleted",
+        title: data.message,
         type: "info",
       });
     }
@@ -113,7 +112,7 @@ export const initializeSocketHandlers = (socket, dispatch) => {
       // Send notification
       await requestServer("user/notification/add", {
         userId: data.newTask.userId,
-        title: `New Task Assigned: ${data.newTask.title}`,
+        title: data.message,
         type: "info",
       });
     } else if (data.updatedTask) {
@@ -123,7 +122,7 @@ export const initializeSocketHandlers = (socket, dispatch) => {
       // Send notification
       await requestServer("user/notification/add", {
         userId: data.updatedTask.userId,
-        title: `Task Reassigned: ${data.updatedTask.title}`,
+        title: data.message,
         type: "info",
       });
     }
@@ -133,13 +132,13 @@ export const initializeSocketHandlers = (socket, dispatch) => {
   socket.on("projectUpdated", async (data) => {
     console.log("Project Updated:", data);
     if (data.project) {
-      dispatch(updateProject(data.project));
+      dispatch(updateSharedProject(data.project));
       toast.success(data.message || "Project updated");
 
       // Send notification
       await requestServer("user/notification/add", {
-        userId: data.project.ownerId,
-        title: `Project Updated: ${data.project.name}`,
+        userId: data.project.userId,
+        title: data.message,
         type: "info",
       });
     }
@@ -154,7 +153,7 @@ export const initializeSocketHandlers = (socket, dispatch) => {
       // Send notification
       await requestServer("user/notification/add", {
         userId: data.ownerId,
-        title: "A project was deleted",
+        title: data.message,
         type: "info",
       });
     }

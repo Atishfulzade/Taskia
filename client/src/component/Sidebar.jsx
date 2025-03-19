@@ -116,29 +116,6 @@ const Sidebar = ({ onCollapse }) => {
   }, [dispatch]);
 
   useEffect(() => {
-    if (!socket.connected) {
-      socket.connect();
-    }
-
-    const handleProjectInvitation = async (data) => {
-      if (data.newProject) {
-        dispatch(addSharedProject(data.newProject));
-        toast.success(data.message || "You've been invited to a project");
-      }
-      await requestServer("user/notification/add", {
-        title: data.message,
-        type: "info",
-      });
-    };
-
-    socket.on("projectInvitation", handleProjectInvitation);
-
-    return () => {
-      socket.off("projectInvitation", handleProjectInvitation);
-    };
-  }, [dispatch]);
-
-  useEffect(() => {
     if (showSearch && searchInputRef.current) {
       searchInputRef.current.focus();
     }

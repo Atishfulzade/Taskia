@@ -7,21 +7,21 @@ import assignTaskSlice from "./assignTaskSlice";
 import sharedProjectReducer from "./sharedProjectSlice";
 import { debounce } from "lodash";
 
-// Load state from localStorage
+// Load state from localStorage (only user data)
 const loadState = () => {
   try {
-    const serializedState = localStorage.getItem("reduxState");
-    return serializedState ? JSON.parse(serializedState) : undefined;
+    const serializedState = localStorage.getItem("userState");
+    return serializedState ? { user: JSON.parse(serializedState) } : undefined;
   } catch (err) {
     return undefined;
   }
 };
 
-// Save state to localStorage
+// Save only user data to localStorage
 const saveState = (state) => {
   try {
-    const serializedState = JSON.stringify(state);
-    localStorage.setItem("reduxState", serializedState);
+    const userState = JSON.stringify(state.user); // Store only user data
+    localStorage.setItem("userState", userState);
   } catch (err) {
     console.error("Error saving state", err);
   }
@@ -36,7 +36,7 @@ const store = configureStore({
     assignTask: assignTaskSlice,
     sharedproject: sharedProjectReducer,
   },
-  preloadedState: loadState(), // Load the entire state
+  preloadedState: loadState(), // Load only user state
 });
 
 // Debounce the saveState function to improve performance

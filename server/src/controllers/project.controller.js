@@ -6,7 +6,6 @@ const { handleError, handleResponse } = require("../utils/common-functions.js");
 const mongoose = require("mongoose");
 const User = require("../models/user.model.js");
 
-// Add a new project
 const addProject = async (req, res) => {
   try {
     console.log("[DEBUG] addProject called with body:", req.body);
@@ -38,15 +37,22 @@ const addProject = async (req, res) => {
       throw new Error("Socket.IO instance not found");
     }
 
+    // Add this before emitting events
     console.log(
-      "[DEBUG] Emitting projectInvitation events for members:",
-      member
+      "[DEBUG] Connected socket IDs:",
+      Object.keys(io.sockets.sockets).map((id) => id.toString())
     );
+
     member.forEach((memberId) => {
       if (mongoose.Types.ObjectId.isValid(memberId)) {
-        io.to(memberId).emit("projectInvitation", {
+        const roomId = memberId.toString();
+        console.log(`[DEBUG] Emitting projectInvitation to user ${roomId}`);
+        io.to(roomId).emit("projectInvitation", {
           message: `You have been added to project: "${newProject.title}".`,
-          newProject,
+          newProject: {
+            ...newProject.toObject(),
+            id: newProject._id.toString(), // Add id field to match client expectation
+          },
           allProjects,
         });
       }

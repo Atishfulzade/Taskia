@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Bell, X, Check } from "lucide-react";
 import socket from "../utils/socket";
 import requestServer from "../utils/requestServer";
+import { addSharedProject } from "@/store/sharedProjectSlice";
 
 const NotificationItem = ({ notification, onRead, onClose }) => {
-  const { _id, message, type, timestamp, read } = notification;
+  const { _id, message, type, timestamp, read, fromSocket } = notification;
 
   const getTypeIcon = () => {
     switch (type) {
@@ -40,7 +41,7 @@ const NotificationItem = ({ notification, onRead, onClose }) => {
         <div className="flex gap-1">
           {!read && (
             <button
-              onClick={() => onRead(_id)}
+              onClick={() => onRead(_id, fromSocket)}
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               aria-label="Mark as read"
             >
@@ -48,7 +49,7 @@ const NotificationItem = ({ notification, onRead, onClose }) => {
             </button>
           )}
           <button
-            onClick={() => onClose(_id)}
+            onClick={() => onClose(_id, fromSocket)}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             aria-label="Delete notification"
           >
@@ -65,6 +66,7 @@ const NotificationCenter = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const user = useSelector((state) => state.user.user);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -85,12 +87,19 @@ const NotificationCenter = () => {
 
     // Listen for socket notifications
     const handleNotification = (data, type) => {
-      addNotification({ ...data, type, read: false });
+      addNotification({
+        ...data,
+        type,
+        read: false,
+        fromSocket: true,
+        timestamp: data.timestamp || new Date(),
+      });
     };
 
-    socket.on("projectInvitation", (data) =>
-      handleNotification(data, "project")
-    );
+    socket.on("projectInvitation", (data) => {
+      dispatch(addSharedProject(data.newProject));
+      handleNotification(data, "project");
+    });
     socket.on("taskAssigned", (data) => handleNotification(data, "task"));
     socket.on("statusUpdated", (data) => handleNotification(data, "status"));
 
@@ -106,19 +115,43 @@ const NotificationCenter = () => {
       if (!user?._id) return;
 
       const res = await requestServer(`user/notification/get/${user._id}`);
-      if (res?.data) setNotifications(res.data.notifications);
+      if (res?.data) {
+        // Mark server notifications
+        const serverNotifications = res.data.notifications.map((n) => ({
+          ...n,
+          fromSocket: false,
+        }));
+
+        // Merge with existing socket notifications and sort by timestamp
+        setNotifications((prev) => {
+          // Keep only socket notifications that aren't duplicates
+          const socketNotifications = prev.filter(
+            (n) =>
+              n.fromSocket &&
+              !serverNotifications.some((sn) => sn._id === n._id)
+          );
+
+          return [...socketNotifications, ...serverNotifications].sort(
+            (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+          );
+        });
+      }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     }
   };
 
-  const deleteNotification = async (notificationId) => {
+  const deleteNotification = async (notificationId, fromSocket) => {
     try {
-      await requestServer("user/notification/delete", {
-        userId: user._id,
-        notificationId,
-      });
+      // If it's a server notification, delete it from the server
+      if (!fromSocket) {
+        await requestServer("user/notification/delete", {
+          userId: user._id,
+          notificationId,
+        });
+      }
 
+      // Remove from local state regardless of source
       setNotifications((prev) =>
         prev.filter((notif) => notif._id !== notificationId)
       );
@@ -127,13 +160,17 @@ const NotificationCenter = () => {
     }
   };
 
-  const markAsRead = async (id) => {
+  const markAsRead = async (id, fromSocket) => {
     try {
-      await requestServer("user/notification/markRead", {
-        userId: user._id,
-        notificationId: id,
-      });
+      // If it's a server notification, mark it as read on the server
+      if (!fromSocket) {
+        await requestServer("user/notification/markRead", {
+          userId: user._id,
+          notificationId: id,
+        });
+      }
 
+      // Update local state regardless of source
       setNotifications((prev) =>
         prev.map((notif) =>
           notif._id === id ? { ...notif, read: true } : notif
@@ -146,10 +183,12 @@ const NotificationCenter = () => {
 
   const markAllAsRead = async () => {
     try {
+      // Mark server notifications as read on the server
       await requestServer("user/notification/markAllRead", {
         userId: user._id,
       });
 
+      // Update all notifications in local state
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch (error) {
       console.error("Failed to mark all notifications as read:", error);
@@ -157,14 +196,18 @@ const NotificationCenter = () => {
   };
 
   const addNotification = (notification) => {
-    setNotifications((prev) => [
-      {
+    setNotifications((prev) => {
+      const newNotification = {
         ...notification,
-        _id: notification._id || Date.now().toString(),
+        _id: notification._id || `socket-${Date.now()}`,
         timestamp: notification.timestamp || new Date(),
-      },
-      ...prev,
-    ]);
+      };
+
+      // Add the new notification and sort by timestamp (newest first)
+      return [newNotification, ...prev].sort(
+        (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+      );
+    });
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -172,7 +215,7 @@ const NotificationCenter = () => {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        className="relative p-2 text-white  dark:text-gray-400 dark:hover:text-gray-200 rounded-full hover:bg-violet-700 dark:hover:bg-gray-800"
+        className="relative p-2 text-white dark:text-gray-400 dark:hover:text-gray-200 rounded-full hover:bg-violet-700 dark:hover:bg-gray-800"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Notifications"
         aria-expanded={isOpen}

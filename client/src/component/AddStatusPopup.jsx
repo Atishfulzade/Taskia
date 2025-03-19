@@ -13,9 +13,9 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import * as Yup from "yup";
-import { addStatus, updateStatus } from "../store/statusSlice"; // Make sure to import these
-import requestServer from "../utils/requestServer"; // Make sure to import this
-import { toast } from "sonner"; // Make sure to import this
+import { addStatus, updateStatus } from "../store/statusSlice";
+import requestServer from "../utils/requestServer";
+import { toast } from "sonner";
 
 const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
   const [loading, setLoading] = useState(false);
@@ -44,13 +44,23 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
     onSubmit: async (values) => {
       try {
         setLoading(true);
+
+        // Always ensure the current project ID is used
+        const submissionValues = {
+          ...values,
+          projectId: CurrentProjectId,
+        };
+
         let res;
         if (isEdit) {
-          res = await requestServer(`status/update/${status._id}`, values);
+          res = await requestServer(
+            `status/update/${status._id}`,
+            submissionValues
+          );
           dispatch(updateStatus(res.data));
-          toast.success(res.data.message);
+          toast.success(res.message);
         } else {
-          res = await requestServer("status/add", values);
+          res = await requestServer("status/add", submissionValues);
           dispatch(addStatus(res.data));
           toast.success(res.message);
         }
@@ -69,11 +79,12 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
     },
   });
 
+  // Update form values when dialog opens or when project ID changes
   useEffect(() => {
-    if (CurrentProjectId) {
+    if (open && CurrentProjectId) {
       formik.setFieldValue("projectId", CurrentProjectId);
     }
-  }, [CurrentProjectId]);
+  }, [CurrentProjectId, open]);
 
   useEffect(() => {
     formik.setFieldValue("color", selectedColor);
@@ -153,10 +164,17 @@ const AddStatusPopup = ({ open, setOpen, status, isEdit }) => {
             </div>
           </div>
 
+          {/* Hidden Field for Project ID */}
+          <input
+            type="hidden"
+            name="projectId"
+            value={CurrentProjectId || ""}
+          />
+
           {/* Submit Button */}
           <Button
             type="submit"
-            disabled={loading}
+            disabled={loading || !CurrentProjectId}
             variant="default"
             className="bg-violet-600 dark:bg-violet-700 hover:bg-violet-700 dark:hover:bg-violet-800 text-white py-2 px-4 rounded mt-2"
             onClick={(e) => e.stopPropagation()} // Prevent event bubbling
