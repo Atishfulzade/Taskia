@@ -27,7 +27,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
-import { Separator } from "@/components/ui/Separator";
 
 // Icons
 import {
@@ -37,12 +36,12 @@ import {
   ArrowDownUp,
   FolderOpen,
   Layers,
-  User,
 } from "lucide-react";
 
 // Components
 import PrioritySection from "../component/PrioritySection";
 import Task from "../component/Task";
+import AddTaskPopup from "../component/AddTaskPopup";
 
 const ProjectList = () => {
   // Redux hooks
@@ -58,7 +57,6 @@ const ProjectList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState("all"); // "all" or "me"
   const [sortBy, setSortBy] = useState("default");
   const [activeId, setActiveId] = useState(null);
   const [activeTask, setActiveTask] = useState(null);
@@ -67,6 +65,8 @@ const ProjectList = () => {
     Medium: true,
     No: true,
   });
+  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const [selectedPriority, setSelectedPriority] = useState(null);
 
   // Drag-and-Drop Sensors
   const sensors = useSensors(
@@ -175,13 +175,6 @@ const ProjectList = () => {
   const filteredTasks = useMemo(() => {
     let filtered = [...storedTasks];
 
-    // Apply view mode filter
-    if (viewMode === "me") {
-      filtered = filtered.filter(
-        (task) => task.assignedTo === userId || task.assignedBy === userId
-      );
-    }
-
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -216,7 +209,7 @@ const ProjectList = () => {
     }
 
     return filtered;
-  }, [storedTasks, viewMode, searchQuery, sortBy, userId]);
+  }, [storedTasks, searchQuery, sortBy, userId]);
 
   // Task counts
   const { total, highCount, mediumCount, noCount } = useMemo(() => {
@@ -240,20 +233,42 @@ const ProjectList = () => {
 
   // Handle adding a new task
   const handleAddTask = useCallback((priority) => {
-    console.log(`Adding new task with ${priority} priority`);
-    // Implement your add task logic here
+    setSelectedPriority(priority);
+    setIsAddTaskOpen(true);
   }, []);
 
   return (
     <div className="flex flex-col h-full w-full">
       {/* Header with Project Name */}
-      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
-        <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-          {projectName || "Project Tasks"}{" "}
-          <Badge variant="secondary" className="ml-2 text-xs">
-            {total} tasks
-          </Badge>
-        </h1>
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 sticky top-0 z-10 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
+            {projectName || "Project Tasks"}{" "}
+            <Badge variant="secondary" className="ml-2 text-xs">
+              {total} tasks
+            </Badge>
+          </h1>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className="bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+            >
+              High: {highCount}
+            </Badge>
+            <Badge
+              variant="outline"
+              className="bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+            >
+              Medium: {mediumCount}
+            </Badge>
+            <Badge
+              variant="outline"
+              className="bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+            >
+              No Priority: {noCount}
+            </Badge>
+          </div>
+        </div>
       </div>
 
       {/* Controls Bar */}
@@ -282,43 +297,19 @@ const ProjectList = () => {
                 <span className="hidden sm:inline">Collapse All</span>
               </Button>
             </div>
-
-            <Separator
-              orientation="vertical"
-              className="h-8 mx-1 hidden sm:block"
-            />
-
-            <Button
-              variant={viewMode === "all" ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("all")}
-              className="h-9 text-sm"
-            >
-              All Tasks
-            </Button>
-
-            <Button
-              variant={viewMode === "me" ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("me")}
-              className="h-9 text-sm"
-            >
-              <User className="h-4 w-4 mr-1.5" />
-              <span>My Tasks</span>
-            </Button>
           </div>
 
           {/* Right controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mt-3 sm:mt-0">
             {/* Search */}
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-none">
               <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
               <Input
                 type="text"
                 placeholder="Search tasks..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-9 text-sm w-[140px] sm:w-[180px] dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"
+                className="pl-8 h-9 text-sm w-full sm:w-[220px] dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"
               />
             </div>
 
@@ -388,17 +379,17 @@ const ProjectList = () => {
             <div className="space-y-4">
               {total === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="bg-white dark:bg-slate-800 p-8 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
-                    <div className="h-16 w-16 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mx-auto mb-4">
-                      <Plus className="h-8 w-8 text-slate-400 dark:text-slate-500" />
+                  <div className="bg-white dark:bg-slate-800 p-8 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm max-w-md mx-auto">
+                    <div className="h-16 w-16 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center mx-auto mb-4">
+                      <Plus className="h-8 w-8 text-violet-600 dark:text-violet-400" />
                     </div>
                     <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 mb-2">
                       No tasks found
                     </h3>
-                    <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-md">
+                    <p className="text-slate-500 dark:text-slate-400 mb-6">
                       {searchQuery
                         ? "No tasks match your search criteria. Try a different search term or clear the search."
-                        : "Get started by creating your first task."}
+                        : "Get started by creating your first task for this project."}
                     </p>
                     <Button
                       onClick={() => handleAddTask("No")}
@@ -445,6 +436,14 @@ const ProjectList = () => {
           </DndContext>
         )}
       </div>
+
+      {/* Add Task Popup */}
+      <AddTaskPopup
+        open={isAddTaskOpen}
+        onOpenChange={setIsAddTaskOpen}
+        initialPriority={selectedPriority}
+        isEdit={false}
+      />
     </div>
   );
 };

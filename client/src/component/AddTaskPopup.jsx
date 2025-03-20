@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -374,8 +376,15 @@ const AddTaskPopup = React.memo(
           return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
         case "Medium":
           return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
-        default:
+        case "No":
           return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
+        default:
+          // Generate a color based on the priority name for custom priorities
+          const hash = priority.split("").reduce((acc, char) => {
+            return char.charCodeAt(0) + ((acc << 5) - acc);
+          }, 0);
+          const hue = Math.abs(hash % 360);
+          return `bg-[hsl(${hue},85%,95%)] text-[hsl(${hue},75%,35%)] dark:bg-[hsl(${hue},70%,15%)] dark:text-[hsl(${hue},70%,70%)]`;
       }
     };
 

@@ -60,12 +60,8 @@ const TaskMoreDropdown = ({ setShowMore, status }) => {
     setEditStatus(val);
     // Don't close the dropdown when dialog closes
     if (!val) {
-      // Small delay to prevent immediate closing
-      setTimeout(() => {
-        setShowMore(false);
-      }, 0);
+      setShowMore(false);
     }
-    // setShowMore(false);
   };
 
   return (
