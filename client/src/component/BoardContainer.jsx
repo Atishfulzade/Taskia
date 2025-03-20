@@ -164,6 +164,8 @@ const BoardContainer = ({ projectId, statuses, tasks, onTaskCreate }) => {
             taskData={editTask}
             status={editStatus}
             projectId={projectId}
+            showStatus={false}
+            showPriority={true}
             onCreateTask={onTaskCreate}
             onUpdateTask={handleTaskUpdate}
             isEdit={!!editTask}

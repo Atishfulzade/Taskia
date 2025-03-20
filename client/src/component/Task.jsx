@@ -330,7 +330,7 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="dark:bg-slate-800 dark:text-slate-200"
+            className="dark:bg-slate-800 dark:text-slate-200 bg-white"
           >
             <DropdownMenuItem
               onClick={handleEditTitle}

@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner"; // Import sonner's toast
+import { toast } from "sonner";
 import {
   Paperclip,
   X,
@@ -19,6 +19,8 @@ import {
   FileText,
   Edit,
   Save,
+  Tag,
+  CheckCircle2,
 } from "lucide-react";
 import { useFileUpload } from "../hooks/useFileUpload ";
 import { useProjectMembers } from "../hooks/useProjectMembers";
@@ -89,12 +91,12 @@ const taskSchema = z.object({
 // Subtask component
 const SubtaskItem = ({ index, form, isFormDisabled, removeSubtask }) => {
   return (
-    <Card className="bg-background border border-border shadow-sm">
+    <Card className="bg-background border border-border shadow-sm transition-all hover:shadow-md">
       <CardContent className="p-4 space-y-3">
         <div className="flex justify-between items-center">
           <Badge
             variant="outline"
-            className="bg-secondary/30 text-secondary-foreground"
+            className="bg-secondary/30 text-secondary-foreground font-medium"
           >
             Subtask {index + 1}
           </Badge>
@@ -104,19 +106,20 @@ const SubtaskItem = ({ index, form, isFormDisabled, removeSubtask }) => {
             size="icon"
             onClick={() => removeSubtask(index)}
             disabled={isFormDisabled}
-            className="h-8 w-8 rounded-full"
+            className="h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors"
           >
             <X className="h-4 w-4" />
             <span className="sr-only">Remove subtask</span>
           </Button>
         </div>
-        <Separator />
+        <Separator className="my-2" />
         <FormField
           control={form.control}
           name={`subTask.${index}.title`}
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium">
+              <FormLabel className="text-xs font-medium flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
                 Title<span className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
@@ -124,7 +127,7 @@ const SubtaskItem = ({ index, form, isFormDisabled, removeSubtask }) => {
                   placeholder="Subtask title"
                   {...field}
                   disabled={isFormDisabled}
-                  className="bg-background"
+                  className="bg-background focus-visible:ring-primary/50"
                 />
               </FormControl>
               <FormMessage />
@@ -136,11 +139,14 @@ const SubtaskItem = ({ index, form, isFormDisabled, removeSubtask }) => {
           name={`subTask.${index}.description`}
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium">Description</FormLabel>
+              <FormLabel className="text-xs font-medium flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5 text-primary" />
+                Description
+              </FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="Subtask description"
-                  className="resize-none bg-background min-h-[80px]"
+                  className="resize-none bg-background min-h-[80px] focus-visible:ring-primary/50"
                   {...field}
                   disabled={isFormDisabled}
                 />
@@ -157,7 +163,7 @@ const SubtaskItem = ({ index, form, isFormDisabled, removeSubtask }) => {
 // File attachment item component
 const FileAttachmentItem = ({ file, index, onRemove, isDisabled }) => {
   return (
-    <div className="flex items-center justify-between p-2.5 bg-secondary/20 rounded-md group hover:bg-secondary/30 transition-colors">
+    <div className="flex items-center justify-between p-2.5 bg-secondary/10 rounded-md group hover:bg-secondary/20 transition-all border border-transparent hover:border-secondary/30">
       <a
         href={file.link}
         target="_blank"
@@ -174,7 +180,7 @@ const FileAttachmentItem = ({ file, index, onRemove, isDisabled }) => {
         size="icon"
         onClick={() => onRemove(index)}
         disabled={isDisabled}
-        className="h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+        className="h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
       >
         <X className="h-4 w-4" />
         <span className="sr-only">Remove file</span>
@@ -185,7 +191,18 @@ const FileAttachmentItem = ({ file, index, onRemove, isDisabled }) => {
 
 // Main component
 const AddTaskPopup = React.memo(
-  ({ open, onOpenChange, status, taskData, isEdit }) => {
+  ({
+    open,
+    onOpenChange,
+    status,
+    showStatus,
+    showPriority,
+    taskData,
+    isEdit,
+    initialPriority,
+    availablePriorities = ["High", "Medium", "No"],
+    onAddPriority,
+  }) => {
     const [loading, setLoading] = useState(false);
     const [isFormDisabled, setIsFormDisabled] = useState(isEdit);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -195,6 +212,7 @@ const AddTaskPopup = React.memo(
     const navigate = useNavigate();
     const projectId = useSelector((state) => state.project.currentProject?._id);
     const userId = useSelector((state) => state.user.user._id);
+    const statuses = useSelector((state) => state.status.statuses);
     const projectMembers = useSelector(
       (state) => state.project.currentProject?.member
     );
@@ -205,14 +223,14 @@ const AddTaskPopup = React.memo(
       open
     );
 
-    // Get default values based on edit mode
+    // Get default values based on edit mode and initialPriority
     const getDefaultValues = useCallback(() => {
       if (isEdit && taskData) {
         return {
           title: taskData.title || "",
           description: taskData.description || "",
           priority: taskData.priority || "No",
-          status: status?._id || taskData.status || "",
+          status: status?._id || taskData.status || "todo",
           assignedTo: taskData.assignedTo || "",
           assignedBy: taskData.assignedBy || userId,
           projectId: projectId || "",
@@ -225,8 +243,8 @@ const AddTaskPopup = React.memo(
       return {
         title: "",
         description: "",
-        priority: "No",
-        status: status?._id || "",
+        priority: initialPriority || "No",
+        status: status?._id || "todo",
         assignedTo: "",
         assignedBy: userId,
         projectId: projectId || "",
@@ -234,7 +252,7 @@ const AddTaskPopup = React.memo(
         subTask: [],
         attachedFile: [],
       };
-    }, [taskData, status, userId, projectId, isEdit]);
+    }, [taskData, status, userId, projectId, isEdit, initialPriority]);
 
     // Initialize form with default values
     const form = useForm({
@@ -245,7 +263,7 @@ const AddTaskPopup = React.memo(
     // Reset form when taskData or isEdit changes
     useEffect(() => {
       form.reset(getDefaultValues());
-    }, [taskData, isEdit, form, getDefaultValues]);
+    }, [taskData, isEdit, form, getDefaultValues, initialPriority]);
 
     // Track form changes
     useEffect(() => {
@@ -268,7 +286,12 @@ const AddTaskPopup = React.memo(
       if (userId && !form.getValues("assignedBy")) {
         form.setValue("assignedBy", userId);
       }
-    }, [projectId, status, userId, form]);
+
+      // Set initial priority if provided
+      if (initialPriority && form.getValues("priority") !== initialPriority) {
+        form.setValue("priority", initialPriority);
+      }
+    }, [projectId, status, userId, form, initialPriority]);
 
     // Handle file input change
     const handleFileChange = async (event) => {
@@ -280,7 +303,7 @@ const AddTaskPopup = React.memo(
         const currentFiles = form.getValues("attachedFile") || [];
         form.setValue("attachedFile", [...currentFiles, ...uploadedFiles]);
       } catch (error) {
-        toast.error("Failed to upload files"); // Use sonner's toast
+        toast.error("Failed to upload files");
         console.error("File upload error:", error);
       }
     };
@@ -342,11 +365,11 @@ const AddTaskPopup = React.memo(
         if (isEdit && taskData) {
           res = await requestServer(`task/update/${taskData._id}`, values);
           dispatch(updateTask(res.data));
-          toast.success("Task updated successfully"); // Use sonner's toast
+          toast.success("Task updated successfully");
         } else {
           res = await requestServer("task/add", values);
           dispatch(addTask(res.data));
-          toast.success("Task added successfully"); // Use sonner's toast
+          toast.success("Task added successfully");
         }
 
         onOpenChange(false);
@@ -355,14 +378,12 @@ const AddTaskPopup = React.memo(
       } catch (error) {
         console.error("Error:", error);
         if (error.response?.data?.message === "Token not found") {
-          toast.error("Session expired. Please login again."); // Use sonner's toast
+          toast.error("Session expired. Please login again.");
           localStorage.removeItem("token");
           localStorage.removeItem("userState");
           navigate("/authenticate");
         } else {
-          toast.error(
-            error.response?.data?.message || "Something went wrong" // Use sonner's toast
-          );
+          toast.error(error.response?.data?.message || "Something went wrong");
         }
       } finally {
         setLoading(false);
@@ -373,36 +394,49 @@ const AddTaskPopup = React.memo(
     const getPriorityColor = (priority) => {
       switch (priority) {
         case "High":
-          return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
+          return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800/30";
         case "Medium":
-          return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
+          return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800/30";
         case "No":
-          return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
+          return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800/30";
         default:
           // Generate a color based on the priority name for custom priorities
           const hash = priority.split("").reduce((acc, char) => {
             return char.charCodeAt(0) + ((acc << 5) - acc);
           }, 0);
           const hue = Math.abs(hash % 360);
-          return `bg-[hsl(${hue},85%,95%)] text-[hsl(${hue},75%,35%)] dark:bg-[hsl(${hue},70%,15%)] dark:text-[hsl(${hue},70%,70%)]`;
+          return `bg-[hsl(${hue},85%,95%)] text-[hsl(${hue},75%,35%)] dark:bg-[hsl(${hue},70%,15%)] dark:text-[hsl(${hue},70%,70%)] border-[hsl(${hue},75%,85%)] dark:border-[hsl(${hue},70%,25%)]`;
       }
     };
 
     return (
       <Dialog open={open} onOpenChange={handleDialogClose}>
         <DialogContent
-          className="sm:max-w-[550px] max-h-[90vh] overflow-hidden p-0"
+          className="sm:max-w-[600px] max-h-[90vh] overflow-hidden p-0 rounded-xl border-none shadow-xl"
           aria-describedby="task-form-description"
         >
-          <DialogHeader className="px-6 pt-6 pb-2">
+          <DialogHeader className="px-6 pt-6 pb-2 bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/40 dark:to-indigo-950/40 rounded-t-xl">
             <div className="flex items-center justify-between">
               <div>
-                <DialogTitle className="text-xl font-semibold">
+                <DialogTitle className="text-xl font-semibold text-violet-900 dark:text-violet-200 flex flex-wrap items-center gap-2">
                   {isEdit ? "Edit Task" : "Add Task"}
+                  {initialPriority && !isEdit && (
+                    <Badge
+                      variant="outline"
+                      className={`ml-1 ${getPriorityColor(initialPriority)}`}
+                    >
+                      {initialPriority} Priority
+                    </Badge>
+                  )}
+                  {showStatus && status && !isEdit && (
+                    <Badge className={`ml-1 ${status.primaryColor}`}>
+                      {status.title}
+                    </Badge>
+                  )}
                 </DialogTitle>
                 <DialogDescription
                   id="task-form-description"
-                  className="mt-1.5"
+                  className="mt-1.5 text-violet-700/70 dark:text-violet-300/70"
                 >
                   {isEdit
                     ? "Update this task by modifying the form fields."
@@ -411,28 +445,30 @@ const AddTaskPopup = React.memo(
               </div>
 
               {isEdit && (
-                <div
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setIsFormDisabled(!isFormDisabled)}
-                  className="h-9 w-9 cursor-pointer "
+                  className="h-9 w-9 rounded-full bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 text-violet-600 dark:text-violet-300 shadow-sm border border-violet-100 dark:border-violet-800/30"
                 >
                   {isFormDisabled ? (
-                    <Edit className="h-5 w-5" />
+                    <Edit className="h-4 w-4" />
                   ) : (
-                    <Save className="h-5 w-5" />
+                    <Save className="h-4 w-4" />
                   )}
                   <span className="sr-only">
                     {isFormDisabled ? "Enable Editing" : "Disable Editing"}
                   </span>
-                </div>
+                </Button>
               )}
             </div>
           </DialogHeader>
 
-          <ScrollArea className="max-h-[calc(90vh-120px)] px-6">
+          <ScrollArea className="max-h-[calc(90vh-120px)] px-6 bg-white dark:bg-slate-900">
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-5 py-4"
+                className="space-y-5 py-5"
               >
                 {/* Task Title */}
                 <FormField
@@ -440,8 +476,8 @@ const AddTaskPopup = React.memo(
                   name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center gap-2 text-sm font-medium">
-                        <ListTodo className="h-4 w-4" />
+                      <FormLabel className="flex items-center gap-2 text-sm font-medium text-violet-800 dark:text-violet-300">
+                        <ListTodo className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                         Title<span className="text-destructive">*</span>
                       </FormLabel>
                       <FormControl>
@@ -449,7 +485,7 @@ const AddTaskPopup = React.memo(
                           placeholder="Enter task title"
                           {...field}
                           disabled={isFormDisabled}
-                          className="bg-background"
+                          className="bg-background focus-visible:ring-violet-500/50 border-violet-100 dark:border-violet-800/30"
                         />
                       </FormControl>
                       <FormMessage />
@@ -463,14 +499,14 @@ const AddTaskPopup = React.memo(
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center gap-2 text-sm font-medium">
-                        <FileText className="h-4 w-4" />
+                      <FormLabel className="flex items-center gap-2 text-sm font-medium text-violet-800 dark:text-violet-300">
+                        <FileText className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                         Description
                       </FormLabel>
                       <FormControl>
                         <Textarea
                           placeholder="Enter description"
-                          className="resize-none bg-background min-h-[100px]"
+                          className="resize-none bg-background min-h-[100px] focus-visible:ring-violet-500/50 border-violet-100 dark:border-violet-800/30"
                           {...field}
                           disabled={isFormDisabled}
                         />
@@ -482,60 +518,67 @@ const AddTaskPopup = React.memo(
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   {/* Priority */}
-                  <FormField
-                    control={form.control}
-                    name="priority"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2 text-sm font-medium">
-                          <Flag className="h-4 w-4" />
-                          Priority
-                        </FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            disabled={isFormDisabled}
-                            className="flex flex-col space-y-1"
-                          >
-                            {["No", "Medium", "High"].map((priority) => (
-                              <div
-                                key={priority}
-                                className="flex items-center space-x-2"
+                  {showPriority && (
+                    <FormField
+                      control={form.control}
+                      name="priority"
+                      render={({ field }) => (
+                        <FormItem className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30">
+                          <FormLabel className="flex items-center gap-2 text-sm font-medium text-violet-800 dark:text-violet-300">
+                            <Flag className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                            Priority
+                          </FormLabel>
+                          <FormControl>
+                            <div className="space-y-3">
+                              <RadioGroup
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                disabled={isFormDisabled}
+                                className="flex flex-col space-y-1.5 max-h-[150px] overflow-y-auto pr-2"
                               >
-                                <RadioGroupItem
-                                  value={priority}
-                                  id={`priority-${priority}`}
-                                  checked={field.value === priority}
-                                />
-                                <Label
-                                  htmlFor={`priority-${priority}`}
-                                  className="flex items-center gap-2"
-                                >
-                                  <Badge
-                                    variant="outline"
-                                    className={getPriorityColor(priority)}
+                                {availablePriorities.map((priority) => (
+                                  <div
+                                    key={priority}
+                                    className="flex items-center space-x-2"
                                   >
-                                    {priority}
-                                  </Badge>
-                                </Label>
-                              </div>
-                            ))}
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                                    <RadioGroupItem
+                                      value={priority}
+                                      id={`priority-${priority}`}
+                                      checked={field.value === priority}
+                                      className="text-violet-600 border-violet-300 dark:border-violet-700"
+                                    />
+                                    <Label
+                                      htmlFor={`priority-${priority}`}
+                                      className="flex items-center gap-2 cursor-pointer"
+                                    >
+                                      <Badge
+                                        variant="outline"
+                                        className={`${getPriorityColor(
+                                          priority
+                                        )} font-medium`}
+                                      >
+                                        {priority}
+                                      </Badge>
+                                    </Label>
+                                  </div>
+                                ))}
+                              </RadioGroup>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   {/* Assignee */}
                   <FormField
                     control={form.control}
                     name="assignedTo"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2 text-sm font-medium">
-                          <User className="h-4 w-4" />
+                      <FormItem className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30">
+                        <FormLabel className="flex items-center gap-2 text-sm font-medium text-violet-800 dark:text-violet-300">
+                          <User className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                           Assign To<span className="text-destructive">*</span>
                         </FormLabel>
                         <Select
@@ -544,10 +587,10 @@ const AddTaskPopup = React.memo(
                           disabled={isFormDisabled || membersLoading}
                         >
                           <FormControl>
-                            <SelectTrigger className="bg-background">
+                            <SelectTrigger className="bg-white dark:bg-slate-900 border-violet-100 dark:border-violet-800/30 focus:ring-violet-500/50">
                               {membersLoading ? (
                                 <div className="flex items-center">
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin text-violet-600" />
                                   <span>Loading...</span>
                                 </div>
                               ) : (
@@ -569,35 +612,72 @@ const AddTaskPopup = React.memo(
                   />
                 </div>
 
-                {/* Due Date */}
-                <FormField
-                  control={form.control}
-                  name="dueDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2 text-sm font-medium">
-                        <Calendar className="h-4 w-4" />
-                        Due Date
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="date"
-                          {...field}
-                          disabled={isFormDisabled}
-                          className="bg-background"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Due Date */}
+                  <FormField
+                    control={form.control}
+                    name="dueDate"
+                    render={({ field }) => (
+                      <FormItem className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30">
+                        <FormLabel className="flex items-center gap-2 text-sm font-medium text-violet-800 dark:text-violet-300">
+                          <Calendar className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                          Due Date
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            {...field}
+                            disabled={isFormDisabled}
+                            className="bg-white dark:bg-slate-900 border-violet-100 dark:border-violet-800/30 focus-visible:ring-violet-500/50"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Status */}
+                  {showStatus && (
+                    <FormField
+                      control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30">
+                          <FormLabel className="flex items-center gap-2 text-sm font-medium text-violet-800 dark:text-violet-300">
+                            <Tag className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                            Status
+                          </FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value || "Select Status"}
+                            disabled={isFormDisabled}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="bg-white dark:bg-slate-900 border-violet-100 dark:border-violet-800/30 focus:ring-violet-500/50">
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {statuses.map((status) => (
+                                <SelectItem key={status._id} value={status._id}>
+                                  {status.title}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
-                />
+                </div>
 
                 <Accordion type="single" collapsible className="w-full">
                   {/* File Attachments */}
                   <AccordionItem value="attachments" className="border-b-0">
-                    <AccordionTrigger className="py-3 px-4 bg-secondary/10 rounded-md hover:bg-secondary/20 transition-colors">
+                    <AccordionTrigger className="py-3 px-4 bg-violet-100/50 dark:bg-violet-900/20 rounded-md hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors text-violet-800 dark:text-violet-300">
                       <div className="flex items-center gap-2 text-sm font-medium">
-                        <Paperclip className="h-4 w-4" />
+                        <Paperclip className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                         Attachments ({form.watch("attachedFile").length})
                       </div>
                     </AccordionTrigger>
@@ -609,12 +689,12 @@ const AddTaskPopup = React.memo(
                           size="sm"
                           onClick={() => fileInputRef.current?.click()}
                           disabled={fileLoading || isFormDisabled}
-                          className="w-full"
+                          className="w-full bg-white dark:bg-slate-900 border-violet-200 dark:border-violet-800/30 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20"
                         >
                           {fileLoading ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin text-violet-600" />
                           ) : (
-                            <Paperclip className="h-4 w-4 mr-2" />
+                            <Paperclip className="h-4 w-4 mr-2 text-violet-600" />
                           )}
                           {fileLoading ? "Uploading..." : "Attach Files"}
                         </Button>
@@ -646,9 +726,9 @@ const AddTaskPopup = React.memo(
 
                   {/* Subtasks */}
                   <AccordionItem value="subtasks" className="border-b-0 mt-2">
-                    <AccordionTrigger className="py-3 px-4 bg-secondary/10 rounded-md hover:bg-secondary/20 transition-colors">
+                    <AccordionTrigger className="py-3 px-4 bg-violet-100/50 dark:bg-violet-900/20 rounded-md hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors text-violet-800 dark:text-violet-300">
                       <div className="flex items-center gap-2 text-sm font-medium">
-                        <ListTodo className="h-4 w-4" />
+                        <ListTodo className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                         Subtasks ({form.watch("subTask").length})
                       </div>
                     </AccordionTrigger>
@@ -660,9 +740,9 @@ const AddTaskPopup = React.memo(
                           size="sm"
                           onClick={addSubtask}
                           disabled={isFormDisabled}
-                          className="w-full"
+                          className="w-full bg-white dark:bg-slate-900 border-violet-200 dark:border-violet-800/30 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20"
                         >
-                          <Plus className="h-4 w-4 mr-2" />
+                          <Plus className="h-4 w-4 mr-2 text-violet-600" />
                           Add Subtask
                         </Button>
 
@@ -685,13 +765,10 @@ const AddTaskPopup = React.memo(
                 </Accordion>
 
                 {/* Submit Button */}
-                <div
-                  className="sticky bottom-0  pt-2 pb-4 bg-white
-                "
-                >
+                <div className="sticky bottom-0 pt-2 pb-4 bg-white dark:bg-slate-900">
                   <Button
                     type="submit"
-                    className="w-full bg-violet-600 text-white"
+                    className="w-full bg-violet-600 text-white hover:bg-violet-700 shadow-md hover:shadow-lg transition-all"
                     disabled={loading || fileLoading || isFormDisabled}
                   >
                     {loading ? (

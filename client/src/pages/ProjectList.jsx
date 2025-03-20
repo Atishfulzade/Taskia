@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { updateTask, setTasks } from "../store/taskSlice";
@@ -67,6 +69,11 @@ const ProjectList = () => {
   });
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const [selectedPriority, setSelectedPriority] = useState(null);
+  const [availablePriorities, setAvailablePriorities] = useState([
+    "High",
+    "Medium",
+    "No",
+  ]);
 
   // Drag-and-Drop Sensors
   const sensors = useSensors(
@@ -163,13 +170,29 @@ const ProjectList = () => {
   );
 
   // Toggle all dropdowns
-  const toggleAllDropdowns = useCallback((value) => {
-    setOpenDropdowns({
-      High: value,
-      Medium: value,
-      No: value,
-    });
-  }, []);
+  const toggleAllDropdowns = useCallback(
+    (value) => {
+      setOpenDropdowns((prev) => {
+        const newState = { ...prev };
+        availablePriorities.forEach((priority) => {
+          newState[priority] = value;
+        });
+        return newState;
+      });
+    },
+    [availablePriorities]
+  );
+
+  // Add a new priority
+  const handleAddPriority = useCallback(
+    (priorityName, color) => {
+      if (!availablePriorities.includes(priorityName)) {
+        setAvailablePriorities((prev) => [...prev, priorityName]);
+        setOpenDropdowns((prev) => ({ ...prev, [priorityName]: true }));
+      }
+    },
+    [availablePriorities]
+  );
 
   // Filter and sort tasks
   const filteredTasks = useMemo(() => {
@@ -211,24 +234,20 @@ const ProjectList = () => {
     return filtered;
   }, [storedTasks, searchQuery, sortBy, userId]);
 
-  // Task counts
-  const { total, highCount, mediumCount, noCount } = useMemo(() => {
-    const highCount = filteredTasks.filter(
-      (task) => task.priority === "High"
-    ).length;
-    const mediumCount = filteredTasks.filter(
-      (task) => task.priority === "Medium"
-    ).length;
-    const noCount = filteredTasks.filter(
-      (task) => task.priority === "No"
-    ).length;
+  // Task counts by priority
+  const taskCounts = useMemo(() => {
+    const counts = {};
+    availablePriorities.forEach((priority) => {
+      counts[priority] = filteredTasks.filter(
+        (task) => task.priority === priority
+      ).length;
+    });
+    return counts;
+  }, [filteredTasks, availablePriorities]);
 
-    return {
-      total: filteredTasks.length,
-      highCount,
-      mediumCount,
-      noCount,
-    };
+  // Total task count
+  const totalTasks = useMemo(() => {
+    return filteredTasks.length;
   }, [filteredTasks]);
 
   // Handle adding a new task
@@ -245,28 +264,29 @@ const ProjectList = () => {
           <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
             {projectName || "Project Tasks"}{" "}
             <Badge variant="secondary" className="ml-2 text-xs">
-              {total} tasks
+              {totalTasks} tasks
             </Badge>
           </h1>
-          <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className="bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
-            >
-              High: {highCount}
-            </Badge>
-            <Badge
-              variant="outline"
-              className="bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
-            >
-              Medium: {mediumCount}
-            </Badge>
-            <Badge
-              variant="outline"
-              className="bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
-            >
-              No Priority: {noCount}
-            </Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            {availablePriorities.map((priority) => (
+              <Badge
+                key={priority}
+                variant="outline"
+                className={`
+                  ${
+                    priority === "High"
+                      ? "bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+                      : priority === "Medium"
+                      ? "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+                      : priority === "No"
+                      ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+                      : "bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800"
+                  }
+                `}
+              >
+                {priority}: {taskCounts[priority] || 0}
+              </Badge>
+            ))}
           </div>
         </div>
       </div>
@@ -377,7 +397,7 @@ const ProjectList = () => {
             onDragEnd={handleDragEnd}
           >
             <div className="space-y-4">
-              {total === 0 ? (
+              {totalTasks === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                   <div className="bg-white dark:bg-slate-800 p-8 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm max-w-md mx-auto">
                     <div className="h-16 w-16 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center mx-auto mb-4">
@@ -402,8 +422,8 @@ const ProjectList = () => {
                 </div>
               ) : (
                 <AnimatePresence>
-                  {/* Render sections for High, Medium, and No priority */}
-                  {["High", "Medium", "No"].map((priority) => (
+                  {/* Render sections for all available priorities */}
+                  {availablePriorities.map((priority) => (
                     <motion.div
                       key={priority}
                       initial={{ opacity: 0, y: 10 }}
@@ -443,6 +463,10 @@ const ProjectList = () => {
         onOpenChange={setIsAddTaskOpen}
         initialPriority={selectedPriority}
         isEdit={false}
+        showStatus={true}
+        showPriority={false}
+        availablePriorities={availablePriorities}
+        onAddPriority={handleAddPriority}
       />
     </div>
   );
