@@ -44,6 +44,7 @@ import {
 import PrioritySection from "../component/PrioritySection";
 import Task from "../component/Task";
 import AddTaskPopup from "../component/AddTaskPopup";
+import { toast } from "sonner";
 
 const ProjectList = () => {
   // Redux hooks
@@ -256,6 +257,22 @@ const ProjectList = () => {
     setIsAddTaskOpen(true);
   }, []);
 
+  // Handle deleting a task
+  const handleDeleteTask = useCallback(
+    async (taskId) => {
+      try {
+        await requestServer(`task/delete/${taskId}`);
+        // Remove task from Redux store
+        dispatch(setTasks(storedTasks.filter((task) => task._id !== taskId)));
+        toast.success("Task deleted successfully");
+      } catch (error) {
+        console.error("Error deleting task:", error);
+        toast.error("Failed to delete task");
+      }
+    },
+    [dispatch, storedTasks]
+  );
+
   return (
     <div className="flex flex-col h-full w-full">
       {/* Header with Project Name */}
@@ -438,6 +455,7 @@ const ProjectList = () => {
                         toggleDropdown={toggleDropdown}
                         openDropdowns={openDropdowns}
                         onAddTask={handleAddTask}
+                        onTaskDelete={handleDeleteTask}
                       />
                     </motion.div>
                   ))}

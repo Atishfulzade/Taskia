@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useMemo } from "react";
 import {
   SortableContext,
@@ -10,12 +12,6 @@ import Task from "./Task";
 // UI Components
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../components/ui/Tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,6 +57,7 @@ const PrioritySection = ({
   toggleDropdown,
   openDropdowns,
   onAddTask = () => {},
+  onTaskDelete = () => {},
 }) => {
   // Local state
   const [hovered, setHovered] = useState(false);
@@ -135,27 +132,18 @@ const PrioritySection = ({
               exit={{ opacity: 0 }}
               className="flex items-center gap-2"
             >
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAddTask(priority);
-                      }}
-                      className="flex items-center gap-1 text-slate-600 dark:text-slate-300"
-                    >
-                      <IoAdd size={16} />
-                      <span className="hidden sm:inline">Add task</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent className="dark:bg-slate-800 dark:text-slate-200">
-                    Add a new task
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddTask(priority);
+                }}
+                className="flex items-center gap-1 text-slate-600 dark:text-slate-300"
+              >
+                <IoAdd size={16} />
+                <span className="hidden sm:inline">Add task</span>
+              </Button>
 
               <DropdownMenu>
                 <DropdownMenuTrigger
@@ -171,15 +159,15 @@ const PrioritySection = ({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="dark:bg-slate-800 dark:text-slate-200"
+                  className="dark:bg-slate-800 dark:text-slate-200 bg-white"
                 >
-                  <DropdownMenuItem className="dark:hover:bg-slate-700">
+                  <DropdownMenuItem className="dark:hover:bg-slate-700 hover:bg-slate-100">
                     Sort tasks
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="dark:hover:bg-slate-700">
+                  <DropdownMenuItem className="dark:hover:bg-slate-700 hover:bg-slate-100">
                     Filter tasks
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="dark:hover:bg-slate-700">
+                  <DropdownMenuItem className="dark:hover:bg-slate-700 hover:bg-slate-100">
                     Collapse all
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -232,7 +220,12 @@ const PrioritySection = ({
               >
                 {tasks.length > 0 ? (
                   tasks.map((task) => (
-                    <Task key={task._id} task={task} priority={priority} />
+                    <Task
+                      key={task._id}
+                      task={task}
+                      priority={priority}
+                      onTaskDelete={onTaskDelete}
+                    />
                   ))
                 ) : (
                   <div

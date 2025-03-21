@@ -1,9 +1,18 @@
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { Badge } from "../components/ui/Badge";
+import { Button } from "../components/ui/Button";
+import { Checkbox } from "../components/ui/Checkbox";
+import { Avatar, AvatarFallback } from "../components/ui/Avatar";
+import { Skeleton } from "../components/ui/Skeleton";
+import { Progress } from "../components/ui/Progress";
 import { useSelector } from "react-redux";
+import { useSortable } from "@dnd-kit/sortable";
+import { formatDate } from "@/utils/formatDate";
+import { formatDistanceToNow } from "date-fns"; // Added import
+import requestServer from "@/utils/requestServer";
+import AddTaskPopup from "../component/AddTaskPopup";
+
 import { motion } from "framer-motion";
-import { formatDistanceToNow } from "date-fns";
 import {
   Check,
   Grip,
@@ -14,30 +23,14 @@ import {
   MoreHorizontal,
   User,
   Trash2,
-  X,
-  Clock,
 } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../components/ui/Tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu"; // Corrected import path
-import { Badge } from "../components/ui/Badge";
-import { Button } from "../components/ui/Button";
-import { Checkbox } from "../components/ui/Checkbox";
-import { Avatar, AvatarFallback } from "../components/ui/Avatar";
-import { Skeleton } from "../components/ui/Skeleton";
-import { Progress } from "../components/ui/Progress";
-import { formatDate } from "../utils/formatDate";
-import requestServer from "../utils/requestServer";
+} from "../components/ui/dropdown-menu";
 
 const TaskProgressIndicator = ({ status, statusLength }) => {
   const percentage = status ? (statusLength || 1) * 10 : 0;
@@ -60,23 +53,14 @@ const PriorityFlag = ({ priority }) => {
   };
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex items-center gap-1.5">
-            <Flag
-              className={`h-3.5 w-3.5 ${
-                colorMap[priority] || "text-slate-400 dark:text-slate-500"
-              }`}
-            />
-            <span className="text-xs font-medium">{priority || "None"}</span>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent className="dark:bg-slate-800 dark:text-slate-200">
-          <p>Priority: {priority || "Not set"}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <div className="flex items-center gap-1.5">
+      <Flag
+        className={`h-3.5 w-3.5 ${
+          colorMap[priority] || "text-slate-400 dark:text-slate-500"
+        }`}
+      />
+      <span className="text-xs font-medium">{priority || "None"}</span>
+    </div>
   );
 };
 
@@ -84,12 +68,15 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
   const [assignedUser, setAssignedUser] = useState("");
   const [statusDetails, setStatusDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isCompleted, setIsCompleted] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(task?.completed || false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(task?.title || "");
+  const [isTaskPopupOpen, setIsTaskPopupOpen] = useState(false);
   const inputRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   const statusLength = useSelector((state) => state.status?.statuses?.length);
+  const statuses = useSelector((state) => state.status?.statuses);
 
   useEffect(() => {
     if (task?.status) {
@@ -124,7 +111,7 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
     });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Transform?.toString(transform),
     transition,
   };
 
@@ -175,193 +162,204 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
     }
   };
 
+  // Open the task popup when clicking on the title
+  const handleTitleClick = (e) => {
+    e.stopPropagation();
+    setIsTaskPopupOpen(true);
+  };
+
+  // Handle task update from the popup
+  const handleTaskUpdate = (updatedTask) => {
+    if (onTaskUpdate) {
+      onTaskUpdate(task._id, updatedTask);
+    }
+    setIsTaskPopupOpen(false);
+  };
+
   return (
-    <motion.div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.2 }}
-      className={`group flex items-center w-full border-b border-slate-200 dark:border-slate-700 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${
-        isCompleted ? "bg-muted/50 dark:bg-slate-700/50" : ""
-      }`}
-    >
-      {/* Drag Handle */}
-      <div
-        {...listeners}
-        className="touch-none cursor-grab opacity-0 group-hover:opacity-100 transition-opacity px-2"
+    <>
+      <motion.div
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.2 }}
+        className={`group flex items-center w-full border-b border-slate-200 dark:border-slate-700 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${
+          isCompleted ? "bg-muted/50 dark:bg-slate-700/50" : ""
+        }`}
+        role="listitem"
       >
-        <Grip className="h-3.5 w-3.5 text-muted-foreground dark:text-slate-400" />
-      </div>
+        {/* Drag Handle */}
+        <div
+          {...listeners}
+          className="touch-none cursor-grab opacity-0 group-hover:opacity-100 transition-opacity px-2"
+          aria-label="Drag handle"
+        >
+          <Grip className="h-3.5 w-3.5 text-muted-foreground dark:text-slate-400" />
+        </div>
 
-      {/* Checkbox */}
-      <div className="px-2">
-        <Checkbox
-          checked={isCompleted}
-          onCheckedChange={handleComplete}
-          className="h-4 w-4 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-        />
-      </div>
+        {/* Checkbox */}
+        <div className="px-2">
+          <Checkbox
+            checked={isCompleted}
+            onCheckedChange={handleComplete}
+            className="h-4 w-4 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+            aria-label={isCompleted ? "Mark as incomplete" : "Mark as complete"}
+          />
+        </div>
 
-      {/* Task Name */}
-      <div className="w-[30%] px-2">
-        {isEditing ? (
-          <div className="flex items-center gap-1">
-            <input
-              ref={inputRef}
-              type="text"
-              value={editedTitle}
-              onChange={(e) => setEditedTitle(e.target.value)}
-              onBlur={saveTitle}
-              onKeyDown={handleKeyDown}
-              className="flex-1 bg-background  dark:bg-slate-800 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={saveTitle}
-              className="h-6 w-6"
-            >
-              <Check className="h-3 w-3" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={cancelEdit}
-              className="h-6 w-6"
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
-        ) : (
+        {/* Task Name */}
+        <div className="w-[30%] px-2">
           <p
             className={`text-sm font-medium dark:text-slate-100 ${
               isCompleted ? "line-through text-muted-foreground" : ""
-            }`}
-            onClick={handleEditTitle}
+            } cursor-pointer hover:text-primary transition-colors`}
+            onClick={handleTitleClick}
           >
             {task?.title}
           </p>
-        )}
-      </div>
-
-      {/* Status */}
-      <div className="w-[15%] px-2">
-        {isLoading ? (
-          <Skeleton className="h-4 w-full" />
-        ) : (
-          <Badge
-            variant="outline"
-            style={{
-              backgroundColor: statusDetails?.color?.secondaryColor,
-              color: statusDetails?.color?.primaryColor,
-              borderColor: statusDetails?.color?.primaryColor,
-            }}
-            className="px-2 py-0.5 text-xs font-medium dark:text-slate-800 "
-          >
-            {statusDetails?.title || "No Status"}
-          </Badge>
-        )}
-      </div>
-
-      {/* Created At */}
-      <div className="w-[15%] px-2">
-        <div className="text-xs text-muted-foreground dark:text-slate-400">
-          {getRelativeDate(task?.createdAt)}
         </div>
-      </div>
 
-      {/* Assigned User */}
-      <div className="w-[15%] px-2">
-        {isLoading ? (
-          <Skeleton className="h-5 w-5 rounded-full" />
-        ) : task?.assignedTo ? (
-          <Avatar className="h-5 w-5">
-            <AvatarFallback className="bg-primary text-[10px] dark:text-slate-500 text-primary-foreground">
-              {getInitials(assignedUser)}
-            </AvatarFallback>
-          </Avatar>
-        ) : (
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-5 w-5 rounded-full"
-          >
-            <User className="h-3 w-3" />
-          </Button>
-        )}
-      </div>
-
-      {/* Priority */}
-      <div className="w-[10%] px-2 dark:text-slate-500">
-        <PriorityFlag priority={task?.priority} />
-      </div>
-
-      {/* Due Date */}
-      <div className="w-[15%] px-2">
-        <div className="text-xs text-muted-foreground dark:text-slate-400">
-          {getRelativeDate(task?.dueDate)}
+        {/* Status */}
+        <div className="w-[15%] px-2">
+          {isLoading ? (
+            <Skeleton className="h-4 w-full" />
+          ) : (
+            <Badge
+              variant="outline"
+              style={{
+                backgroundColor: statusDetails?.color?.secondaryColor,
+                color: statusDetails?.color?.primaryColor,
+                borderColor: statusDetails?.color?.primaryColor,
+              }}
+              className="px-2 py-0.5 text-xs font-medium dark:text-slate-800"
+            >
+              {statusDetails?.title || "No Status"}
+            </Badge>
+          )}
         </div>
-      </div>
 
-      {/* Attachments */}
-      <div className="w-[10%] px-2">
-        {task?.attachedFile?.length > 0 && (
-          <Badge variant="secondary" className="gap-1">
-            <Paperclip className="h-3 w-3" />
-            <span>{task.attachedFile?.length ?? 0}</span>
-          </Badge>
-        )}
-      </div>
+        {/* Created At */}
+        <div className="w-[15%] px-2">
+          <div className="text-xs text-muted-foreground dark:text-slate-400">
+            {getRelativeDate(task?.createdAt)}
+          </div>
+        </div>
 
-      {/* Actions Dropdown */}
-      <div className="px-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+        {/* Assigned User */}
+        <div className="w-[15%] px-2">
+          {isLoading ? (
+            <Skeleton className="h-5 w-5 rounded-full" />
+          ) : task?.assignedTo ? (
+            <Avatar className="h-5 w-5">
+              <AvatarFallback className="bg-primary text-[10px] dark:text-slate-500 text-primary-foreground">
+                {getInitials(assignedUser)}
+              </AvatarFallback>
+            </Avatar>
+          ) : (
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100"
+              className="h-5 w-5 rounded-full"
+              aria-label="Assign user"
+              onClick={handleTitleClick}
             >
-              <MoreHorizontal className="h-3.5 w-3.5" />
+              <User className="h-3 w-3" />
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="dark:bg-slate-800 dark:text-slate-200 bg-white"
-          >
-            <DropdownMenuItem
-              onClick={handleEditTitle}
-              className="dark:hover:bg-slate-700"
+          )}
+        </div>
+
+        {/* Priority */}
+        <div className="w-[10%] px-2 dark:text-slate-500">
+          <PriorityFlag priority={task?.priority} />
+        </div>
+
+        {/* Due Date */}
+        <div className="w-[15%] px-2">
+          <div className="text-xs text-muted-foreground dark:text-slate-400">
+            {getRelativeDate(task?.dueDate)}
+          </div>
+        </div>
+
+        {/* Attachments */}
+        <div className="w-[10%] px-2">
+          {task?.attachedFile?.length > 0 && (
+            <Badge variant="secondary" className="gap-1">
+              <Paperclip className="h-3 w-3" />
+              <span>{task.attachedFile?.length ?? 0}</span>
+            </Badge>
+          )}
+        </div>
+
+        {/* Actions Dropdown */}
+        <div className="px-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                aria-label="Task actions"
+              >
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              ref={dropdownRef}
+              align="end"
+              className="dark:bg-slate-800 dark:text-slate-200 bg-white min-w-[180px] p-1"
+              sideOffset={5}
             >
-              <Edit className="h-3.5 w-3.5 mr-2" />
-              Edit task
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={handleComplete}
-              className="dark:hover:bg-slate-700"
-            >
-              <Check className="h-3.5 w-3.5 mr-2" />
-              Mark as {isCompleted ? "incomplete" : "complete"}
-            </DropdownMenuItem>
-            <DropdownMenuItem className="dark:hover:bg-slate-700">
-              <Plus className="h-3.5 w-3.5 mr-2" />
-              Add subtask
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive dark:hover:bg-slate-700"
-              onClick={() => onTaskDelete && onTaskDelete(task._id)}
-            >
-              <Trash2 className="h-3.5 w-3.5 mr-2" />
-              Delete task
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </motion.div>
+              <DropdownMenuItem
+                onClick={handleTitleClick}
+                className="dark:hover:bg-slate-700 cursor-pointer flex items-center px-2 py-1.5 text-sm rounded-sm"
+              >
+                <Edit className="h-3.5 w-3.5 mr-2" />
+                Edit task
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleComplete}
+                className="dark:hover:bg-slate-700 cursor-pointer flex items-center px-2 py-1.5 text-sm rounded-sm"
+              >
+                <Check className="h-3.5 w-3.5 mr-2" />
+                Mark as {isCompleted ? "incomplete" : "complete"}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="dark:hover:bg-slate-700 cursor-pointer flex items-center px-2 py-1.5 text-sm rounded-sm"
+                onClick={handleTitleClick}
+              >
+                <Plus className="h-3.5 w-3.5 mr-2" />
+                Add subtask
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="my-1 dark:bg-slate-700" />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive dark:hover:bg-slate-700 cursor-pointer flex items-center px-2 py-1.5 text-sm rounded-sm"
+                onClick={() => onTaskDelete && onTaskDelete(task._id)}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-2" />
+                Delete task
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </motion.div>
+
+      {/* Task Edit Popup */}
+      {isTaskPopupOpen && (
+        <AddTaskPopup
+          open={isTaskPopupOpen}
+          onOpenChange={setIsTaskPopupOpen}
+          taskData={task}
+          isEdit={true}
+          showStatus={true}
+          showPriority={true}
+          status={statusDetails}
+          onTaskUpdate={handleTaskUpdate}
+        />
+      )}
+    </>
   );
 };
 

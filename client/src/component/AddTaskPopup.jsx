@@ -1,4 +1,4 @@
-"use client";
+import { DialogDescription } from "@/components/ui/dialog";
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
@@ -31,9 +31,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-} from "@/components/ui/Dialog";
-import { Button } from "@/components/ui/Button";
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -42,18 +41,18 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/Select";
-import { Card, CardContent } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Separator } from "@/components/ui/Separator";
+} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Accordion,
@@ -62,7 +61,17 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/Label";
+import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Task schema with Zod validation
 const taskSchema = z.object({
@@ -188,8 +197,6 @@ const FileAttachmentItem = ({ file, index, onRemove, isDisabled }) => {
     </div>
   );
 };
-
-// Main component
 const AddTaskPopup = React.memo(
   ({
     open,
@@ -206,6 +213,7 @@ const AddTaskPopup = React.memo(
     const [loading, setLoading] = useState(false);
     const [isFormDisabled, setIsFormDisabled] = useState(isEdit);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [isAlertOpen, setIsAlertOpen] = useState(false); // State for alert dialog
 
     const fileInputRef = useRef(null);
     const dispatch = useDispatch();
@@ -230,7 +238,7 @@ const AddTaskPopup = React.memo(
           title: taskData.title || "",
           description: taskData.description || "",
           priority: taskData.priority || "No",
-          status: status?._id || taskData.status || "todo",
+          status: status?._id || taskData.status || "",
           assignedTo: taskData.assignedTo || "",
           assignedBy: taskData.assignedBy || userId,
           projectId: projectId || "",
@@ -244,7 +252,7 @@ const AddTaskPopup = React.memo(
         title: "",
         description: "",
         priority: initialPriority || "No",
-        status: status?._id || "todo",
+        status: status?._id || "",
         assignedTo: "",
         assignedBy: userId,
         projectId: projectId || "",
@@ -344,18 +352,23 @@ const AddTaskPopup = React.memo(
     // Handle dialog close with confirmation if changes exist
     const handleDialogClose = useCallback(() => {
       if (hasUnsavedChanges) {
-        if (
-          window.confirm(
-            "You have unsaved changes. Are you sure you want to close?"
-          )
-        ) {
-          onOpenChange(false);
-          setHasUnsavedChanges(false);
-        }
+        setIsAlertOpen(true); // Open the alert dialog
       } else {
         onOpenChange(false);
       }
     }, [hasUnsavedChanges, onOpenChange]);
+
+    // Handle alert dialog confirmation
+    const handleAlertConfirm = () => {
+      onOpenChange(false);
+      setHasUnsavedChanges(false);
+      setIsAlertOpen(false);
+    };
+
+    // Handle alert dialog cancellation
+    const handleAlertCancel = () => {
+      setIsAlertOpen(false);
+    };
 
     // Form submission handler
     const onSubmit = async (values) => {
@@ -410,225 +423,83 @@ const AddTaskPopup = React.memo(
     };
 
     return (
-      <Dialog open={open} onOpenChange={handleDialogClose}>
-        <DialogContent
-          className="sm:max-w-[600px] max-h-[90vh] overflow-hidden p-0 rounded-xl border-none shadow-xl"
-          aria-describedby="task-form-description"
-        >
-          <DialogHeader className="px-6 pt-6 pb-2 bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/40 dark:to-indigo-950/40 rounded-t-xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="text-xl font-semibold text-violet-900 dark:text-violet-200 flex flex-wrap items-center gap-2">
-                  {isEdit ? "Edit Task" : "Add Task"}
-                  {initialPriority && !isEdit && (
-                    <Badge
-                      variant="outline"
-                      className={`ml-1 ${getPriorityColor(initialPriority)}`}
-                    >
-                      {initialPriority} Priority
-                    </Badge>
-                  )}
-                  {showStatus && status && !isEdit && (
-                    <Badge className={`ml-1 ${status.primaryColor}`}>
-                      {status.title}
-                    </Badge>
-                  )}
-                </DialogTitle>
-                <DialogDescription
-                  id="task-form-description"
-                  className="mt-1.5 text-violet-700/70 dark:text-violet-300/70"
-                >
-                  {isEdit
-                    ? "Update this task by modifying the form fields."
-                    : "Create a new task by filling out the form below."}
-                </DialogDescription>
-              </div>
-
-              {isEdit && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsFormDisabled(!isFormDisabled)}
-                  className="h-9 w-9 rounded-full bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 text-violet-600 dark:text-violet-300 shadow-sm border border-violet-100 dark:border-violet-800/30"
-                >
-                  {isFormDisabled ? (
-                    <Edit className="h-4 w-4" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                  <span className="sr-only">
-                    {isFormDisabled ? "Enable Editing" : "Disable Editing"}
-                  </span>
-                </Button>
-              )}
-            </div>
-          </DialogHeader>
-
-          <ScrollArea className="max-h-[calc(90vh-120px)] px-6 bg-white dark:bg-slate-900">
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-5 py-5"
-              >
-                {/* Task Title */}
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2 text-sm font-medium text-violet-800 dark:text-violet-300">
-                        <ListTodo className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                        Title<span className="text-destructive">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter task title"
-                          {...field}
-                          disabled={isFormDisabled}
-                          className="bg-background focus-visible:ring-violet-500/50 border-violet-100 dark:border-violet-800/30"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Task Description */}
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2 text-sm font-medium text-violet-800 dark:text-violet-300">
-                        <FileText className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                        Description
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Enter description"
-                          className="resize-none bg-background min-h-[100px] focus-visible:ring-violet-500/50 border-violet-100 dark:border-violet-800/30"
-                          {...field}
-                          disabled={isFormDisabled}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* Priority */}
-                  {showPriority && (
-                    <FormField
-                      control={form.control}
-                      name="priority"
-                      render={({ field }) => (
-                        <FormItem className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30">
-                          <FormLabel className="flex items-center gap-2 text-sm font-medium text-violet-800 dark:text-violet-300">
-                            <Flag className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                            Priority
-                          </FormLabel>
-                          <FormControl>
-                            <div className="space-y-3">
-                              <RadioGroup
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                                disabled={isFormDisabled}
-                                className="flex flex-col space-y-1.5 max-h-[150px] overflow-y-auto pr-2"
-                              >
-                                {availablePriorities.map((priority) => (
-                                  <div
-                                    key={priority}
-                                    className="flex items-center space-x-2"
-                                  >
-                                    <RadioGroupItem
-                                      value={priority}
-                                      id={`priority-${priority}`}
-                                      checked={field.value === priority}
-                                      className="text-violet-600 border-violet-300 dark:border-violet-700"
-                                    />
-                                    <Label
-                                      htmlFor={`priority-${priority}`}
-                                      className="flex items-center gap-2 cursor-pointer"
-                                    >
-                                      <Badge
-                                        variant="outline"
-                                        className={`${getPriorityColor(
-                                          priority
-                                        )} font-medium`}
-                                      >
-                                        {priority}
-                                      </Badge>
-                                    </Label>
-                                  </div>
-                                ))}
-                              </RadioGroup>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-
-                  {/* Assignee */}
-                  <FormField
-                    control={form.control}
-                    name="assignedTo"
-                    render={({ field }) => (
-                      <FormItem className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30">
-                        <FormLabel className="flex items-center gap-2 text-sm font-medium text-violet-800 dark:text-violet-300">
-                          <User className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                          Assign To<span className="text-destructive">*</span>
-                        </FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value || ""}
-                          disabled={isFormDisabled || membersLoading}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="bg-white dark:bg-slate-900 border-violet-100 dark:border-violet-800/30 focus:ring-violet-500/50">
-                              {membersLoading ? (
-                                <div className="flex items-center">
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin text-violet-600" />
-                                  <span>Loading...</span>
-                                </div>
-                              ) : (
-                                <SelectValue placeholder="Select a user" />
-                              )}
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="max-h-[200px]">
-                            {members.map((user) => (
-                              <SelectItem key={user._id} value={user._id}>
-                                {user.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
+      <>
+        <Dialog open={open} onOpenChange={handleDialogClose}>
+          <DialogContent
+            className="sm:max-w-[600px] max-h-[85vh] overflow-hidden p-0 rounded-xl border-none shadow-xl"
+            aria-describedby="task-form-description"
+          >
+            <DialogHeader className="px-6 pt-6 pb-2 bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/40 dark:to-indigo-950/40 rounded-t-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle className="text-xl font-semibold text-violet-900 dark:text-violet-200 flex flex-wrap items-center gap-2">
+                    {isEdit ? "Edit Task" : "Add Task"}
+                    {initialPriority && !isEdit && (
+                      <Badge
+                        variant="outline"
+                        className={`ml-1 ${getPriorityColor(initialPriority)}`}
+                      >
+                        {initialPriority} Priority
+                      </Badge>
                     )}
-                  />
+                    {showStatus && status && !isEdit && (
+                      <Badge className={`ml-1 ${status.primaryColor}`}>
+                        {status.title}
+                      </Badge>
+                    )}
+                  </DialogTitle>
+                  <DialogDescription
+                    id="task-form-description"
+                    className="mt-1.5 text-violet-700/70 dark:text-violet-300/70"
+                  >
+                    {isEdit
+                      ? "Update this task by modifying the form fields."
+                      : "Create a new task by filling out the form below."}
+                  </DialogDescription>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* Due Date */}
+                {isEdit && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsFormDisabled(!isFormDisabled)}
+                    className="h-9 w-9 rounded-full bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 text-violet-600 dark:text-violet-300 shadow-sm border border-violet-100 dark:border-violet-800/30"
+                  >
+                    {isFormDisabled ? (
+                      <Edit className="h-4 w-4" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    <span className="sr-only">
+                      {isFormDisabled ? "Enable Editing" : "Disable Editing"}
+                    </span>
+                  </Button>
+                )}
+              </div>
+            </DialogHeader>
+
+            <ScrollArea className="max-h-[calc(80vh-120px)] px-6 bg-white dark:bg-slate-900">
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-5 py-5"
+                >
+                  {/* Task Title */}
                   <FormField
                     control={form.control}
-                    name="dueDate"
+                    name="title"
                     render={({ field }) => (
-                      <FormItem className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30">
+                      <FormItem>
                         <FormLabel className="flex items-center gap-2 text-sm font-medium text-violet-800 dark:text-violet-300">
-                          <Calendar className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                          Due Date
+                          <ListTodo className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                          Title<span className="text-destructive">*</span>
                         </FormLabel>
                         <FormControl>
                           <Input
-                            type="date"
+                            placeholder="Enter task title"
                             {...field}
                             disabled={isFormDisabled}
-                            className="bg-white dark:bg-slate-900 border-violet-100 dark:border-violet-800/30 focus-visible:ring-violet-500/50"
+                            className="bg-background focus-visible:ring-violet-500/50 border-violet-100 dark:border-violet-800/30"
                           />
                         </FormControl>
                         <FormMessage />
@@ -636,31 +507,115 @@ const AddTaskPopup = React.memo(
                     )}
                   />
 
-                  {/* Status */}
-                  {showStatus && (
+                  {/* Task Description */}
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2 text-sm font-medium text-violet-800 dark:text-violet-300">
+                          <FileText className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                          Description
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Enter description"
+                            className="resize-none bg-background min-h-[100px] focus-visible:ring-violet-500/50 border-violet-100 dark:border-violet-800/30"
+                            {...field}
+                            disabled={isFormDisabled}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* Priority */}
+                    {showPriority && (
+                      <FormField
+                        control={form.control}
+                        name="priority"
+                        render={({ field }) => (
+                          <FormItem className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30">
+                            <FormLabel className="flex items-center gap-2 text-sm font-medium text-violet-800 dark:text-violet-300">
+                              <Flag className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                              Priority
+                            </FormLabel>
+                            <FormControl>
+                              <div className="space-y-3">
+                                <RadioGroup
+                                  onValueChange={field.onChange}
+                                  defaultValue={field.value}
+                                  disabled={isFormDisabled}
+                                  className="flex flex-col space-y-1.5 max-h-[150px] overflow-y-auto pr-2"
+                                >
+                                  {availablePriorities.map((priority) => (
+                                    <div
+                                      key={priority}
+                                      className="flex items-center space-x-2"
+                                    >
+                                      <RadioGroupItem
+                                        value={priority}
+                                        id={`priority-${priority}`}
+                                        checked={field.value === priority}
+                                        className="text-violet-600 border-violet-300 dark:border-violet-700"
+                                      />
+                                      <Label
+                                        htmlFor={`priority-${priority}`}
+                                        className="flex items-center gap-2 cursor-pointer"
+                                      >
+                                        <Badge
+                                          variant="outline"
+                                          className={`${getPriorityColor(
+                                            priority
+                                          )} font-medium`}
+                                        >
+                                          {priority}
+                                        </Badge>
+                                      </Label>
+                                    </div>
+                                  ))}
+                                </RadioGroup>
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {/* Assignee */}
                     <FormField
                       control={form.control}
-                      name="status"
+                      name="assignedTo"
                       render={({ field }) => (
                         <FormItem className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30">
                           <FormLabel className="flex items-center gap-2 text-sm font-medium text-violet-800 dark:text-violet-300">
-                            <Tag className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                            Status
+                            <User className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                            Assign To<span className="text-destructive">*</span>
                           </FormLabel>
                           <Select
                             onValueChange={field.onChange}
-                            value={field.value || "Select Status"}
-                            disabled={isFormDisabled}
+                            value={field.value || ""}
+                            disabled={isFormDisabled || membersLoading}
                           >
                             <FormControl>
                               <SelectTrigger className="bg-white dark:bg-slate-900 border-violet-100 dark:border-violet-800/30 focus:ring-violet-500/50">
-                                <SelectValue placeholder="Select status" />
+                                {membersLoading ? (
+                                  <div className="flex items-center">
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin text-violet-600" />
+                                    <span>Loading...</span>
+                                  </div>
+                                ) : (
+                                  <SelectValue placeholder="Select a user" />
+                                )}
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
-                              {statuses.map((status) => (
-                                <SelectItem key={status._id} value={status._id}>
-                                  {status.title}
+                            <SelectContent className="max-h-[200px]">
+                              {members.map((user) => (
+                                <SelectItem key={user._id} value={user._id}>
+                                  {user.name}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -669,130 +624,215 @@ const AddTaskPopup = React.memo(
                         </FormItem>
                       )}
                     />
-                  )}
-                </div>
+                  </div>
 
-                <Accordion type="single" collapsible className="w-full">
-                  {/* File Attachments */}
-                  <AccordionItem value="attachments" className="border-b-0">
-                    <AccordionTrigger className="py-3 px-4 bg-violet-100/50 dark:bg-violet-900/20 rounded-md hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors text-violet-800 dark:text-violet-300">
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <Paperclip className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                        Attachments ({form.watch("attachedFile").length})
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-4 pb-2 px-1">
-                      <div className="space-y-3">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={fileLoading || isFormDisabled}
-                          className="w-full bg-white dark:bg-slate-900 border-violet-200 dark:border-violet-800/30 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20"
-                        >
-                          {fileLoading ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin text-violet-600" />
-                          ) : (
-                            <Paperclip className="h-4 w-4 mr-2 text-violet-600" />
-                          )}
-                          {fileLoading ? "Uploading..." : "Attach Files"}
-                        </Button>
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          className="hidden"
-                          onChange={handleFileChange}
-                          multiple
-                          disabled={isFormDisabled}
-                        />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* Due Date */}
+                    <FormField
+                      control={form.control}
+                      name="dueDate"
+                      render={({ field }) => (
+                        <FormItem className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30">
+                          <FormLabel className="flex items-center gap-2 text-sm font-medium text-violet-800 dark:text-violet-300">
+                            <Calendar className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                            Due Date
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="date"
+                              {...field}
+                              disabled={isFormDisabled}
+                              className="bg-white dark:bg-slate-900 border-violet-100 dark:border-violet-800/30 focus-visible:ring-violet-500/50"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                        {form.watch("attachedFile").length > 0 && (
-                          <div className="space-y-2 mt-2">
-                            {form.watch("attachedFile").map((file, index) => (
-                              <FileAttachmentItem
-                                key={index}
-                                file={file}
-                                index={index}
-                                onRemove={removeFile}
-                                isDisabled={isFormDisabled}
-                              />
-                            ))}
-                          </div>
+                    {/* Status */}
+                    {showStatus && (
+                      <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                          <FormItem className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30">
+                            <FormLabel className="flex items-center gap-2 text-sm font-medium text-violet-800 dark:text-violet-300">
+                              <Tag className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                              Status
+                            </FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value || "Select Status"}
+                              disabled={isFormDisabled}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="bg-white dark:bg-slate-900 border-violet-100 dark:border-violet-800/30 focus:ring-violet-500/50">
+                                  <SelectValue placeholder="Select status" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {statuses.map((status) => (
+                                  <SelectItem
+                                    key={status._id}
+                                    value={status._id}
+                                  >
+                                    {status.title}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
                         )}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  {/* Subtasks */}
-                  <AccordionItem value="subtasks" className="border-b-0 mt-2">
-                    <AccordionTrigger className="py-3 px-4 bg-violet-100/50 dark:bg-violet-900/20 rounded-md hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors text-violet-800 dark:text-violet-300">
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <ListTodo className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                        Subtasks ({form.watch("subTask").length})
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-4 pb-2 px-1">
-                      <div className="space-y-3">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={addSubtask}
-                          disabled={isFormDisabled}
-                          className="w-full bg-white dark:bg-slate-900 border-violet-200 dark:border-violet-800/30 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20"
-                        >
-                          <Plus className="h-4 w-4 mr-2 text-violet-600" />
-                          Add Subtask
-                        </Button>
-
-                        {form.watch("subTask").length > 0 && (
-                          <div className="space-y-3 mt-3">
-                            {form.watch("subTask").map((_, index) => (
-                              <SubtaskItem
-                                key={index}
-                                index={index}
-                                form={form}
-                                isFormDisabled={isFormDisabled}
-                                removeSubtask={removeSubtask}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-
-                {/* Submit Button */}
-                <div className="sticky bottom-0 pt-2 pb-4 bg-white dark:bg-slate-900">
-                  <Button
-                    type="submit"
-                    className="w-full bg-violet-600 text-white hover:bg-violet-700 shadow-md hover:shadow-lg transition-all"
-                    disabled={loading || fileLoading || isFormDisabled}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {isEdit ? "Updating..." : "Adding..."}
-                      </>
-                    ) : fileLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : isEdit ? (
-                      "Update Task"
-                    ) : (
-                      "Add Task"
+                      />
                     )}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
+                  </div>
+
+                  <Accordion type="single" collapsible className="w-full">
+                    {/* File Attachments */}
+                    <AccordionItem value="attachments" className="border-b-0">
+                      <AccordionTrigger className="py-3 px-4 bg-violet-100/50 dark:bg-violet-900/20 rounded-md hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors text-violet-800 dark:text-violet-300">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Paperclip className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                          Attachments ({form.watch("attachedFile").length})
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-4 pb-2 px-1">
+                        <div className="space-y-3">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={fileLoading || isFormDisabled}
+                            className="w-full bg-white dark:bg-slate-900 border-violet-200 dark:border-violet-800/30 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20"
+                          >
+                            {fileLoading ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin text-violet-600" />
+                            ) : (
+                              <Paperclip className="h-4 w-4 mr-2 text-violet-600" />
+                            )}
+                            {fileLoading ? "Uploading..." : "Attach Files"}
+                          </Button>
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            onChange={handleFileChange}
+                            multiple
+                            disabled={isFormDisabled}
+                          />
+
+                          {form.watch("attachedFile").length > 0 && (
+                            <div className="space-y-2 mt-2">
+                              {form.watch("attachedFile").map((file, index) => (
+                                <FileAttachmentItem
+                                  key={index}
+                                  file={file}
+                                  index={index}
+                                  onRemove={removeFile}
+                                  isDisabled={isFormDisabled}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Subtasks */}
+                    <AccordionItem value="subtasks" className="border-b-0 mt-2">
+                      <AccordionTrigger className="py-3 px-4 bg-violet-100/50 dark:bg-violet-900/20 rounded-md hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors text-violet-800 dark:text-violet-300">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <ListTodo className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                          Subtasks ({form.watch("subTask").length})
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-4 pb-2 px-1">
+                        <div className="space-y-3">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={addSubtask}
+                            disabled={isFormDisabled}
+                            className="w-full bg-white dark:bg-slate-900 border-violet-200 dark:border-violet-800/30 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20"
+                          >
+                            <Plus className="h-4 w-4 mr-2 text-violet-600" />
+                            Add Subtask
+                          </Button>
+
+                          {form.watch("subTask").length > 0 && (
+                            <div className="space-y-3 mt-3">
+                              {form.watch("subTask").map((_, index) => (
+                                <SubtaskItem
+                                  key={index}
+                                  index={index}
+                                  form={form}
+                                  isFormDisabled={isFormDisabled}
+                                  removeSubtask={removeSubtask}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+
+                  {/* Submit Button */}
+                  <div className="sticky bottom-0 pt-2 pb-4 bg-white dark:bg-slate-900">
+                    <Button
+                      type="submit"
+                      className="w-full bg-violet-600 text-white hover:bg-violet-700 shadow-md hover:shadow-lg transition-all"
+                      disabled={loading || fileLoading || isFormDisabled}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {isEdit ? "Updating..." : "Adding..."}
+                        </>
+                      ) : fileLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : isEdit ? (
+                        "Update Task"
+                      ) : (
+                        "Add Task"
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </ScrollArea>
+          </DialogContent>
+        </Dialog>
+        {/* Alert Dialog for Unsaved Changes */}
+        <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+          <AlertDialogContent className="sm:max-w-[425px] bg-white">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+              <AlertDialogDescription>
+                You have unsaved changes. Are you sure you want to close?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={handleAlertCancel}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleAlertConfirm}
+                className="bg-red-600 text-white"
+              >
+                Confirm
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
     );
   }
 );
