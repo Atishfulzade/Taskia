@@ -274,9 +274,9 @@ const ProjectList = () => {
   );
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full w-full ">
       {/* Header with Project Name */}
-      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 sticky top-0 z-10 shadow-sm">
+      <div className="bg-white dark:bg-slate-800  border-b border-slate-200 dark:border-slate-700 px-6 py-4 sticky top-0 shadow-sm">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
             {projectName || "Project Tasks"}{" "}

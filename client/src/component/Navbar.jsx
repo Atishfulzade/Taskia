@@ -57,7 +57,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="sticky top-0 flex bg-violet-800 dark:bg-violet-900 px-5 py-2 justify-between items-center shadow-md">
+    <nav className="sticky z-[9999] top-0 flex bg-violet-800 dark:bg-violet-900 px-5 py-2 justify-between items-center shadow-md">
       {/* Logo */}
       <Link to="/" className="flex items-center gap-2">
         <img src={logo} alt="Logo" className="w-10 h-10" />

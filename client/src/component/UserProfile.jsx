@@ -81,7 +81,7 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
       transition={{ duration: 0.2, ease: "easeOut" }}
       className="fixed top-16 right-6 w-72 bg-white dark:bg-slate-900 rounded-xl shadow-lg 
                  border border-slate-200 dark:border-slate-800 overflow-hidden 
-                 z-[9999]"
+              "
     >
       {/* Close Button */}
       <button
