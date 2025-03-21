@@ -111,7 +111,7 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
             </AvatarFallback>
           </Avatar>
 
-          <div className="bg-white z-[999]">
+          <div className=" ">
             <div className="flex items-center gap-2 ">
               <h3 className="font-medium text-slate-900 dark:text-white">
                 {userInfo?.name || "Guest User"}

@@ -8,18 +8,28 @@ import {
   IoSunnyOutline,
 } from "react-icons/io5";
 import { Link, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import logo from "../assets/logo-white.png";
 import UserProfile from "./UserProfile";
 import { useTheme } from "@/components/ui/ThemeProvider";
 import NotificationCenter from "./NotificationCenter";
+import { setCurrentProject } from "@/store/projectSlice";
 
 const Navbar = () => {
   const { theme, setTheme } = useTheme();
   const [showProfile, setShowProfile] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState({
+    projects: [],
+    tasks: [],
+    statuses: [],
+  });
 
   const userInfo = useSelector((state) => state.user.user);
+  const projects = useSelector((state) => state.project.projects);
+  const tasks = useSelector((state) => state.task.tasks);
+  const statuses = useSelector((state) => state.status.statuses);
+  const dispatch = useDispatch();
   const profileRef = useRef(null);
   const notificationsRef = useRef(null);
   const navigate = useNavigate();
@@ -43,11 +53,46 @@ const Navbar = () => {
     };
   }, []);
 
-  // Search handler
+  // Update search results whenever searchQuery changes
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults({ projects: [], tasks: [], statuses: [] });
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+
+    // Search projects
+    const matchedProjects = projects.filter((project) =>
+      project.title?.toLowerCase().includes(query)
+    );
+
+    // Search tasks
+    const matchedTasks = tasks.filter(
+      (task) =>
+        task.title.toLowerCase().includes(query) ||
+        (task.description && task.description.toLowerCase().includes(query))
+    );
+
+    // Search statuses
+    const matchedStatuses = statuses.filter((status) =>
+      status.title.toLowerCase().includes(query)
+    );
+
+    setSearchResults({
+      projects: matchedProjects,
+      tasks: matchedTasks,
+      statuses: matchedStatuses,
+    });
+  }, [searchQuery, projects, tasks, statuses]);
+
+  // Handle search submission
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      // Optionally clear the search results dropdown after navigation
+      // setSearchResults({ projects: [], tasks: [], statuses: [] });
     }
   };
 
@@ -79,6 +124,99 @@ const Navbar = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="h-full w-full outline-none text-slate-100 dark:text-gray-300 placeholder-slate-300 dark:placeholder-gray-400 placeholder:font-inter font-light text-md bg-transparent"
         />
+
+        {/* Search Results Dropdown */}
+        {searchQuery.trim() !== "" && (
+          <div className="absolute top-full left-0 right-0 mt-1 max-h-96 overflow-y-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg z-[9999]">
+            {/* Projects Section */}
+            {searchResults.projects.length > 0 && (
+              <div className="p-2">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 p-2">
+                  Projects
+                </h3>
+                <div className="space-y-1">
+                  {searchResults.projects.map((project) => (
+                    <div
+                      key={project._id}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                      onClick={() => {
+                        dispatch(setCurrentProject(project));
+                        setSearchQuery("");
+                      }}
+                    >
+                      <div className="font-medium text-gray-800 dark:text-gray-200">
+                        {project.title}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Tasks Section */}
+            {searchResults.tasks.length > 0 && (
+              <div className="p-2 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 p-2">
+                  Tasks
+                </h3>
+                <div className="space-y-1">
+                  {searchResults.tasks.map((task) => (
+                    <div
+                      key={task._id}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                      onClick={() => {
+                        navigate(`/tasks/${task._id}`);
+                        setSearchQuery("");
+                      }}
+                    >
+                      <div className="font-medium text-gray-800 dark:text-gray-200">
+                        {task.title}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        {task.description || "No description"}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Statuses Section */}
+            {searchResults.statuses.length > 0 && (
+              <div className="p-2 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 p-2">
+                  Statuses
+                </h3>
+                <div className="space-y-1">
+                  {searchResults.statuses.map((status) => (
+                    <div
+                      key={status._id}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                      onClick={() => {
+                        // Navigate to status filtered view
+                        navigate(`/tasks?status=${status._id}`);
+                        setSearchQuery("");
+                      }}
+                    >
+                      <div className="font-medium text-gray-800 dark:text-gray-200">
+                        {status.title}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* No Results */}
+            {searchResults.projects.length === 0 &&
+              searchResults.tasks.length === 0 &&
+              searchResults.statuses.length === 0 && (
+                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                  No results found for "{searchQuery}"
+                </div>
+              )}
+          </div>
+        )}
       </form>
 
       {/* Navbar Actions */}
@@ -97,8 +235,8 @@ const Navbar = () => {
         </button>
 
         {/* Notifications */}
-        {/* <NotificationsComponent ref={notificationsRef} /> */}
-        <NotificationCenter />
+        <NotificationCenter ref={notificationsRef} />
+
         {/* New Button */}
         <button className="flex px-3 gap-2 py-2 hover:bg-violet-700 dark:hover:bg-violet-800 font-inter font-normal items-center rounded-lg text-white dark:text-gray-300">
           <IoAddCircleOutline size={20} />

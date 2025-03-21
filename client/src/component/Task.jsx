@@ -284,7 +284,7 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
         </div>
 
         {/* Attachments */}
-        <div className="w-[10%] px-2">
+        <div className="w-[10%] px-2 dark:text-white">
           {task?.attachedFile?.length > 0 && (
             <Badge variant="secondary" className="gap-1">
               <Paperclip className="h-3 w-3" />
@@ -300,7 +300,7 @@ const Task = ({ task, priority, onTaskUpdate, onTaskDelete }) => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-slate-200 dark:text-white dark:hover:bg-slate-700 transition-colors"
                 aria-label="Task actions"
               >
                 <MoreHorizontal className="h-3.5 w-3.5" />
