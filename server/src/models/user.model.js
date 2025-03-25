@@ -17,6 +17,9 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     notifications: [notificationSchema], // Embedding notification schema
+
+    location: { type: String },
+    contact: { type: String },
   },
   { timestamps: true }
 );

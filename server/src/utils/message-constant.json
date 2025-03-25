@@ -105,5 +105,15 @@
     "verificationMailSend": "OTP sent to registered email",
     "invalidVerificationToken": "Invalid verification token!",
     "verificationSuccess": "Verification successful!"
+  },
+  "setting":{
+    "errorFetchingSetting": "Error fetching setting!",
+    "settingFetchedSuccessfully": "Setting fetched successfully!",
+    "errorUpdatingSetting": "Error updating setting!",
+    "settingUpdatedSuccessfully": "Setting updated successfully!",
+    "settingNotFound": "Setting not found!",
+    "settingDeleted": "Setting deleted successfully!",
+    "errorDeletingSetting": "Error deleting setting"
   }
+
 }

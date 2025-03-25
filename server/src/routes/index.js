@@ -8,4 +8,7 @@ router.use("/status", require("./status.route.js"));
 //User route
 router.use("/user", require("./user.route.js"));
 
+// Setting route
+router.use("/setting", require("./setting.route.js"));
+
 module.exports = router;

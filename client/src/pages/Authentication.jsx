@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useCallback, useMemo } from "react";
 import { CiMail, CiUser } from "react-icons/ci";
 import { FcGoogle } from "react-icons/fc";
@@ -9,10 +11,11 @@ import { useDispatch } from "react-redux";
 import { login } from "../store/userSlice";
 import { setCurrentProject, setProjects } from "../store/projectSlice";
 import { setAssignTasks } from "../store/assignTaskSlice";
+import { fetchSettings, updateSettingState } from "../store/settingSlice";
 import requestServer from "../utils/requestServer";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo-white.png";
-import { toast } from "sonner"; // Import sonner's toast
+import { toast } from "sonner";
 
 const Authentication = () => {
   const [isRegistration, setIsRegistration] = useState(false);
@@ -44,6 +47,25 @@ const Authentication = () => {
     [isRegistration]
   );
 
+  // Handle User Settings
+  const handleUserSettings = async (userId) => {
+    try {
+      if (isRegistration) {
+        // For new users, create default settings
+        await dispatch(updateSettingState(userId)).unwrap();
+        toast.success("Default settings created");
+      } else {
+        // For existing users, fetch their settings
+        await dispatch(fetchSettings()).unwrap();
+      }
+      return true;
+    } catch (error) {
+      console.error("Error handling user settings:", error);
+      toast.error("Could not load user settings");
+      return false;
+    }
+  };
+
   // Formik form handling
   const formik = useFormik({
     initialValues: { name: "", email: "", password: "" },
@@ -56,51 +78,42 @@ const Authentication = () => {
           ? values
           : { email: values.email, password: values.password };
 
-        // Send request to the backend
+        // 1. Authenticate user
         const res = await requestServer(endpoint, payload);
+        toast.success(res.message);
 
-        // Show success message
-        toast.success(res.message); // Use sonner's toast
-        console.log(res);
-
-        // Store token and user data in localStorage
+        // 2. Store auth data
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("user", JSON.stringify(res.data.user));
-
-        // Update Redux store with user login state
         dispatch(login(res.data.user));
-        console.log("dispatch login");
 
-        // Fetch and store additional data only on successful login
+        // 3. Handle user settings
+        await handleUserSettings(res.data.user._id);
+
+        // 4. Fetch projects and assigned tasks for existing users
         if (!isRegistration) {
-          console.log("Fetching project");
+          const [projects, assignTask] = await Promise.all([
+            requestServer("project/all"),
+            requestServer("task/assign"),
+          ]);
 
-          const projects = await requestServer("project/all");
-          console.log("projects", projects);
-
-          const assignTask = await requestServer("task/assign");
-          console.log("Project and assign tasks completed");
           if (projects.data) {
             dispatch(setProjects(projects.data));
-          }
-          if (assignTask?.data && projects.data) {
-            dispatch(setAssignTasks(assignTask?.data));
+            if (projects.data.length > 0) {
+              dispatch(setCurrentProject(projects.data[0]));
+            }
           }
 
-          if (projects.data && projects.data.length > 0) {
-            dispatch(setCurrentProject(projects.data[0]));
+          if (assignTask?.data) {
+            dispatch(setAssignTasks(assignTask.data));
           }
         }
 
-        // Redirect to dashboard after successful login/registration
+        // 5. Redirect to dashboard
         navigate("/dashboard");
-
-        // Reset form after successful submission
         resetForm();
       } catch (error) {
-        toast.error(
-          error?.response?.data?.message || "Authentication failed" // Use sonner's toast
-        );
+        toast.error(error?.response?.data?.message || "Authentication failed");
         console.error(error);
       } finally {
         setLoading(false);

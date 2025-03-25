@@ -15,13 +15,14 @@ import Loader from "./component/Loader.jsx";
 import { login, logout } from "./store/userSlice.js";
 import { addAssignTask } from "./store/assignTaskSlice.js";
 import NotFound from "./component/NotFound.jsx";
-
+import Setting from "./component/Setting";
+const TaskDetail = lazy(() => import("./pages/TaskDetail.jsx"));
 const Welcome = lazy(() => import("./pages/Welcome.jsx"));
 const Authentication = lazy(() => import("./pages/Authentication"));
 const Layout = lazy(() => import("./component/Layout"));
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
 const Error = lazy(() => import("./pages/Error.jsx"));
-
+const Profile = lazy(() => import("./component/Profile.jsx"));
 function App() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -137,6 +138,9 @@ function App() {
           )}
           <Route path="/error" element={<Error />} />
           <Route path="*" element={<NotFound />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<Setting />} />
+          <Route path="/task/:customId" element={<TaskDetail />} />
         </Routes>
       </Suspense>
     </>

@@ -216,6 +216,33 @@ const getTasksForUser = async (req, res) => {
   }
 };
 
+// Get a specific task
+const getTaskById = async (req, res) => {
+  try {
+    const { id: identifier } = req.params;
+
+    // Check if the identifier is a valid MongoDB ObjectId
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(identifier);
+
+    let task;
+    if (isObjectId) {
+      // Search by _id if it's a valid ObjectId
+      task = await Task.findById(identifier);
+    } else {
+      // Search by customId if it's not an ObjectId
+      task = await Task.findOne({ customId: identifier });
+    }
+
+    if (!task) {
+      return handleResponse(res, 404, msg.task.taskNotFound);
+    }
+
+    return handleResponse(res, 200, msg.task.taskFetchedSuccessfully, task);
+  } catch (error) {
+    handleError(res, msg.task.errorFetchingTask, error);
+  }
+};
+
 // Update task status
 const updateTaskStatus = async (req, res) => {
   try {
@@ -253,6 +280,7 @@ module.exports = {
   addTask,
   updateTask,
   getAllTask,
+  getTaskById,
   deleteTask,
   getTasksForUser,
   updateTaskStatus,

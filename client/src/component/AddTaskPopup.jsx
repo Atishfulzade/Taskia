@@ -1,5 +1,4 @@
-import { DialogDescription } from "@/components/ui/dialog";
-
+import { DialogDescription } from "@/components/ui/Dialog";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,14 +24,15 @@ import {
 import { useFileUpload } from "../hooks/useFileUpload ";
 import { useProjectMembers } from "../hooks/useProjectMembers";
 import requestServer from "@/utils/requestServer";
+import { generateUniqueId } from "@/utils/generateUniqueId";
 import { addTask, updateTask } from "@/store/taskSlice";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+} from "@/components/ui/Dialog";
+import { Button } from "@/components/ui/Button";
 import {
   Form,
   FormControl,
@@ -82,6 +82,7 @@ const taskSchema = z.object({
   dueDate: z.string().optional(),
   status: z.string(),
   projectId: z.string(),
+  customId: z.string().optional(),
   assignedBy: z.string(),
   subTask: z.array(
     z.object({
@@ -197,6 +198,7 @@ const FileAttachmentItem = ({ file, index, onRemove, isDisabled }) => {
     </div>
   );
 };
+
 const AddTaskPopup = React.memo(
   ({
     open,
@@ -213,8 +215,8 @@ const AddTaskPopup = React.memo(
     const [loading, setLoading] = useState(false);
     const [isFormDisabled, setIsFormDisabled] = useState(isEdit);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-    const [isAlertOpen, setIsAlertOpen] = useState(false); // State for alert dialog
-
+    const [isAlertOpen, setIsAlertOpen] = useState(false);
+    const userName = useSelector((state) => state.user.user.name);
     const fileInputRef = useRef(null);
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -224,6 +226,7 @@ const AddTaskPopup = React.memo(
     const projectMembers = useSelector(
       (state) => state.project.currentProject?.member
     );
+    const useCustomId = useSelector((state) => state.settings.useCustomId);
 
     const { uploadFiles, fileLoading } = useFileUpload();
     const { members, loading: membersLoading } = useProjectMembers(
@@ -242,6 +245,7 @@ const AddTaskPopup = React.memo(
           assignedTo: taskData.assignedTo || "",
           assignedBy: taskData.assignedBy || userId,
           projectId: projectId || "",
+          ...(useCustomId ? { customId: taskData.customId || "" } : {}),
           dueDate: taskData.dueDate || "",
           subTask: taskData.subTask || [],
           attachedFile: taskData.attachedFile || [],
@@ -255,12 +259,22 @@ const AddTaskPopup = React.memo(
         status: status?._id || "",
         assignedTo: "",
         assignedBy: userId,
+        ...(useCustomId ? { customId: generateUniqueId(userName) } : {}),
         projectId: projectId || "",
         dueDate: "",
         subTask: [],
         attachedFile: [],
       };
-    }, [taskData, status, userId, projectId, isEdit, initialPriority]);
+    }, [
+      taskData,
+      status,
+      userId,
+      projectId,
+      isEdit,
+      initialPriority,
+      useCustomId,
+      userName,
+    ]);
 
     // Initialize form with default values
     const form = useForm({
@@ -271,7 +285,7 @@ const AddTaskPopup = React.memo(
     // Reset form when taskData or isEdit changes
     useEffect(() => {
       form.reset(getDefaultValues());
-    }, [taskData, isEdit, form, getDefaultValues, initialPriority]);
+    }, [taskData, isEdit, form, getDefaultValues]);
 
     // Track form changes
     useEffect(() => {
@@ -352,7 +366,7 @@ const AddTaskPopup = React.memo(
     // Handle dialog close with confirmation if changes exist
     const handleDialogClose = useCallback(() => {
       if (hasUnsavedChanges) {
-        setIsAlertOpen(true); // Open the alert dialog
+        setIsAlertOpen(true);
       } else {
         onOpenChange(false);
       }
@@ -836,5 +850,7 @@ const AddTaskPopup = React.memo(
     );
   }
 );
+
+AddTaskPopup.displayName = "AddTaskPopup";
 
 export default AddTaskPopup;

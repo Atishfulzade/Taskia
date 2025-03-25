@@ -10,6 +10,8 @@ const taskSchema = new mongoose.Schema(
       ref: "Project",
       required: true,
     },
+    customId: { type: String },
+
     priority: {
       type: String,
       enum: ["No", "Medium", "High"],

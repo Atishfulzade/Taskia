@@ -6,7 +6,7 @@ import taskReducer from "./taskSlice";
 import assignTaskSlice from "./assignTaskSlice";
 import sharedProjectReducer from "./sharedProjectSlice";
 import { debounce } from "lodash";
-
+import settingReducer from "./settingSlice";
 // Load state from localStorage (only user data)
 const loadState = () => {
   try {
@@ -35,6 +35,7 @@ const store = configureStore({
     task: taskReducer,
     assignTask: assignTaskSlice,
     sharedproject: sharedProjectReducer,
+    settings: settingReducer,
   },
   preloadedState: loadState(), // Load only user state
 });

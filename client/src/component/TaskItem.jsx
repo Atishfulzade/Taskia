@@ -20,6 +20,7 @@ import { useDispatch } from "react-redux";
 import { deleteTask } from "@/store/taskSlice";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const priorityBadges = {
   High: {
@@ -58,7 +59,7 @@ const TaskItem = React.memo(
     const [assignedUser, setAssignedUser] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const dispatch = useDispatch();
-
+    const navigate = useNavigate();
     const completedSubtasks = useMemo(
       () => subTask.filter((subtask) => subtask.completed).length,
       [subTask]
@@ -157,7 +158,11 @@ const TaskItem = React.memo(
             </div>
           )}
 
-          <div onClick={handleTaskClick} className="cursor-pointer">
+          {/* <div onClick={handleTaskClick} className="cursor-pointer"> */}
+          <div
+            onClick={() => navigate(`/task/${task.customId}`)}
+            className="cursor-pointer"
+          >
             <h4 className="text-slate-800 dark:text-slate-200 font-inter text-sm font-medium leading-5 line-clamp-2 hover:text-violet-700 dark:hover:text-violet-500 transition-colors">
               {title}
             </h4>

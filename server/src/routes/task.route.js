@@ -6,6 +6,7 @@ const {
   updateTask,
   deleteTask,
   getAllTask,
+  getTaskById,
   getTasksForUser,
 } = require("../controllers/task.controller.js");
 
@@ -24,7 +25,7 @@ router.post("/delete/:id", verifyUser, deleteTask);
 // get tasks assigned to a user
 router.post("/assign", verifyUser, getTasksForUser);
 
-//update tasks assigned to a user
-// router.post("/update", verifyUser, updateTask);
+//get specific tasks assigned to a user
+router.post("/t/:id", verifyUser, getTaskById);
 
 module.exports = router;
