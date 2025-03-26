@@ -1,6 +1,4 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
@@ -8,6 +6,7 @@ import { setCurrentProject, setProjects } from "../store/projectSlice";
 import requestServer from "../utils/requestServer";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import useProjectMembers from "@/hooks/useProjectMembers";
 
 // UI Components
 import { Button } from "../components/ui/Button";
@@ -40,6 +39,7 @@ import {
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
 import { UserSearch } from "../component/UserSearch";
+import { Skeleton } from "../components/ui/Skeleton";
 
 // Icons
 import {
@@ -56,44 +56,261 @@ import {
   Copy,
   FileText,
   Building,
+  Share,
+  RefreshCw,
 } from "lucide-react";
+
+// Sub-components
+const ProjectHeader = ({
+  project,
+  isEditing,
+  onEditToggle,
+  onCopyId,
+  onCopyLink,
+  onBack,
+}) => (
+  <div className="mb-6 flex items-center justify-between">
+    <Button
+      variant="ghost"
+      onClick={onBack}
+      className="text-violet-700 hover:text-violet-800 hover:bg-violet-100 dark:text-violet-300 dark:hover:text-violet-200 dark:hover:bg-violet-900/20"
+      aria-label="Back to projects"
+    >
+      <ArrowLeft className="mr-2 h-4 w-4" />
+      Back to Projects
+    </Button>
+
+    <div className="flex items-center gap-2">
+      {project._id && (
+        <div className="flex items-center gap-1">
+          <Badge
+            variant="outline"
+            className="bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300 border-violet-200 dark:border-violet-800/30 cursor-pointer"
+            onClick={onCopyId}
+            aria-label="Copy project ID"
+          >
+            ID: {project.customId?.substring(0, 8)}...
+          </Badge>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCopyId}
+            className="h-6 w-6 rounded-full hover:bg-violet-100 dark:hover:bg-violet-900/30 text-violet-600 dark:text-violet-400"
+            aria-label="Copy ID"
+          >
+            <Copy className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCopyLink}
+            className="h-6 w-6 rounded-full hover:bg-violet-100 dark:hover:bg-violet-900/30 text-violet-600 dark:text-violet-400"
+            aria-label="Share project"
+          >
+            <Share className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
+      {!isEditing ? (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onEditToggle}
+          className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:border-violet-800/30 dark:text-violet-300 dark:hover:bg-violet-900/20"
+          aria-label="Edit project"
+        >
+          <Edit2 className="mr-2 h-4 w-4" />
+          Edit
+        </Button>
+      ) : (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onEditToggle}
+            className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800/30 dark:text-red-300 dark:hover:bg-red-900/20"
+            aria-label="Cancel editing"
+          >
+            <X className="mr-2 h-4 w-4" />
+            Cancel
+          </Button>
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+const ProjectDescription = ({ description, isEditing, formik }) => (
+  <div>
+    <h3 className="text-sm font-medium text-violet-800 dark:text-violet-300 flex items-center gap-2 mb-2">
+      <FileText className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+      Description
+    </h3>
+
+    {isEditing ? (
+      <div className="space-y-2">
+        <Textarea
+          id="description"
+          name="description"
+          value={formik.values.description}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          rows={4}
+          className="min-h-[120px] bg-white dark:bg-slate-900 border-violet-200 dark:border-violet-800/30 focus-visible:ring-violet-500/50"
+          placeholder="Enter project description"
+          aria-label="Project description"
+          maxLength={500}
+        />
+        <div className="flex justify-between items-center">
+          {formik.touched.description && formik.errors.description ? (
+            <p className="text-red-500 text-xs">{formik.errors.description}</p>
+          ) : (
+            <div />
+          )}
+          <span className="text-xs text-gray-500">
+            {formik.values.description.length}/500
+          </span>
+        </div>
+      </div>
+    ) : (
+      <div className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30 min-h-[80px]">
+        {description ? (
+          <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+            {description}
+          </p>
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400 italic">
+            No description provided
+          </p>
+        )}
+      </div>
+    )}
+  </div>
+);
+
+const MemberItem = ({ member, onRemove, isEditing, removingMemberId }) => (
+  <div className="flex items-center justify-between p-3 bg-violet-50/80 dark:bg-violet-950/30 rounded-lg border border-violet-100 dark:border-violet-800/30 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-all">
+    <div className="flex items-center space-x-3">
+      <Avatar className="h-9 w-9 border-2 border-violet-200 dark:border-violet-800">
+        <AvatarImage src={member.profilePic} alt={member.name} />
+        <AvatarFallback className="bg-violet-200 dark:bg-violet-800 text-violet-700 dark:text-violet-300">
+          {member.name?.charAt(0)}
+        </AvatarFallback>
+      </Avatar>
+      <div>
+        <p className="font-medium text-gray-900 dark:text-gray-100">
+          {member.name}
+        </p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          {member.email}
+        </p>
+      </div>
+    </div>
+
+    {isEditing && (
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => onRemove(member._id)}
+        className="h-8 w-8 rounded-full text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+        aria-label={`Remove ${member.name}`}
+        disabled={removingMemberId === member._id}
+      >
+        {removingMemberId === member._id ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Trash2 className="h-4 w-4" />
+        )}
+      </Button>
+    )}
+  </div>
+);
 
 const ProjectDetailsPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { projectId } = useParams();
   const userId = useSelector((state) => state.user?.user?.data?._id);
-  const currentProject = useSelector((state) => state.project.currentProject);
+  const reduxProject = useSelector((state) => state.project.currentProject);
 
+  // Local state
+  const [localProject, setLocalProject] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
+  const [removingMemberId, setRemovingMemberId] = useState(null);
 
-  useEffect(() => {
-    if (currentProject._id) {
-      fetchProjectDetails();
+  // Data hooks
+  const currentProject = localProject || reduxProject;
+  const {
+    members,
+    loading: membersLoading,
+    error: membersError,
+    refetch,
+  } = useProjectMembers(currentProject?._id);
+
+  // Format dates
+  const createdDate = currentProject?.createdAt
+    ? new Date(currentProject.createdAt).toLocaleDateString()
+    : "";
+  const updatedDate = currentProject?.updatedAt
+    ? new Date(currentProject.updatedAt).toLocaleDateString()
+    : "";
+
+  // Fetch project data
+  const fetchProject = useCallback(async () => {
+    if (!projectId) {
+      setIsLoading(false);
+      return;
     }
-  }, [currentProject._id]);
 
-  const fetchProjectDetails = async () => {
     try {
       setIsLoading(true);
-      const res = await requestServer(`project/get/${currentProject._id}`, {
-        userId,
-      });
+      const res = await requestServer(`/project/get/${projectId}`, { userId });
+
+      if (!res.data) {
+        throw new Error("No project data returned");
+      }
+
+      setLocalProject(res.data);
       dispatch(setCurrentProject(res.data));
-      setIsLoading(false);
     } catch (error) {
       console.error("Error fetching project details:", error);
-      toast.error("Failed to load project details");
-      setIsLoading(false);
-      navigate("/dashboard");
-    }
-  };
+      let errorMessage = "Failed to load project details";
 
+      if (error.response) {
+        if (error.response.status === 404) {
+          errorMessage = "Project not found";
+        } else if (error.response.status === 401) {
+          errorMessage = "Please login to access this project";
+          localStorage.removeItem("token");
+          navigate("/authenticate");
+          return;
+        }
+      } else if (error.message === "No project data returned") {
+        errorMessage = "Invalid project data received";
+      }
+
+      toast.error(errorMessage);
+      navigate("/dashboard");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [projectId, userId, dispatch, navigate]);
+
+  useEffect(() => {
+    if (reduxProject?.customId === projectId) {
+      setLocalProject(reduxProject);
+      setIsLoading(false);
+    } else {
+      fetchProject();
+    }
+  }, [projectId, reduxProject, fetchProject]);
+
+  // Formik configuration
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
@@ -102,51 +319,72 @@ const ProjectDetailsPage = () => {
       member: currentProject?.member || [],
     },
     validationSchema: Yup.object({
-      title: Yup.string().required("Title is required"),
-      description: Yup.string(),
+      title: Yup.string()
+        .required("Title is required")
+        .max(50, "Title must be 50 characters or less"),
+      description: Yup.string().max(
+        500,
+        "Description must be 500 characters or less"
+      ),
       member: Yup.array().min(1, "At least one member is required"),
     }),
     onSubmit: async (values) => {
       try {
         setSaveLoading(true);
-        const res = await requestServer(`project/update/${projectId}`, {
-          ...values,
-          userId,
-        });
+        const res = await requestServer(
+          `/project/update/${currentProject._id}`,
+          {
+            ...values,
+            userId,
+          }
+        );
 
-        dispatch(setCurrentProject(res.data.updatedProject));
+        setLocalProject(res.data);
+        dispatch(setCurrentProject(res.data));
         dispatch(setProjects(res.data.allProjects));
-        toast.success("Project updated successfully");
+
+        toast.success("Project updated successfully", {
+          action: {
+            label: "View Changes",
+            onClick: () => window.location.reload(),
+          },
+        });
         setIsEditing(false);
       } catch (error) {
         console.error("Error updating project:", error);
+        let errorMessage = "Failed to update project";
+
         if (error.response?.data?.message === "Token not found") {
-          toast.error("Invalid token! Please login again.");
+          errorMessage = "Invalid token! Please login again.";
           localStorage.removeItem("token");
-          navigate("/login");
-        } else {
-          toast.error(
-            error.response?.data?.message || "Failed to update project"
-          );
+          navigate("/authenticate");
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
         }
+
+        toast.error(errorMessage);
       } finally {
         setSaveLoading(false);
       }
     },
   });
 
+  // Handlers
   const handleDeleteProject = async () => {
     try {
       setDeleteLoading(true);
-      const res = await requestServer(`project/delete/${projectId}`, {
-        userId,
-      });
+      const res = await requestServer(
+        `/project/delete/${currentProject._id}`,
+        { userId },
+        "DELETE"
+      );
+
       dispatch(setProjects(res.data.allProjects));
       toast.success("Project deleted successfully");
       navigate("/dashboard");
     } catch (error) {
       console.error("Error deleting project:", error);
-      toast.error("Failed to delete project");
+      toast.error(error.response?.data?.message || "Failed to delete project");
     } finally {
       setDeleteLoading(false);
       setIsDeleteDialogOpen(false);
@@ -155,23 +393,65 @@ const ProjectDetailsPage = () => {
 
   const handleRemoveMember = async (memberId) => {
     try {
+      setRemovingMemberId(memberId);
       const updatedMembers = currentProject.member.filter(
         (m) => m._id !== memberId
       );
 
-      const res = await requestServer(`project/update/${projectId}`, {
-        title: currentProject.title,
-        description: currentProject.description,
-        member: updatedMembers.map((m) => m._id),
-        userId,
-      });
+      const res = await requestServer(
+        `/project/update/${projectId}`,
+        {
+          title: currentProject.title,
+          description: currentProject.description,
+          member: updatedMembers.map((m) => m._id),
+          userId,
+        },
+        "PUT"
+      );
 
+      setLocalProject(res.data.updatedProject);
       dispatch(setCurrentProject(res.data.updatedProject));
       dispatch(setProjects(res.data.allProjects));
-      toast.success("Member removed successfully");
+
+      toast.success("Member removed successfully", {
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            try {
+              const memberToRestore = members.find((m) => m._id === memberId);
+              if (!memberToRestore) return;
+
+              const restoredMembers = [
+                ...res.data.updatedProject.member,
+                memberToRestore,
+              ];
+              const undoRes = await requestServer(
+                `/project/update/${projectId}`,
+                {
+                  title: currentProject.title,
+                  description: currentProject.description,
+                  member: restoredMembers.map((m) => m._id),
+                  userId,
+                },
+                "PUT"
+              );
+
+              setLocalProject(undoRes.data.updatedProject);
+              dispatch(setCurrentProject(undoRes.data.updatedProject));
+              dispatch(setProjects(undoRes.data.allProjects));
+              toast.success("Member restored successfully");
+            } catch (error) {
+              console.error("Error restoring member:", error);
+              toast.error("Failed to restore member");
+            }
+          },
+        },
+      });
     } catch (error) {
       console.error("Error removing member:", error);
-      toast.error("Failed to remove member");
+      toast.error(error.response?.data?.message || "Failed to remove member");
+    } finally {
+      setRemovingMemberId(null);
     }
   };
 
@@ -179,7 +459,6 @@ const ProjectDetailsPage = () => {
     formik.setFieldValue("member", selectedUserIds);
   };
 
-  // Copy project ID
   const copyProjectId = () => {
     if (currentProject?._id) {
       navigator.clipboard.writeText(currentProject._id);
@@ -187,15 +466,51 @@ const ProjectDetailsPage = () => {
     }
   };
 
+  const copyProjectLink = () => {
+    if (currentProject?.customId) {
+      const baseUrl = window.location.origin;
+      const shareableLink = `${baseUrl}/project/${currentProject.customId}`;
+      navigator.clipboard.writeText(shareableLink);
+      toast.success("Project link copied to clipboard");
+    }
+  };
+
+  // Loading states
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[80vh]">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
-          <p className="text-violet-800 dark:text-violet-300 font-medium">
-            Loading project details...
-          </p>
-        </div>
+      <div className="container max-w-5xl mx-auto py-8 px-4">
+        <Skeleton className="h-10 w-32 mb-6" />
+        <Card className="border-violet-200 dark:border-violet-800/30 shadow-md overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/40 dark:to-indigo-950/40 pb-4">
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="md:col-span-2 space-y-6">
+                <div>
+                  <Skeleton className="h-5 w-32 mb-2" />
+                  <Skeleton className="h-24 w-full" />
+                </div>
+                <div>
+                  <Skeleton className="h-5 w-32 mb-2" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[1, 2].map((i) => (
+                      <Skeleton key={i} className="h-16 w-full" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-6">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-40 w-full" />
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -209,7 +524,7 @@ const ProjectDetailsPage = () => {
         <p className="text-gray-600 dark:text-gray-400 mb-4">
           The project you're looking for doesn't exist or has been deleted.
         </p>
-        <Button onClick={() => navigate("/projects")}>
+        <Button onClick={() => navigate("/dashboard")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Projects
         </Button>
@@ -217,30 +532,16 @@ const ProjectDetailsPage = () => {
     );
   }
 
-  const createdDate = new Date(currentProject.createdAt).toLocaleDateString();
-  const updatedDate = new Date(currentProject.updatedAt).toLocaleDateString();
-
   return (
     <div className="container max-w-5xl mx-auto py-8 px-4">
-      <div className="mb-6 flex items-center justify-between">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/projects")}
-          className="text-violet-700 hover:text-violet-800 hover:bg-violet-100 dark:text-violet-300 dark:hover:text-violet-200 dark:hover:bg-violet-900/20"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Projects
-        </Button>
-
-        <Button
-          variant="destructive"
-          onClick={() => setIsDeleteDialogOpen(true)}
-          className="bg-red-600 hover:bg-red-700"
-        >
-          <Trash2 className="mr-2 h-4 w-4" />
-          Delete Project
-        </Button>
-      </div>
+      <ProjectHeader
+        project={currentProject}
+        isEditing={isEditing}
+        onEditToggle={() => setIsEditing(!isEditing)}
+        onCopyId={copyProjectId}
+        onCopyLink={copyProjectLink}
+        onBack={() => navigate("/dashboard")}
+      />
 
       <Card className="border-violet-200 dark:border-violet-800/30 shadow-md overflow-hidden">
         <CardHeader className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/40 dark:to-indigo-950/40 pb-4">
@@ -256,26 +557,6 @@ const ProjectDetailsPage = () => {
                 >
                   Active
                 </Badge>
-                {currentProject._id && (
-                  <div className="flex items-center gap-1">
-                    <Badge
-                      variant="outline"
-                      className="bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300 border-violet-200 dark:border-violet-800/30 cursor-pointer"
-                      onClick={copyProjectId}
-                    >
-                      ID: {currentProject.customId.substring(0, 8)}...
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={copyProjectId}
-                      className="h-6 w-6 rounded-full hover:bg-violet-100 dark:hover:bg-violet-900/30 text-violet-600 dark:text-violet-400"
-                    >
-                      <Copy className="h-3 w-3" />
-                      <span className="sr-only">Copy ID</span>
-                    </Button>
-                  </div>
-                )}
               </div>
 
               {isEditing ? (
@@ -287,12 +568,21 @@ const ProjectDetailsPage = () => {
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     className="text-2xl font-bold bg-white dark:bg-slate-900 border-violet-200 dark:border-violet-800/30 focus-visible:ring-violet-500/50"
+                    aria-label="Project title"
+                    maxLength={50}
                   />
-                  {formik.touched.title && formik.errors.title && (
-                    <p className="text-red-500 text-xs">
-                      {formik.errors.title}
-                    </p>
-                  )}
+                  <div className="flex justify-between items-center">
+                    {formik.touched.title && formik.errors.title ? (
+                      <p className="text-red-500 text-xs">
+                        {formik.errors.title}
+                      </p>
+                    ) : (
+                      <div />
+                    )}
+                    <span className="text-xs text-gray-500">
+                      {formik.values.title.length}/50
+                    </span>
+                  </div>
                 </div>
               ) : (
                 <CardTitle className="text-2xl font-bold text-violet-900 dark:text-violet-200">
@@ -309,47 +599,27 @@ const ProjectDetailsPage = () => {
               </CardDescription>
             </div>
 
-            {!isEditing ? (
+            {isEditing && (
               <Button
-                variant="outline"
+                variant="default"
                 size="sm"
-                onClick={() => setIsEditing(true)}
-                className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:border-violet-800/30 dark:text-violet-300 dark:hover:bg-violet-900/20"
+                onClick={formik.handleSubmit}
+                disabled={saveLoading || !formik.dirty}
+                className="bg-violet-600 hover:bg-violet-700 text-white"
+                aria-label="Save changes"
               >
-                <Edit2 className="mr-2 h-4 w-4" />
-                Edit
+                {saveLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save
+                  </>
+                )}
               </Button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(false)}
-                  className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800/30 dark:text-red-300 dark:hover:bg-red-900/20"
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Cancel
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={formik.handleSubmit}
-                  disabled={saveLoading}
-                  className="bg-violet-600 hover:bg-violet-700 text-white"
-                >
-                  {saveLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Save
-                    </>
-                  )}
-                </Button>
-              </div>
             )}
           </div>
         </CardHeader>
@@ -357,48 +627,12 @@ const ProjectDetailsPage = () => {
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-2 space-y-6">
-              {/* Description */}
-              <div>
-                <h3 className="text-sm font-medium text-violet-800 dark:text-violet-300 flex items-center gap-2 mb-2">
-                  <FileText className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                  Description
-                </h3>
+              <ProjectDescription
+                description={currentProject.description}
+                isEditing={isEditing}
+                formik={formik}
+              />
 
-                {isEditing ? (
-                  <div className="space-y-2">
-                    <Textarea
-                      id="description"
-                      name="description"
-                      value={formik.values.description}
-                      onChange={formik.handleChange}
-                      onBlur={formik.handleBlur}
-                      rows={4}
-                      className="min-h-[120px] bg-white dark:bg-slate-900 border-violet-200 dark:border-violet-800/30 focus-visible:ring-violet-500/50"
-                      placeholder="Enter project description"
-                    />
-                    {formik.touched.description &&
-                      formik.errors.description && (
-                        <p className="text-red-500 text-xs">
-                          {formik.errors.description}
-                        </p>
-                      )}
-                  </div>
-                ) : (
-                  <div className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30 min-h-[80px]">
-                    {currentProject.description ? (
-                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                        {currentProject.description}
-                      </p>
-                    ) : (
-                      <p className="text-gray-500 dark:text-gray-400 italic">
-                        No description provided
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Members */}
               <div>
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-sm font-medium text-violet-800 dark:text-violet-300 flex items-center gap-2">
@@ -412,6 +646,7 @@ const ProjectDetailsPage = () => {
                       size="sm"
                       onClick={() => setIsAddMemberOpen(true)}
                       className="h-8 border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:border-violet-800/30 dark:text-violet-300 dark:hover:bg-violet-900/20"
+                      aria-label="Add members"
                     >
                       <Plus className="mr-1 h-3.5 w-3.5" />
                       Add Members
@@ -419,48 +654,49 @@ const ProjectDetailsPage = () => {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {currentProject.member?.map((member) => (
-                    <div
-                      key={member._id}
-                      className="flex items-center justify-between p-3 bg-violet-50/80 dark:bg-violet-950/30 rounded-lg border border-violet-100 dark:border-violet-800/30 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-all"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="h-9 w-9 border-2 border-violet-200 dark:border-violet-800">
-                          <AvatarImage
-                            src={member.profilePic}
-                            alt={member.name}
-                          />
-                          <AvatarFallback className="bg-violet-200 dark:bg-violet-800 text-violet-700 dark:text-violet-300">
-                            {member.name?.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-gray-100">
-                            {member.name}
-                          </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {member.email}
-                          </p>
+                {membersLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="flex items-center space-x-3 p-3 bg-violet-50/80 dark:bg-violet-950/30 rounded-lg border border-violet-100 dark:border-violet-800/30"
+                      >
+                        <Skeleton className="h-9 w-9 rounded-full" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-[100px]" />
+                          <Skeleton className="h-3 w-[150px]" />
                         </div>
                       </div>
-
-                      {isEditing && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveMember(member._id)}
-                          className="h-8 w-8 rounded-full text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Remove member</span>
-                        </Button>
-                      )}
+                    ))}
+                  </div>
+                ) : membersError ? (
+                  <div className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30 text-center">
+                    <div className="text-red-500 mb-2">
+                      Failed to load members
                     </div>
-                  ))}
-                </div>
-
-                {currentProject.member?.length === 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => refetch()}
+                      className="text-violet-700 dark:text-violet-300"
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Retry
+                    </Button>
+                  </div>
+                ) : members?.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {members.map((member) => (
+                      <MemberItem
+                        key={member._id}
+                        member={member}
+                        onRemove={handleRemoveMember}
+                        isEditing={isEditing}
+                        removingMemberId={removingMemberId}
+                      />
+                    ))}
+                  </div>
+                ) : (
                   <div className="text-center py-8 bg-violet-50/50 dark:bg-violet-950/20 rounded-lg border border-violet-100 dark:border-violet-800/30">
                     <Users className="h-12 w-12 mx-auto mb-3 text-violet-400 dark:text-violet-600" />
                     <p className="text-gray-500 dark:text-gray-400 font-medium">
@@ -482,9 +718,7 @@ const ProjectDetailsPage = () => {
               </div>
             </div>
 
-            {/* Sidebar */}
             <div className="space-y-6">
-              {/* Project Info */}
               <div className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30">
                 <h3 className="text-sm font-medium text-violet-800 dark:text-violet-300 flex items-center gap-2 mb-3">
                   <Building className="h-4 w-4 text-violet-600 dark:text-violet-400" />
@@ -518,7 +752,6 @@ const ProjectDetailsPage = () => {
                 </div>
               </div>
 
-              {/* Member Count */}
               <div className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30">
                 <h3 className="text-sm font-medium text-violet-800 dark:text-violet-300 flex items-center gap-2 mb-3">
                   <Users className="h-4 w-4 text-violet-600 dark:text-violet-400" />
@@ -543,7 +776,6 @@ const ProjectDetailsPage = () => {
                 </div>
               </div>
 
-              {/* Quick Actions */}
               <div className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30">
                 <h3 className="text-sm font-medium text-violet-800 dark:text-violet-300 flex items-center gap-2 mb-3">
                   <CheckCircle className="h-4 w-4 text-violet-600 dark:text-violet-400" />
@@ -571,6 +803,15 @@ const ProjectDetailsPage = () => {
                       Add Team Members
                     </Button>
                   )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copyProjectLink}
+                    className="w-full justify-start border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:border-violet-800/30 dark:text-violet-300 dark:hover:bg-violet-900/20"
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    Share Project Link
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -603,6 +844,7 @@ const ProjectDetailsPage = () => {
             <UserSearch
               onSelectUser={handleUserSelect}
               defaultValue={formik.values.member}
+              excludeUsers={members?.map((m) => m._id) || []}
             />
 
             {formik.touched.member && formik.errors.member && (
@@ -619,9 +861,10 @@ const ProjectDetailsPage = () => {
               </Button>
               <Button
                 onClick={() => {
-                  formik.handleSubmit();
+                  formik.submitForm();
                   setIsAddMemberOpen(false);
                 }}
+                disabled={!formik.dirty || !formik.isValid}
                 className="bg-violet-600 hover:bg-violet-700 text-white"
               >
                 Save Changes

@@ -1,65 +1,98 @@
-import requestServer from "@/utils/requestServer";
-import { useState, useEffect, useRef, useMemo } from "react";
-import { useSelector } from "react-redux";
-import { toast } from "sonner";
+import { useState, useEffect, useRef, useCallback } from "react";
+import requestServer from "../utils/requestServer";
 
-export function useProjectMembers(projectId) {
-  const [loading, setLoading] = useState(true);
+const useProjectMembers = (projectId) => {
   const [members, setMembers] = useState([]);
-  const memberCache = useRef(new Map()); // Store already fetched members
-  const memberIds = useSelector(
-    (state) => state.project.currentProject?.member || []
-  );
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const abortControllerRef = useRef(null);
 
-  // Memoize memberIds to prevent unnecessary re-renders
-  const stableMemberIds = useMemo(() => memberIds, [JSON.stringify(memberIds)]);
+  const fetchMembers = useCallback(async () => {
+    if (!projectId) {
+      setError("Project ID is required");
+      return;
+    }
 
-  useEffect(() => {
-    async function fetchMembers() {
-      setLoading(true);
+    // Cancel previous request if it exists
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort("New request initiated");
+    }
 
-      // Filter out members already in cache
-      const newMemberIds = stableMemberIds.filter(
-        (id) => !memberCache.current.has(id)
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Fetch project data
+      const projectResponse = await requestServer(
+        `/project/get/${projectId}`,
+
+        { signal: controller.signal, timeout: 10000 } // Added timeout
       );
 
-      if (newMemberIds.length === 0) {
-        setMembers(stableMemberIds.map((id) => memberCache.current.get(id)));
-        setLoading(false);
+      if (!projectResponse?.data?.member) {
+        setMembers([]);
         return;
       }
 
-      try {
-        const memberRequests = newMemberIds.map((userId) =>
-          requestServer(`/user/u/${userId}`)
-        );
-        const memberResponses = await Promise.all(memberRequests);
-        const memberData = await Promise.all(
-          memberResponses.map((res) => res.data)
+      const memberIds = projectResponse.data.member;
+
+      // Fetch user details in batches
+      const batchSize = 5;
+      const allMemberDetails = [];
+
+      for (let i = 0; i < memberIds.length; i += batchSize) {
+        if (controller.signal.aborted) break;
+
+        const batch = memberIds.slice(i, i + batchSize);
+        const memberRequests = batch.map((userId) =>
+          requestServer(
+            `/user/u/${userId}`,
+
+            { signal: controller.signal }
+          ).catch((err) => {
+            console.error(`Failed to fetch user ${userId}:`, err);
+            return null;
+          })
         );
 
-        // Store fetched members in cache
-        newMemberIds.forEach((id, index) => {
-          memberCache.current.set(id, memberData[index]);
-        });
+        const batchResults = await Promise.all(memberRequests);
+        allMemberDetails.push(...batchResults.filter(Boolean));
+      }
 
-        // Update state with cached + new members
-        setMembers(stableMemberIds.map((id) => memberCache.current.get(id)));
-      } catch (err) {
-        toast.error("Error fetching members");
-        console.error("Error fetching members:", err);
-      } finally {
+      if (!controller.signal.aborted) {
+        setMembers(allMemberDetails);
+      }
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        console.error("Fetch error:", err);
+        setError(err.message || "Failed to fetch members");
+      }
+    } finally {
+      if (!controller.signal.aborted) {
         setLoading(false);
       }
     }
+  }, [projectId]);
 
-    if (projectId && stableMemberIds.length > 0) {
-      fetchMembers();
-    } else {
-      setMembers([]);
-      setLoading(false);
-    }
-  }, [projectId, stableMemberIds]);
+  useEffect(() => {
+    fetchMembers();
 
-  return { members, loading };
-}
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort("Component unmounted");
+      }
+    };
+  }, [fetchMembers]);
+
+  return {
+    members: members.map((m) => m?.data || m), // Normalize response format
+    loading,
+    error,
+    refetch: fetchMembers,
+  };
+};
+
+export default useProjectMembers;

@@ -165,7 +165,7 @@ const Navbar = () => {
                       key={task._id}
                       className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
                       onClick={() => {
-                        navigate(`/tasks/${task._id}`);
+                        navigate(`/task/${task._id}`);
                         setSearchQuery("");
                       }}
                     >
@@ -194,7 +194,7 @@ const Navbar = () => {
                       className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
                       onClick={() => {
                         // Navigate to status filtered view
-                        navigate(`/tasks?status=${status._id}`);
+                        navigate(`/task?status=${status._id}`);
                         setSearchQuery("");
                       }}
                     >

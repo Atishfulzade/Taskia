@@ -9,9 +9,10 @@ const { generateUniqueId } = require("../utils/generateUniqueId.js");
 
 // Add a new task
 const addTask = async (req, res) => {
+  console.log("add task called", req.body);
   try {
     const { title, projectId, status, assignedTo, useCustomId, ...others } =
-      req.body;
+      req.body.data;
 
     // Validate required fields
     if (!title || !projectId || !status) {

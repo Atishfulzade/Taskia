@@ -105,7 +105,7 @@ const TaskItem = React.memo(
     useEffect(() => {
       if (assignedTo) {
         setIsLoading(true);
-        requestServer(`user/u/${assignedTo}`)
+        requestServer(`user/name/${assignedTo}`)
           .then((user) => {
             setAssignedUser(user?.data?.name || "Unknown");
             setIsLoading(false);

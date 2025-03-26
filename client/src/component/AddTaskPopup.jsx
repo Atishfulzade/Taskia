@@ -1,11 +1,12 @@
-import { DialogDescription } from "@/components/ui/Dialog";
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
+import { DialogDescription } from "@/components/ui/Dialog";
 import {
   Paperclip,
   X,
@@ -22,7 +23,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useFileUpload } from "../hooks/useFileUpload ";
-import { useProjectMembers } from "../hooks/useProjectMembers";
+import useProjectMembers from "../hooks/useProjectMembers";
 import requestServer from "@/utils/requestServer";
 import { addTask, updateTask } from "@/store/taskSlice";
 import {
@@ -97,7 +98,6 @@ const taskSchema = z.object({
   ),
 });
 
-// Subtask component
 const SubtaskItem = ({ index, form, isFormDisabled, removeSubtask }) => {
   return (
     <Card className="bg-background border border-border shadow-sm transition-all hover:shadow-md">
@@ -169,7 +169,6 @@ const SubtaskItem = ({ index, form, isFormDisabled, removeSubtask }) => {
   );
 };
 
-// File attachment item component
 const FileAttachmentItem = ({ file, index, onRemove, isDisabled }) => {
   return (
     <div className="flex items-center justify-between p-2.5 bg-secondary/10 rounded-md group hover:bg-secondary/20 transition-all border border-transparent hover:border-secondary/30">
@@ -225,21 +224,19 @@ const AddTaskPopup = React.memo(
     const projectId = useSelector((state) => state.project.currentProject?._id);
     const project = useSelector((state) => state.project.currentProject);
     const statuses = useSelector((state) => state.status.statuses);
-    const projectMembers = useSelector(
-      (state) => state.project.currentProject?.member
-    );
     const useCustomId = useSelector((state) => state.settings.useCustomId);
 
     const { uploadFiles, fileLoading } = useFileUpload();
-    const { members, loading: membersLoading } = useProjectMembers(
-      projectMembers,
-      open
-    );
-
-    // Get default values based on edit mode and initialPriority
+    const {
+      members,
+      loading: membersLoading,
+      error: membersError, // Changed from 'error' to 'membersError' for consistency
+      refetch,
+    } = useProjectMembers(projectId);
     const getDefaultValues = useCallback(() => {
       if (isEdit && taskData) {
         return {
+          ...taskData,
           title: taskData.title || "",
           description: taskData.description || "",
           priority: taskData.priority || "No",
@@ -277,18 +274,15 @@ const AddTaskPopup = React.memo(
       useCustomId,
     ]);
 
-    // Initialize form with default values
     const form = useForm({
       resolver: zodResolver(taskSchema),
       defaultValues: getDefaultValues(),
     });
 
-    // Reset form when taskData or isEdit changes
     useEffect(() => {
       form.reset(getDefaultValues());
     }, [taskData, isEdit, form, getDefaultValues]);
 
-    // Track form changes
     useEffect(() => {
       const subscription = form.watch(() => {
         setHasUnsavedChanges(true);
@@ -296,7 +290,6 @@ const AddTaskPopup = React.memo(
       return () => subscription.unsubscribe();
     }, [form]);
 
-    // Update required form values when dependencies change
     useEffect(() => {
       if (projectId && !form.getValues("projectId")) {
         form.setValue("projectId", projectId);
@@ -310,13 +303,11 @@ const AddTaskPopup = React.memo(
         form.setValue("assignedBy", userId);
       }
 
-      // Set initial priority if provided
       if (initialPriority && form.getValues("priority") !== initialPriority) {
         form.setValue("priority", initialPriority);
       }
     }, [projectId, status, userId, form, initialPriority]);
 
-    // Handle file input change
     const handleFileChange = async (event) => {
       const files = event.target.files;
       if (!files || files.length === 0) return;
@@ -331,7 +322,6 @@ const AddTaskPopup = React.memo(
       }
     };
 
-    // Add a new subtask
     const addSubtask = useCallback(() => {
       const currentSubtasks = form.getValues("subTask") || [];
       form.setValue("subTask", [
@@ -340,7 +330,6 @@ const AddTaskPopup = React.memo(
       ]);
     }, [form]);
 
-    // Remove a subtask
     const removeSubtask = useCallback(
       (index) => {
         const currentSubtasks = form.getValues("subTask");
@@ -352,7 +341,6 @@ const AddTaskPopup = React.memo(
       [form]
     );
 
-    // Remove an attached file
     const removeFile = useCallback(
       (index) => {
         const currentFiles = form.getValues("attachedFile");
@@ -364,7 +352,6 @@ const AddTaskPopup = React.memo(
       [form]
     );
 
-    // Handle dialog close with confirmation if changes exist
     const handleDialogClose = useCallback(() => {
       if (hasUnsavedChanges) {
         setIsAlertOpen(true);
@@ -373,36 +360,37 @@ const AddTaskPopup = React.memo(
       }
     }, [hasUnsavedChanges, onOpenChange]);
 
-    // Handle alert dialog confirmation
     const handleAlertConfirm = () => {
       onOpenChange(false);
       setHasUnsavedChanges(false);
       setIsAlertOpen(false);
     };
 
-    // Handle alert dialog cancellation
     const handleAlertCancel = () => {
       setIsAlertOpen(false);
     };
 
-    // Form submission handler
     const onSubmit = async (values) => {
       setLoading(true);
       try {
-        // Prepare task data
-        const taskData = {
+        const taskPayload = {
           ...values,
-          // Only include useCustomId
           useCustomId: values.useCustomId || undefined,
         };
 
         let res;
         if (isEdit && taskData) {
-          res = await requestServer(`task/update/${taskData._id}`, taskData);
+          res = await requestServer(
+            `/task/update/${taskData._id}`,
+            taskPayload
+          );
           dispatch(updateTask(res.data));
           toast.success("Task updated successfully");
         } else {
-          res = await requestServer("task/add", taskData);
+          res = await requestServer("/task/add", {
+            method: "POST",
+            data: taskPayload,
+          });
           dispatch(addTask(res.data));
           toast.success("Task added successfully");
         }
@@ -425,7 +413,6 @@ const AddTaskPopup = React.memo(
       }
     };
 
-    // Get priority badge color
     const getPriorityColor = (priority) => {
       switch (priority) {
         case "High":
@@ -620,19 +607,91 @@ const AddTaskPopup = React.memo(
                                 {membersLoading ? (
                                   <div className="flex items-center">
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin text-violet-600" />
-                                    <span>Loading...</span>
+                                    <span>Loading members...</span>
                                   </div>
+                                ) : membersError ? (
+                                  <span className="text-red-500">
+                                    Failed to load members
+                                  </span>
                                 ) : (
-                                  <SelectValue placeholder="Select a user" />
+                                  <SelectValue placeholder="Select a user">
+                                    {field.value ? (
+                                      <div className="flex items-center gap-2">
+                                        <Avatar className="h-5 w-5">
+                                          <AvatarImage
+                                            src={
+                                              members.find(
+                                                (m) => m._id === field.value
+                                              )?.profilePic
+                                            }
+                                          />
+                                          <AvatarFallback>
+                                            {members
+                                              .find(
+                                                (m) => m._id === field.value
+                                              )
+                                              ?.name?.charAt(0) || "U"}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <span>
+                                          {members.find(
+                                            (m) => m._id === field.value
+                                          )?.name || "Select user"}
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      "Select a user"
+                                    )}
+                                  </SelectValue>
                                 )}
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent className="max-h-[200px]">
-                              {members.map((user) => (
-                                <SelectItem key={user._id} value={user._id}>
-                                  {user.name}
-                                </SelectItem>
-                              ))}
+                            <SelectContent className="max-h-[300px]">
+                              {membersLoading ? (
+                                <div className="flex items-center justify-center p-4">
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Loading members...
+                                </div>
+                              ) : membersError ? (
+                                <div className="text-red-500 p-2 text-center">
+                                  Failed to load members
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => refetch()}
+                                    className="mt-2"
+                                  >
+                                    Retry
+                                  </Button>
+                                </div>
+                              ) : members.length === 0 ? (
+                                <div className="text-muted-foreground p-2 text-center">
+                                  No members found
+                                </div>
+                              ) : (
+                                members.map((user) => (
+                                  <SelectItem key={user._id} value={user._id}>
+                                    <div className="flex items-center gap-2">
+                                      <Avatar className="h-6 w-6">
+                                        <AvatarImage src={user.profilePic} />
+                                        <AvatarFallback>
+                                          {user.name
+                                            ?.charAt(0)
+                                            ?.toUpperCase() || "U"}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <div>
+                                        <p className="font-medium">
+                                          {user.name}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {user.email}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
                           <FormMessage />

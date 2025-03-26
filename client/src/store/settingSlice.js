@@ -45,7 +45,7 @@ const initialState = {
   _id: null,
   userId: null,
   theme: "system",
-  useCustomId: false,
+  useCustomId: true,
   fontSize: "medium",
   notifications: {
     email: false,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -49,10 +49,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import AddTaskPopup from "../component/AddTaskPopup";
 import requestServer from "@/utils/requestServer";
 import { deleteTask, updateTask } from "@/store/taskSlice";
-import { useProjectMembers } from "@/hooks/useProjectMembers";
+import useProjectMembers from "@/hooks/useProjectMembers";
 
 const TaskDetail = () => {
   const { customId } = useParams();
@@ -61,10 +60,11 @@ const TaskDetail = () => {
 
   // Get current project from Redux state
   const currentProject = useSelector((state) => state.project.currentProject);
+  const statuses = useSelector((state) => state.status.statuses);
 
   // Use project members hook with correct parameters
   const { members, loading: membersLoading } = useProjectMembers(
-    currentProject?._id // Pass project ID instead of undefined variables
+    currentProject?._id
   );
 
   const [task, setTask] = useState(null);
@@ -72,16 +72,24 @@ const TaskDetail = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTask, setEditedTask] = useState({});
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  //   const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [assignee, setAssignee] = useState(null);
   const [assigner, setAssigner] = useState(null);
 
-  const statuses = useSelector((state) => state.status.statuses);
-  const projectMembers = useSelector(
-    (state) => state.project.currentProject?.members || []
-  );
+  // Memoized function to find assignee and assigner
+  const updateAssigneeAndAssigner = useCallback(() => {
+    if (task && members.length > 0) {
+      const foundAssignee = members.find(
+        (member) => member._id === task.assignedTo
+      );
+      const foundAssigner = members.find(
+        (member) => member._id === task.assignedBy
+      );
+      setAssignee(foundAssignee);
+      setAssigner(foundAssigner);
+    }
+  }, [task, members]);
 
   // Fetch task details
   useEffect(() => {
@@ -105,48 +113,39 @@ const TaskDetail = () => {
     }
   }, [customId, navigate]);
 
-  // Find assignee and assigner
+  // Update assignee and assigner when task or members change
   useEffect(() => {
-    if (task && members.length > 0) {
-      const foundAssignee = members.find(
-        (member) => member._id === task.assignedTo
-      );
-      const foundAssigner = members.find(
-        (member) => member._id === task.assignedBy
-      );
-      setAssignee(foundAssignee);
-      setAssigner(foundAssigner);
-    }
-  }, [task, members]);
+    updateAssigneeAndAssigner();
+  }, [updateAssigneeAndAssigner]);
 
   // Handle edit mode toggle
-  const toggleEditMode = () => {
+  const toggleEditMode = useCallback(() => {
     if (isEditing) {
       // Discard changes
       setEditedTask(task);
     }
     setIsEditing(!isEditing);
-  };
+  }, [isEditing, task]);
 
   // Handle input changes
-  const handleInputChange = (e) => {
+  const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
     setEditedTask((prev) => ({
       ...prev,
       [name]: value,
     }));
-  };
+  }, []);
 
   // Handle select changes
-  const handleSelectChange = (name, value) => {
+  const handleSelectChange = useCallback((name, value) => {
     setEditedTask((prev) => ({
       ...prev,
       [name]: value,
     }));
-  };
+  }, []);
 
   // Save changes
-  const saveChanges = async () => {
+  const saveChanges = useCallback(async () => {
     try {
       setSaveLoading(true);
       const res = await requestServer(
@@ -164,10 +163,10 @@ const TaskDetail = () => {
     } finally {
       setSaveLoading(false);
     }
-  };
+  }, [dispatch, editedTask, task]);
 
   // Delete task
-  const deleteTaskHandler = async () => {
+  const deleteTaskHandler = useCallback(async () => {
     try {
       setDeleteLoading(true);
       await requestServer(`/task/delete/${task._id}`, {}, "DELETE");
@@ -181,18 +180,18 @@ const TaskDetail = () => {
       setDeleteLoading(false);
       setIsDeleteDialogOpen(false);
     }
-  };
+  }, [dispatch, navigate, task]);
 
   // Copy custom ID
-  const copyCustomId = () => {
+  const copyCustomId = useCallback(() => {
     if (task?.customId) {
       navigator.clipboard.writeText(task.customId);
       toast.success("Custom ID copied to clipboard");
     }
-  };
+  }, [task]);
 
   // Get priority badge color
-  const getPriorityColor = (priority) => {
+  const getPriorityColor = useCallback((priority) => {
     switch (priority) {
       case "High":
         return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800/30";
@@ -208,10 +207,10 @@ const TaskDetail = () => {
         const hue = Math.abs(hash % 360);
         return `bg-[hsl(${hue},85%,95%)] text-[hsl(${hue},75%,35%)] dark:bg-[hsl(${hue},70%,15%)] dark:text-[hsl(${hue},70%,70%)] border-[hsl(${hue},75%,85%)] dark:border-[hsl(${hue},70%,25%)]`;
     }
-  };
+  }, []);
 
-  // Get status badge color
-  const getStatusBadge = () => {
+  // Get status badge
+  const getStatusBadge = useCallback(() => {
     if (!task?.status) return null;
 
     const status = statuses.find((s) => s._id === task.status);
@@ -222,7 +221,7 @@ const TaskDetail = () => {
         {status.title}
       </Badge>
     );
-  };
+  }, [task, statuses]);
 
   if (loading) {
     return (
@@ -255,7 +254,6 @@ const TaskDetail = () => {
       </div>
     );
   }
-
   return (
     <div className="container max-w-5xl mx-auto py-8 px-4">
       <div className="mb-6 flex items-center justify-between">

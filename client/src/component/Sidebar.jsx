@@ -122,7 +122,7 @@ const Sidebar = ({ onCollapse }) => {
       searchInputRef.current.focus();
     }
     fetchSharedProjects();
-  }, [showSearch, fetchSharedProjects]);
+  }, [showSearch]);
 
   useEffect(() => {
     if (currentProject?._id) {

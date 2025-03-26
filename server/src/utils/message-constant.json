@@ -113,7 +113,9 @@
     "settingUpdatedSuccessfully": "Setting updated successfully!",
     "settingNotFound": "Setting not found!",
     "settingDeleted": "Setting deleted successfully!",
-    "errorDeletingSetting": "Error deleting setting"
+    "errorDeletingSetting": "Error deleting setting",
+    "errorCreatingSetting":"Error creating setting",
+    "settingCreatedSuccessfully":"Setting created successfully!"
   }
 
 }

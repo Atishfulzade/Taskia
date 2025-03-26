@@ -52,6 +52,7 @@ const Authentication = () => {
     try {
       if (isRegistration) {
         // For new users, create default settings
+        const res = await requestServer("setting/get");
         await dispatch(updateSettingState(userId)).unwrap();
         toast.success("Default settings created");
       } else {

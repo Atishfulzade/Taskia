@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Bell, X, Check } from "lucide-react";
+import { Bell, X, Check, RefreshCw } from "lucide-react";
 import socket from "../utils/socket";
 import requestServer from "../utils/requestServer";
 import { addSharedProject } from "@/store/sharedProjectSlice";
@@ -32,12 +32,12 @@ const NotificationItem = ({ notification, onRead, onClose }) => {
         <div className="mt-1">{getTypeIcon()}</div>
         <div className="flex-1">
           <p className="text-sm text-gray-700 dark:text-gray-300">{message}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          {/* <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             {new Date(timestamp).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
             })}
-          </p>
+          </p> */}
         </div>
         <div className="flex gap-1">
           {!read && (
@@ -65,8 +65,13 @@ const NotificationItem = ({ notification, onRead, onClose }) => {
 const NotificationCenter = () => {
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const dropdownRef = useRef(null);
   const user = useSelector((state) => state.user.user);
+  const serverNotifications = useSelector(
+    (state) => state.user.user?.notifications || []
+  );
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -103,7 +108,6 @@ const NotificationCenter = () => {
     });
     socket.on("taskAssigned", (data) => handleNotification(data, "task"));
     socket.on("statusUpdated", (data) => {
-      console.log(data.updatedStatus);
       dispatch(updateStatus(data.updatedStatus));
       handleNotification(data, "status");
     });
@@ -119,30 +123,33 @@ const NotificationCenter = () => {
     try {
       if (!user?._id) return;
 
-      const res = await requestServer(`user/notification/get/${user._id}`);
-      if (res?.data) {
-        // Mark server notifications
-        const serverNotifications = res.data.notifications.map((n) => ({
-          ...n,
-          fromSocket: false,
-        }));
+      setLoading(true);
+      setError(null);
 
-        // Merge with existing socket notifications and sort by timestamp
-        setNotifications((prev) => {
-          // Keep only socket notifications that aren't duplicates
-          const socketNotifications = prev.filter(
-            (n) =>
-              n.fromSocket &&
-              !serverNotifications.some((sn) => sn._id === n._id)
-          );
+      // Mark server notifications
+      const formattedServerNotifications = serverNotifications.map((n) => ({
+        ...n,
+        fromSocket: false,
+      }));
 
-          return [...socketNotifications, ...serverNotifications].sort(
-            (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-          );
-        });
-      }
+      // Merge with existing socket notifications and sort by timestamp
+      setNotifications((prev) => {
+        // Keep only socket notifications that aren't duplicates
+        const socketNotifications = prev.filter(
+          (n) =>
+            n.fromSocket &&
+            !formattedServerNotifications.some((sn) => sn._id === n._id)
+        );
+
+        return [...socketNotifications, ...formattedServerNotifications].sort(
+          (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+        );
+      });
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
+      setError("Failed to load notifications");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -235,23 +242,48 @@ const NotificationCenter = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80  bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 ">
+        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-50">
           <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
             <h3 className="font-medium text-gray-800 dark:text-gray-200">
               Notifications
             </h3>
-            {notifications.length > 0 && unreadCount > 0 && (
+            <div className="flex items-center gap-2">
+              {notifications.length > 0 && unreadCount > 0 && (
+                <button
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  onClick={markAllAsRead}
+                >
+                  Mark all as read
+                </button>
+              )}
               <button
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                onClick={markAllAsRead}
+                onClick={getNotifications}
+                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                aria-label="Refresh notifications"
               >
-                Mark all as read
+                <RefreshCw
+                  className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                />
               </button>
-            )}
+            </div>
           </div>
 
           <div className="max-h-80 overflow-y-auto">
-            {notifications.length > 0 ? (
+            {loading ? (
+              <div className="p-4 text-center">
+                <RefreshCw className="h-5 w-5 animate-spin mx-auto text-gray-400" />
+              </div>
+            ) : error ? (
+              <div className="p-4 text-center text-red-500 dark:text-red-400">
+                {error}
+                <button
+                  onClick={getNotifications}
+                  className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : notifications.length > 0 ? (
               notifications.map((notification) => (
                 <NotificationItem
                   key={notification._id}

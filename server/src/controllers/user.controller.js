@@ -135,6 +135,23 @@ const getUserById = async (req, res) => {
     handleError(res, msg.user.errorFetchingUser, error);
   }
 };
+const getUserName = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // Find the user by ID and exclude the password field
+    const user = await User.findById(userId).select("_id name email");
+    if (!user) {
+      return handleResponse(res, 404, msg.user.userNotFound);
+    }
+
+    // Return success response with the user data
+    return handleResponse(res, 200, msg.user.userFetched, user);
+  } catch (error) {
+    // Handle error and return error response
+    handleError(res, msg.user.errorFetchingUser, error);
+  }
+};
 
 // Search users by name
 const getAllUser = async (req, res) => {
@@ -337,4 +354,5 @@ module.exports = {
   getAllUser,
   getUserById,
   deleteNotification,
+  getUserName,
 };

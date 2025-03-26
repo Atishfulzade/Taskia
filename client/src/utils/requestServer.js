@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const requestServer = async (path, data = {}) => {
+const requestServer = async (path, data = null, options = {}) => {
   try {
     const token = localStorage.getItem("token");
     const backendURL = import.meta.env.VITE_SERVER_URL;
@@ -11,18 +11,42 @@ const requestServer = async (path, data = {}) => {
       .replace(/^\//, "")
       .replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
 
-    // console.log("Request URL:", formattedURL);
+    // Safely handle data - ensure it's an object before using Object.keys
+    let processedData = undefined;
+
+    if (data !== null && data !== undefined) {
+      if (typeof data === "object") {
+        // Create a copy to avoid modifying the original object
+        const dataCopy = { ...data };
+
+        // Remove undefined values
+        Object.keys(dataCopy).forEach((key) => {
+          if (dataCopy[key] === undefined) {
+            delete dataCopy[key];
+          }
+        });
+
+        // Only set processedData if there are keys
+        if (Object.keys(dataCopy).length > 0) {
+          processedData = dataCopy;
+        }
+      } else {
+        // If data is not an object but also not null/undefined, use it as is
+        processedData = data;
+      }
+    }
 
     const res = await axios({
       url: formattedURL,
       method: "POST",
-      data: Object.keys(data).length > 0 ? data : undefined,
+      data: processedData,
       timeout: 5000,
       headers: {
-        Authorization: token ? `Bearer ${token}` : "", // Fixed the interpolation
+        Authorization: token ? `Bearer ${token}` : "",
         "Content-Type": "application/json",
       },
       withCredentials: true, // Ensure cookies are sent with request
+      ...options, // Allow passing additional axios options
     });
 
     return res.data;

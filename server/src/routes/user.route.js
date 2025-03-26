@@ -12,6 +12,7 @@ const {
   deleteNotification,
   markNotificationAsRead,
   markAllNotificationsAsRead,
+  getUserName,
 } = require("../controllers/user.controller.js");
 const validateUser = require("../middlewares/validateUser.middleware.js");
 
@@ -22,6 +23,7 @@ router.post("/logout", verifyUser, logOutUser);
 router.post("/search", verifyUser, getAllUser);
 router.post("/validate", verifyUser, validateUser);
 router.post("/u/:id", verifyUser, getUserById);
+router.post("/name/:id", verifyUser, getUserName);
 router.post("/notification/get/:userId", verifyUser, getUserNotifications);
 router.post("/notification/add", verifyUser, addNotification);
 router.post("/notification/delete", verifyUser, deleteNotification);

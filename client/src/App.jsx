@@ -68,7 +68,7 @@ function App() {
         }
 
         // Fetch projects if not already in state
-        if (!projects?.length) {
+        if (!projects?.length && isAuthenticated) {
           const projectsRes = await requestServer("project/all");
           if (projectsRes?.data?.length) {
             dispatch(setProjects(projectsRes.data));
@@ -77,7 +77,7 @@ function App() {
         }
 
         // Fetch assigned tasks if not already in state
-        if (!assignedTask.length) {
+        if (!assignedTask.length && isAuthenticated) {
           const assignTaskRes = await requestServer("task/assign");
           if (assignTaskRes?.data?.length) {
             dispatch(addAssignTask(assignTaskRes.data));
@@ -94,7 +94,7 @@ function App() {
     };
 
     validateUser();
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated && user?._id && !socketInitialized.current) {
@@ -122,7 +122,7 @@ function App() {
         socketInitialized.current = false;
       }
     };
-  }, [isAuthenticated, user?._id, dispatch]);
+  }, [isAuthenticated, user?._id]);
   return (
     <>
       <Suspense fallback={<Loader message="Loading application..." />}>
