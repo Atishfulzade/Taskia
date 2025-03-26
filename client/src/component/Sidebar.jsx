@@ -38,6 +38,7 @@ import SidebarHeader from "./SidebarHeader";
 import SidebarContent from "./SIdebarContent";
 import SidebarFooter from "./SidebarFooter";
 import ContextMenu from "./ContextMenu";
+import { useNavigate } from "react-router-dom";
 
 const Sidebar = ({ onCollapse }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -70,6 +71,7 @@ const Sidebar = ({ onCollapse }) => {
   });
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const projects = useSelector((state) => state.project.projects || []);
   const currentProject = useSelector((state) => state.project.currentProject);
   const sharedProjects = useSelector(
@@ -165,9 +167,6 @@ const Sidebar = ({ onCollapse }) => {
   const handleContextAction = useCallback(
     async (project, action) => {
       console.log("Context menu action:", action);
-
-      // Don't close the menu immediately for all actions
-      // Only close it after the action is processed
 
       switch (action) {
         case "star":

@@ -23,6 +23,7 @@ const Layout = lazy(() => import("./component/Layout"));
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
 const Error = lazy(() => import("./pages/Error.jsx"));
 const Profile = lazy(() => import("./component/Profile.jsx"));
+const ProjectDetailsPage = lazy(() => import("./pages/ProjectDetailsPage"));
 function App() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -141,6 +142,7 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Setting />} />
           <Route path="/task/:customId" element={<TaskDetail />} />
+          <Route path="/project/:projectId" element={<ProjectDetailsPage />} />
         </Routes>
       </Suspense>
     </>

@@ -5,11 +5,20 @@ const msg = require("../utils/message-constant.json");
 const { handleError, handleResponse } = require("../utils/common-functions.js");
 const mongoose = require("mongoose");
 const User = require("../models/user.model.js");
+const { generateUniqueId } = require("../utils/generateUniqueId.js");
 
 const addProject = async (req, res) => {
+  console.log("adding project", req.user);
+
   try {
     console.log("[DEBUG] addProject called with body:", req.body);
-    const { title, description, member = [], ...others } = req.body;
+    const {
+      title,
+      description,
+      member = [],
+      useCustomId,
+      ...others
+    } = req.body;
     const userId = req.user.id;
 
     if (!title) {
@@ -21,13 +30,23 @@ const addProject = async (req, res) => {
       return handleResponse(res, 400, msg.project.projectTitleAlreadyExists);
     }
 
-    const newProject = new Project({
+    // Only generate customId if useCustomId is true
+    const projectData = {
       title,
       description,
       userId,
       member,
       ...others,
-    });
+    };
+
+    if (useCustomId) {
+      projectData.customId = await generateUniqueId({
+        type: "project",
+        name: req.user.email, // Assuming user's name is available
+      });
+    }
+
+    const newProject = new Project(projectData);
     await newProject.save();
     const allProjects = await Project.find({ userId });
 
@@ -37,7 +56,6 @@ const addProject = async (req, res) => {
       throw new Error("Socket.IO instance not found");
     }
 
-    // Add this before emitting events
     console.log(
       "[DEBUG] Connected socket IDs:",
       Object.keys(io.sockets.sockets).map((id) => id.toString())
@@ -51,7 +69,7 @@ const addProject = async (req, res) => {
           message: `You have been added to project: "${newProject.title}".`,
           newProject: {
             ...newProject.toObject(),
-            id: newProject._id.toString(), // Add id field to match client expectation
+            id: newProject._id.toString(),
           },
           allProjects,
         });
@@ -198,13 +216,24 @@ const sharedProject = async (req, res) => {
 // Get a project by ID
 const getProjectById = async (req, res) => {
   try {
-    const projectId = req.params.id;
+    const identifier = req.params.id;
 
-    if (!mongoose.Types.ObjectId.isValid(projectId)) {
-      return handleResponse(res, 400, msg.project.invalidProjectId);
+    // Check if the identifier is a valid MongoDB ObjectId
+    if (mongoose.Types.ObjectId.isValid(identifier)) {
+      const project = await Project.findById(identifier);
+      if (!project) {
+        return handleResponse(res, 404, msg.project.projectNotFound);
+      }
+      return handleResponse(
+        res,
+        200,
+        msg.project.projectFetchedSuccessfully,
+        project
+      );
     }
 
-    const project = await Project.findById(projectId);
+    // If not an ObjectId, search by customId
+    const project = await Project.findOne({ customId: identifier });
     if (!project) {
       return handleResponse(res, 404, msg.project.projectNotFound);
     }

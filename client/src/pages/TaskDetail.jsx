@@ -31,6 +31,7 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Textarea } from "@/components/ui/Textarea";
 import { Input } from "@/components/ui/Input";
+
 import {
   Select,
   SelectContent,
@@ -51,19 +52,27 @@ import {
 import AddTaskPopup from "../component/AddTaskPopup";
 import requestServer from "@/utils/requestServer";
 import { deleteTask, updateTask } from "@/store/taskSlice";
+import { useProjectMembers } from "@/hooks/useProjectMembers";
 
 const TaskDetail = () => {
   const { customId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  console.log(customId);
+
+  // Get current project from Redux state
+  const currentProject = useSelector((state) => state.project.currentProject);
+
+  // Use project members hook with correct parameters
+  const { members, loading: membersLoading } = useProjectMembers(
+    currentProject?._id // Pass project ID instead of undefined variables
+  );
 
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editedTask, setEditedTask] = useState({});
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
+  //   const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [assignee, setAssignee] = useState(null);
@@ -71,9 +80,8 @@ const TaskDetail = () => {
 
   const statuses = useSelector((state) => state.status.statuses);
   const projectMembers = useSelector(
-    (state) => state.project.currentProject?.member || []
+    (state) => state.project.currentProject?.members || []
   );
-  const members = useSelector((state) => state.project.members || []);
 
   // Fetch task details
   useEffect(() => {
@@ -95,7 +103,7 @@ const TaskDetail = () => {
     if (customId) {
       fetchTask();
     }
-  }, [customId]);
+  }, [customId, navigate]);
 
   // Find assignee and assigner
   useEffect(() => {
@@ -141,7 +149,11 @@ const TaskDetail = () => {
   const saveChanges = async () => {
     try {
       setSaveLoading(true);
-      const res = await requestServer(`task/update/${task._id}`, editedTask);
+      const res = await requestServer(
+        `/task/update/${task._id}`,
+        editedTask,
+        "POST"
+      );
       dispatch(updateTask(res.data));
       setTask(res.data);
       setIsEditing(false);
@@ -158,7 +170,7 @@ const TaskDetail = () => {
   const deleteTaskHandler = async () => {
     try {
       setDeleteLoading(true);
-      await requestServer(`task/delete/${task._id}`);
+      await requestServer(`/task/delete/${task._id}`, {}, "DELETE");
       dispatch(deleteTask(task._id));
       toast.success("Task deleted successfully");
       navigate("/tasks");
@@ -189,9 +201,10 @@ const TaskDetail = () => {
       case "No":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800/30";
       default:
-        const hash = priority.split("").reduce((acc, char) => {
-          return char.charCodeAt(0) + ((acc << 5) - acc);
-        }, 0);
+        const hash =
+          priority?.split("").reduce((acc, char) => {
+            return char.charCodeAt(0) + ((acc << 5) - acc);
+          }, 0) || 0;
         const hue = Math.abs(hash % 360);
         return `bg-[hsl(${hue},85%,95%)] text-[hsl(${hue},75%,35%)] dark:bg-[hsl(${hue},70%,15%)] dark:text-[hsl(${hue},70%,70%)] border-[hsl(${hue},75%,85%)] dark:border-[hsl(${hue},70%,25%)]`;
     }
@@ -204,7 +217,11 @@ const TaskDetail = () => {
     const status = statuses.find((s) => s._id === task.status);
     if (!status) return null;
 
-    return <Badge className={status.primaryColor}>{status.title}</Badge>;
+    return (
+      <Badge className={status.primaryColor || "bg-gray-100 text-gray-800"}>
+        {status.title}
+      </Badge>
+    );
   };
 
   if (loading) {
@@ -230,7 +247,7 @@ const TaskDetail = () => {
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             The task you're looking for doesn't exist or has been deleted.
           </p>
-          <Button onClick={() => navigate("/dashboard")}>
+          <Button onClick={() => navigate("/tasks")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Tasks
           </Button>
@@ -244,7 +261,7 @@ const TaskDetail = () => {
       <div className="mb-6 flex items-center justify-between">
         <Button
           variant="ghost"
-          onClick={() => navigate("/tasks")}
+          onClick={() => navigate("/dashboard")}
           className="text-violet-700 hover:text-violet-800 hover:bg-violet-100 dark:text-violet-300 dark:hover:text-violet-200 dark:hover:bg-violet-900/20"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -252,14 +269,14 @@ const TaskDetail = () => {
         </Button>
 
         <div className="flex items-center gap-2">
-          <Button
+          {/* <Button
             variant="outline"
             onClick={() => setIsEditPopupOpen(true)}
             className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:border-violet-800/30 dark:text-violet-300 dark:hover:bg-violet-900/20"
           >
             <Edit2 className="mr-2 h-4 w-4" />
             Edit in Popup
-          </Button>
+          </Button> */}
 
           <Button
             variant="destructive"
@@ -598,7 +615,7 @@ const TaskDetail = () => {
         </CardContent>
       </Card>
 
-      {/* Edit Task Popup */}
+      {/* Edit Task Popup
       <AddTaskPopup
         open={isEditPopupOpen}
         onOpenChange={setIsEditPopupOpen}
@@ -606,7 +623,7 @@ const TaskDetail = () => {
         isEdit={true}
         showStatus={true}
         showPriority={true}
-      />
+      /> */}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog

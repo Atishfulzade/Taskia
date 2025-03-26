@@ -1,14 +1,17 @@
 const mongoose = require("mongoose");
 const { isValidObjectId } = mongoose;
 const User = require("../models/user.model.js");
+const Project = require("../models/project.model.js");
 const { handleError, handleResponse } = require("../utils/common-functions.js");
 const Task = require("../models/task.model.js");
 const msg = require("../utils/message-constant.json");
+const { generateUniqueId } = require("../utils/generateUniqueId.js");
 
 // Add a new task
 const addTask = async (req, res) => {
   try {
-    const { title, projectId, status, assignedTo, ...others } = req.body;
+    const { title, projectId, status, assignedTo, useCustomId, ...others } =
+      req.body;
 
     // Validate required fields
     if (!title || !projectId || !status) {
@@ -18,6 +21,12 @@ const addTask = async (req, res) => {
     // Validate projectId format
     if (!isValidObjectId(projectId)) {
       return handleResponse(res, 400, msg.task.invalidProjectId);
+    }
+
+    // Check if project exists
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return handleResponse(res, 404, msg.project.projectNotFound);
     }
 
     // Check if a task with the same title already exists
@@ -36,15 +45,26 @@ const addTask = async (req, res) => {
       validAssignedTo = assignedTo;
     }
 
-    // Create a new task
-    const newTask = new Task({
+    // Prepare task data
+    const taskData = {
       title,
       projectId,
       assignedTo: validAssignedTo,
       status,
       ...others,
-    });
+    };
 
+    // Generate custom ID if requested
+    if (useCustomId) {
+      taskData.customId = await generateUniqueId({
+        type: "task",
+        name: title,
+        projectInitials: project.customId?.split("-")[0] || "TASK", // Use project initials if available
+      });
+    }
+
+    // Create and save new task
+    const newTask = new Task(taskData);
     await newTask.save();
 
     const io = req.app.get("io");

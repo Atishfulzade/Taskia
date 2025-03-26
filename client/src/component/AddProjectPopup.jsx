@@ -21,16 +21,19 @@ const AddProjectPopup = ({ close }) => {
   const dispatch = useDispatch();
   const userId = useSelector((state) => state.user?.user?.data?._id);
   const navigate = useNavigate();
+  const useCustomId = useSelector((state) => state.settings.useCustomId);
 
   const formik = useFormik({
     initialValues: {
       title: "",
       description: "",
+      useCustomId: useCustomId,
       member: [], // Array to store user IDs
     },
     validationSchema: Yup.object({
       title: Yup.string().required("Title is required"),
       description: Yup.string(), // Optional field
+      useCustomId: Yup.boolean(),
       member: Yup.array().min(1, "At least one member is required"), // Ensure at least one member is selected
     }),
     onSubmit: async (values, { resetForm }) => {

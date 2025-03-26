@@ -24,7 +24,6 @@ import {
 import { useFileUpload } from "../hooks/useFileUpload ";
 import { useProjectMembers } from "../hooks/useProjectMembers";
 import requestServer from "@/utils/requestServer";
-import { generateUniqueId } from "@/utils/generateUniqueId";
 import { addTask, updateTask } from "@/store/taskSlice";
 import {
   Dialog,
@@ -82,8 +81,8 @@ const taskSchema = z.object({
   dueDate: z.string().optional(),
   status: z.string(),
   projectId: z.string(),
-  customId: z.string().optional(),
   assignedBy: z.string(),
+  useCustomId: z.boolean().optional(),
   subTask: z.array(
     z.object({
       title: z.string().min(1, { message: "Subtask title is required" }),
@@ -216,12 +215,15 @@ const AddTaskPopup = React.memo(
     const [isFormDisabled, setIsFormDisabled] = useState(isEdit);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
-    const userName = useSelector((state) => state.user.user.name);
     const fileInputRef = useRef(null);
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const projectId = useSelector((state) => state.project.currentProject?._id);
+
+    // Redux state selectors
     const userId = useSelector((state) => state.user.user._id);
+    const userName = useSelector((state) => state.user.user.name);
+    const projectId = useSelector((state) => state.project.currentProject?._id);
+    const project = useSelector((state) => state.project.currentProject);
     const statuses = useSelector((state) => state.status.statuses);
     const projectMembers = useSelector(
       (state) => state.project.currentProject?.member
@@ -245,7 +247,7 @@ const AddTaskPopup = React.memo(
           assignedTo: taskData.assignedTo || "",
           assignedBy: taskData.assignedBy || userId,
           projectId: projectId || "",
-          ...(useCustomId ? { customId: taskData.customId || "" } : {}),
+          useCustomId: taskData.useCustomId || useCustomId,
           dueDate: taskData.dueDate || "",
           subTask: taskData.subTask || [],
           attachedFile: taskData.attachedFile || [],
@@ -259,8 +261,8 @@ const AddTaskPopup = React.memo(
         status: status?._id || "",
         assignedTo: "",
         assignedBy: userId,
-        ...(useCustomId ? { customId: generateUniqueId(userName) } : {}),
         projectId: projectId || "",
+        useCustomId: useCustomId || false,
         dueDate: "",
         subTask: [],
         attachedFile: [],
@@ -273,7 +275,6 @@ const AddTaskPopup = React.memo(
       isEdit,
       initialPriority,
       useCustomId,
-      userName,
     ]);
 
     // Initialize form with default values
@@ -388,13 +389,20 @@ const AddTaskPopup = React.memo(
     const onSubmit = async (values) => {
       setLoading(true);
       try {
+        // Prepare task data
+        const taskData = {
+          ...values,
+          // Only include useCustomId
+          useCustomId: values.useCustomId || undefined,
+        };
+
         let res;
         if (isEdit && taskData) {
-          res = await requestServer(`task/update/${taskData._id}`, values);
+          res = await requestServer(`task/update/${taskData._id}`, taskData);
           dispatch(updateTask(res.data));
           toast.success("Task updated successfully");
         } else {
-          res = await requestServer("task/add", values);
+          res = await requestServer("task/add", taskData);
           dispatch(addTask(res.data));
           toast.success("Task added successfully");
         }
@@ -427,7 +435,6 @@ const AddTaskPopup = React.memo(
         case "No":
           return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800/30";
         default:
-          // Generate a color based on the priority name for custom priorities
           const hash = priority.split("").reduce((acc, char) => {
             return char.charCodeAt(0) + ((acc << 5) - acc);
           }, 0);
@@ -439,10 +446,7 @@ const AddTaskPopup = React.memo(
     return (
       <>
         <Dialog open={open} onOpenChange={handleDialogClose}>
-          <DialogContent
-            className="sm:max-w-[600px] max-h-[85vh] overflow-hidden p-0 rounded-xl border-none shadow-xl"
-            aria-describedby="task-form-description"
-          >
+          <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-hidden p-0 rounded-xl border-none shadow-xl">
             <DialogHeader className="px-6 pt-6 pb-2 bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/40 dark:to-indigo-950/40 rounded-t-xl">
               <div className="flex items-center justify-between">
                 <div>
@@ -462,10 +466,7 @@ const AddTaskPopup = React.memo(
                       </Badge>
                     )}
                   </DialogTitle>
-                  <DialogDescription
-                    id="task-form-description"
-                    className="mt-1.5 text-violet-700/70 dark:text-violet-300/70"
-                  >
+                  <DialogDescription className="mt-1.5 text-violet-700/70 dark:text-violet-300/70">
                     {isEdit
                       ? "Update this task by modifying the form fields."
                       : "Create a new task by filling out the form below."}
@@ -824,6 +825,7 @@ const AddTaskPopup = React.memo(
             </ScrollArea>
           </DialogContent>
         </Dialog>
+
         {/* Alert Dialog for Unsaved Changes */}
         <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
           <AlertDialogContent className="sm:max-w-[425px] bg-white">
