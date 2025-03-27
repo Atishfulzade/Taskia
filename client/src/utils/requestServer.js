@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const requestServer = async (path, data = null, options = {}) => {
+const requestServer = async (path, data = null, method = "POST") => {
   try {
     const token = localStorage.getItem("token");
     const backendURL = import.meta.env.VITE_SERVER_URL;
@@ -36,22 +36,31 @@ const requestServer = async (path, data = null, options = {}) => {
       }
     }
 
-    const res = await axios({
-      url: formattedURL,
-      method: "POST",
-      data: processedData,
+    const options = {
+      method: method,
       timeout: 5000,
       headers: {
         Authorization: token ? `Bearer ${token}` : "",
         "Content-Type": "application/json",
       },
       withCredentials: true, // Ensure cookies are sent with request
-      ...options, // Allow passing additional axios options
-    });
+    };
 
+    // Add data to request based on method
+    if (method.toUpperCase() === "GET") {
+      options.params = processedData;
+    } else {
+      options.data = processedData;
+    }
+
+    const res = await axios(formattedURL, options);
     return res.data;
   } catch (error) {
-    if (error.response) {
+    // Handle authentication errors
+    if (error.response && error.response.status === 401) {
+      // Don't automatically clear token - let the component handle the redirect
+      console.error("Authentication error:", error.response.data);
+    } else if (error.response) {
       console.error("Server responded with error:", error.response.data);
     } else if (error.request) {
       console.error("No response from server:", error.request);

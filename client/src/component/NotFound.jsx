@@ -8,18 +8,6 @@ export default function NotFound() {
   const [countdown, setCountdown] = useState(10);
 
   // Auto-redirect countdown
-  useEffect(() => {
-    if (countdown <= 0) {
-      window.location.href = "/"; // Redirect to home using window.location
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setCountdown(countdown - 1);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [countdown]);
 
   const handleSearch = (e) => {
     e.preventDefault();

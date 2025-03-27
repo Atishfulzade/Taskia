@@ -9,13 +9,11 @@ import { ThemeProvider } from "./components/ui/ThemeProvider";
 
 // Render the app
 createRoot(document.getElementById("root")).render(
-  <StrictMode>
-    <BrowserRouter>
-      <ThemeProvider>
-        <Provider store={store}>
-          <App />
-        </Provider>
-      </ThemeProvider>
-    </BrowserRouter>
-  </StrictMode>
+  <BrowserRouter>
+    <ThemeProvider>
+      <Provider store={store}>
+        <App />
+      </Provider>
+    </ThemeProvider>
+  </BrowserRouter>
 );

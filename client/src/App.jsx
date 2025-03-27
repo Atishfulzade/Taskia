@@ -1,21 +1,26 @@
-import { Route, Routes, Navigate, useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { useEffect, Suspense, lazy, useRef } from "react";
-import { toast, Toaster } from "sonner";
-import socket from "./utils/socket"; // Import the socket instance
-import { initializeSocketHandlers } from "./utils/socketHandlers"; // Import socket handlers
+"use client";
+
 import {
-  setCurrentProject,
-  setDeleteProject,
-  setProjects,
-  updateProject,
-} from "./store/projectSlice.js";
+  Route,
+  Routes,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { useEffect, Suspense, lazy, useRef, useState } from "react";
+import { toast, Toaster } from "sonner";
+import socket from "./utils/socket";
+import { initializeSocketHandlers } from "./utils/socketHandlers";
+import { setCurrentProject, setProjects } from "./store/projectSlice.js";
 import requestServer from "./utils/requestServer.js";
 import Loader from "./component/Loader.jsx";
 import { login, logout } from "./store/userSlice.js";
 import { addAssignTask } from "./store/assignTaskSlice.js";
 import NotFound from "./component/NotFound.jsx";
 import Setting from "./component/Setting";
+
+// Lazy-loaded components
 const TaskDetail = lazy(() => import("./pages/TaskDetail.jsx"));
 const Welcome = lazy(() => import("./pages/Welcome.jsx"));
 const Authentication = lazy(() => import("./pages/Authentication"));
@@ -24,20 +29,25 @@ const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
 const Error = lazy(() => import("./pages/Error.jsx"));
 const Profile = lazy(() => import("./component/Profile.jsx"));
 const ProjectDetailsPage = lazy(() => import("./pages/ProjectDetailsPage"));
+
 function App() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
   const user = useSelector((state) => state.user.user);
   const projects = useSelector((state) => state.project.projects);
   const assignedTask = useSelector((state) => state.assignTask.tasks);
-  const currentProject = useSelector((state) => state.project.currentProject);
   const token = localStorage.getItem("token");
   const socketInitialized = useRef(false);
+  const [isValidating, setIsValidating] = useState(!!token); // Only validate if token exists
 
   // Validate user and fetch initial data
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setIsValidating(false);
+      return;
+    }
 
     const validateUser = async () => {
       try {
@@ -53,96 +63,98 @@ function App() {
         }
 
         const res = await requestServer("user/validate");
-        if (res?.data) {
+        if (res?.data?.data?.user) {
           dispatch(login(res.data.data.user));
           localStorage.setItem("user", JSON.stringify(res.data.data.user));
-          toast.success("User validated successfully!");
+
+          // Initialize socket after successful validation
+          if (!socket.connected) {
+            socket.connect();
+            initializeSocketHandlers(socket, dispatch);
+            socketInitialized.current = true;
+            socket.emit("joinProjectRooms", res.data.data.user._id);
+          }
+
+          // Fetch projects if not already in state
+          if (!projects?.length) {
+            const projectsRes = await requestServer("project/all");
+            if (projectsRes?.data?.length) {
+              dispatch(setProjects(projectsRes.data));
+              dispatch(setCurrentProject(projectsRes.data[0]));
+            }
+          }
+
+          // Fetch assigned tasks if not already in state
+          if (!assignedTask.length) {
+            const assignTaskRes = await requestServer("task/assign");
+            if (assignTaskRes?.data?.length) {
+              dispatch(addAssignTask(assignTaskRes.data));
+            }
+          }
         } else {
           throw new Error("Invalid authentication response");
         }
-
-        // Initialize socket after user validation
-        if (res?.data?.data?.user?._id && !socket.connected) {
-          console.log("Connecting socket after user validation...");
-          socket.connect();
-        }
-
-        // Fetch projects if not already in state
-        if (!projects?.length && isAuthenticated) {
-          const projectsRes = await requestServer("project/all");
-          if (projectsRes?.data?.length) {
-            dispatch(setProjects(projectsRes.data));
-            dispatch(setCurrentProject(projectsRes.data[0]));
-          }
-        }
-
-        // Fetch assigned tasks if not already in state
-        if (!assignedTask.length && isAuthenticated) {
-          const assignTaskRes = await requestServer("task/assign");
-          if (assignTaskRes?.data?.length) {
-            dispatch(addAssignTask(assignTaskRes.data));
-          }
-        }
-        navigate("/dashboard");
       } catch (error) {
         console.error("Authentication validation failed:", error);
         toast.error("Authentication failed. Please log in again.");
         dispatch(logout());
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+      } finally {
+        setIsValidating(false);
       }
     };
 
     validateUser();
-  }, []);
+  }, [token]);
 
-  useEffect(() => {
-    if (isAuthenticated && user?._id && !socketInitialized.current) {
-      console.log("Initializing WebSocket for user:", user._id);
+  if (isValidating) {
+    return <Loader message="Validating session..." />;
+  }
 
-      // Connect socket if not already connected
-      if (!socket.connected) {
-        socket.connect();
-      }
+  // Get the current path for redirect after login
+  const currentPath = location.pathname;
+  const isSharedLink =
+    currentPath.startsWith("/task/") || currentPath.startsWith("/project/");
 
-      // Initialize socket handlers only once
-      initializeSocketHandlers(socket, dispatch);
-      socketInitialized.current = true;
+  // Create the redirect URL for authentication
+  const redirectUrl = isSharedLink
+    ? `/authenticate?redirect=${encodeURIComponent(currentPath)}`
+    : "/authenticate";
 
-      // Join user's personal room for notifications
-      console.log("Emitting joinProjectRooms for user:", user._id);
-      socket.emit("joinProjectRooms", user._id);
-    }
-
-    // Cleanup function when user logs out or component unmounts
-    return () => {
-      if (!isAuthenticated && socketInitialized.current && socket.connected) {
-        console.log("Disconnecting WebSocket due to logout");
-        socket.disconnect();
-        socketInitialized.current = false;
-      }
-    };
-  }, [isAuthenticated, user?._id]);
   return (
     <>
+      <Toaster position="top-right" richColors />
       <Suspense fallback={<Loader message="Loading application..." />}>
-        <Toaster />
         <Routes>
           <Route path="/" element={<Welcome />} />
           <Route path="/authenticate" element={<Authentication />} />
-          {isAuthenticated ? (
-            <Route path="/dashboard" element={<Layout />}>
-              <Route index element={<Dashboard />} />
-            </Route>
-          ) : (
-            <Route path="*" element={<Navigate to="/authenticate" replace />} />
-          )}
+
+          {/* Protected routes */}
+          <Route
+            element={
+              isAuthenticated ? (
+                <Layout />
+              ) : isValidating ? (
+                <Loader message="Validating session..." />
+              ) : (
+                <Navigate to={redirectUrl} replace />
+              )
+            }
+          >
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/settings" element={<Setting />} />
+            <Route path="/task/:customId" element={<TaskDetail />} />
+            <Route
+              path="/project/:projectId"
+              element={<ProjectDetailsPage />}
+            />
+          </Route>
+
+          {/* Fallback routes */}
           <Route path="/error" element={<Error />} />
           <Route path="*" element={<NotFound />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/settings" element={<Setting />} />
-          <Route path="/task/:customId" element={<TaskDetail />} />
-          <Route path="/project/:projectId" element={<ProjectDetailsPage />} />
         </Routes>
       </Suspense>
     </>

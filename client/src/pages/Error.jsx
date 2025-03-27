@@ -5,22 +5,6 @@ import { Button } from "@/components/ui/Button";
 
 export default function Error({ error, reset }) {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [countdown, setCountdown] = useState(15);
-
-  // Auto-redirect countdown
-  useEffect(() => {
-    if (countdown <= 0) {
-      navigate("/"); // Redirect to home using React Router DOM
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setCountdown(countdown - 1);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [countdown, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-gradient-to-b from-background to-muted/30">

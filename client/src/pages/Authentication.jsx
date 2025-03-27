@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { CiMail, CiUser } from "react-icons/ci";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
@@ -13,7 +13,7 @@ import { setCurrentProject, setProjects } from "../store/projectSlice";
 import { setAssignTasks } from "../store/assignTaskSlice";
 import { fetchSettings, updateSettingState } from "../store/settingSlice";
 import requestServer from "../utils/requestServer";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo-white.png";
 import { toast } from "sonner";
 
@@ -22,7 +22,12 @@ const Authentication = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
+
+  // Get redirect path from URL if available
+  const searchParams = new URLSearchParams(location.search);
+  const redirectPath = searchParams.get("redirect") || "/dashboard";
 
   // Toggle between Login and Registration
   const toggleAuthMode = useCallback(() => {
@@ -110,8 +115,8 @@ const Authentication = () => {
           }
         }
 
-        // 5. Redirect to dashboard
-        navigate("/dashboard");
+        // 5. Redirect to the original path or dashboard
+        navigate(redirectPath);
         resetForm();
       } catch (error) {
         toast.error(error?.response?.data?.message || "Authentication failed");
@@ -121,6 +126,15 @@ const Authentication = () => {
       }
     },
   });
+
+  // Display a message if the user was redirected from a shared link
+  useEffect(() => {
+    if (redirectPath && redirectPath !== "/dashboard") {
+      toast.info("Please log in to view the shared content", {
+        duration: 5000,
+      });
+    }
+  }, [redirectPath]);
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-gray-50">
@@ -223,6 +237,11 @@ const Authentication = () => {
                 ? "Join Taskia to start organizing your tasks"
                 : "Sign in to continue with Taskia"}
             </p>
+            {redirectPath && redirectPath !== "/dashboard" && (
+              <div className="mt-2 text-blue-600 font-medium">
+                Sign in to view shared content
+              </div>
+            )}
           </div>
 
           <form className="space-y-4" onSubmit={formik.handleSubmit}>
