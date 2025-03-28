@@ -13,6 +13,12 @@ import { LogOut, User, Settings, X } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/Avatar";
 import { formatDate } from "@/utils/formatDate";
+import { setCurrentProject, setProjects } from "@/store/projectSlice";
+import { setSharedProjects } from "@/store/sharedProjectSlice";
+import { setAssignTasks } from "@/store/assignTaskSlice";
+import { setStatuses } from "@/store/statusSlice";
+import { setTasks } from "@/store/taskSlice";
+import { resetSettings } from "@/store/settingSlice";
 
 const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
   const dispatch = useDispatch();
@@ -47,6 +53,13 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
       toast.success(res.message); // Use sonner's toast
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      dispatch(setProjects([]));
+      dispatch(setSharedProjects([]));
+      dispatch(setAssignTasks([]));
+      dispatch(setStatuses([]));
+      dispatch(setTasks([]));
+      dispatch(setCurrentProject(null));
+      dispatch(resetSettings());
       dispatch(logout());
       handleClose();
       navigate("/");

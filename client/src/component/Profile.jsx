@@ -1,7 +1,7 @@
 "use client";
 
+import React from "react";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   LogOut,
@@ -21,7 +21,10 @@ import {
   Camera,
   CheckCircle2,
   BadgeCheck,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -51,12 +54,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
 
-// Mock function for server requests - replace with your actual implementation
 const requestServer = async (endpoint, method = "GET", data) => {
-  // This is a placeholder - replace with your actual API call
-  console.log(`Making ${method} request to ${endpoint} with data:`, data);
-
-  // Simulate API delay
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   if (endpoint === "user/profile/update") {
@@ -66,7 +64,6 @@ const requestServer = async (endpoint, method = "GET", data) => {
   return { success: true, data: { ...data } };
 };
 
-// Format date helper
 const formatDate = (dateString) => {
   if (!dateString) return "N/A";
   const date = new Date(dateString);
@@ -77,7 +74,6 @@ const formatDate = (dateString) => {
   }).format(date);
 };
 
-// Get initials helper
 const getInitials = (name) => {
   if (!name) return "?";
   return name
@@ -88,14 +84,12 @@ const getInitials = (name) => {
 };
 
 export default function ProfilePage() {
-  const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [profileCompletion, setProfileCompletion] = useState(0);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // User data state
   const [userData, setUserData] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -106,49 +100,24 @@ export default function ProfilePage() {
     phone: "",
   });
 
-  // Calculate profile completion percentage
-  useEffect(() => {
-    if (userData) {
-      const fields = [
-        "name",
-        "email",
-        "bio",
-        "location",
-        "website",
-        "phone",
-        "avatar",
-      ];
-      const filledFields = fields.filter(
-        (field) => userData[field] && userData[field].toString().trim() !== ""
-      );
-      setProfileCompletion(
-        Math.round((filledFields.length / fields.length) * 100)
-      );
-    }
-  }, [userData]);
-
-  // Fetch user data on component mount
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // In a real app, you would fetch this from your API
-        // For now, we'll use mock data based on localStorage
         const storedUser = localStorage.getItem("user");
         let user = storedUser ? JSON.parse(storedUser) : null;
 
-        // If no user in localStorage, use mock data
         if (!user) {
           user = {
             id: "1",
-            name: "John Doe",
-            email: "john.doe@example.com",
+            name: "Alex Morgan",
+            email: "alex.morgan@example.com",
             avatar: "",
-            bio: "Software developer passionate about creating great user experiences.",
+            bio: "Full-stack developer passionate about creating intuitive user experiences and scalable applications.",
             location: "San Francisco, CA",
-            website: "https://johndoe.dev",
+            website: "https://alexmorgan.dev",
             phone: "+1 (555) 123-4567",
             createdAt: "2023-01-15T00:00:00.000Z",
-            role: "Developer",
+            role: "Senior Developer",
             verified: true,
           };
         }
@@ -171,7 +140,6 @@ export default function ProfilePage() {
     fetchUserData();
   }, []);
 
-  // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -180,7 +148,6 @@ export default function ProfilePage() {
     }));
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -189,14 +156,11 @@ export default function ProfilePage() {
       const res = await requestServer("user/profile/update", "PUT", formData);
 
       if (res.success) {
-        // Update local user data
         const updatedUser = {
           ...userData,
           ...formData,
         };
         setUserData(updatedUser);
-
-        // Update localStorage
         localStorage.setItem("user", JSON.stringify(updatedUser));
 
         toast.success("Profile updated successfully", {
@@ -215,18 +179,15 @@ export default function ProfilePage() {
     }
   };
 
-  // Handle avatar upload
   const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Image size should be less than 5MB");
       return;
     }
 
-    // Check file type
     if (!file.type.startsWith("image/")) {
       toast.error("Please upload an image file");
       return;
@@ -235,25 +196,24 @@ export default function ProfilePage() {
     setIsUploading(true);
 
     try {
-      // In a real app, you would upload this to your server/cloud storage
-      // For now, we'll use a mock implementation with FileReader
       const reader = new FileReader();
 
       reader.onload = async (event) => {
         const avatarUrl = event.target?.result;
 
-        // Mock server request for avatar update
         await requestServer("user/profile/avatar", "PUT", {
           avatar: avatarUrl,
         });
 
-        // Update local state
-        setUserData((prev) => ({
-          ...prev,
-          avatar: avatarUrl,
-        }));
+        setUserData((prev) =>
+          prev
+            ? {
+                ...prev,
+                avatar: avatarUrl,
+              }
+            : null
+        );
 
-        // Update localStorage
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
           const user = JSON.parse(storedUser);
@@ -276,34 +236,33 @@ export default function ProfilePage() {
     }
   };
 
-  // Handle logout
   const handleLogout = async () => {
     try {
       const res = await requestServer("user/logout");
       toast.success(res.message || "Logged out successfully");
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      navigate("/");
+      window.location.href = "/";
     } catch (error) {
       console.error("Error logging out:", error);
       toast.error("Failed to log out. Please try again.");
     }
   };
 
-  // Cancel editing
   const handleCancel = () => {
-    setFormData({
-      name: userData?.name || "",
-      email: userData?.email || "",
-      bio: userData?.bio || "",
-      location: userData?.location || "",
-      website: userData?.website || "",
-      phone: userData?.phone || "",
-    });
+    if (userData) {
+      setFormData({
+        name: userData.name || "",
+        email: userData.email || "",
+        bio: userData.bio || "",
+        location: userData.location || "",
+        website: userData.website || "",
+        phone: userData.phone || "",
+      });
+    }
     setIsEditing(false);
   };
 
-  // Handle account deletion
   const handleDeleteAccount = async () => {
     setIsLoading(true);
     try {
@@ -311,7 +270,7 @@ export default function ProfilePage() {
       toast.success("Account deleted successfully");
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      navigate("/");
+      window.location.href = "/";
     } catch (error) {
       console.error("Error deleting account:", error);
       toast.error("Failed to delete account. Please try again.");
@@ -331,50 +290,18 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className=" max-w-5xl py-8 px-4 md:px-6">
-      {/* Profile Completion Banner */}
-      {/* {profileCompletion < 100 && (
-        <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg p-4 border border-blue-100 dark:border-blue-900">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="flex-1">
-              <h3 className="font-medium text-blue-800 dark:text-blue-300 mb-1">
-                Complete your profile
-              </h3>
-              <p className="text-sm text-blue-600 dark:text-blue-400">
-                Your profile is {profileCompletion}% complete. Add missing
-                information to improve visibility.
-              </p>
-              <div className="mt-2">
-                <Progress
-                  value={profileCompletion}
-                  className="h-2 bg-blue-100 dark:bg-blue-900"
-                  indicatorClassName="bg-blue-500"
-                />
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-blue-200 bg-white/80 hover:bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
-              onClick={() => setIsEditing(true)}
-            >
-              Complete Profile
-            </Button>
-          </div>
-        </div>
-      )} */}
-
+    <div className="container max-w-5xl py-8 px-4 md:px-6">
       <div className="flex flex-col gap-8">
         {/* Profile Header */}
-        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 p-8 text-white">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 opacity-90"></div>
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 p-8 text-white dark:from-primary-700 dark:to-primary-900">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary-500 to-primary-600 opacity-90 dark:from-primary-700 dark:to-primary-900"></div>
           <div className="absolute inset-0 bg-[url('/placeholder.svg?height=200&width=1000')] opacity-10 mix-blend-overlay"></div>
 
           <div className="relative flex flex-col md:flex-row gap-6 items-start md:items-center">
             <div className="relative group">
-              <Avatar className="h-28 w-28 border-4 border-white/20 shadow-xl">
+              <Avatar className="h-22 w-22 border-4 border-white/20 shadow-xl">
                 <AvatarImage src={userData.avatar} alt={userData.name} />
-                <AvatarFallback className="bg-white text-indigo-600 text-2xl font-bold">
+                <AvatarFallback className="bg-white text-violet-600 dark:bg-primary-800 dark:text-primary-200 text-2xl font-bold">
                   {getInitials(userData.name)}
                 </AvatarFallback>
               </Avatar>
@@ -403,7 +330,9 @@ export default function ProfilePage() {
 
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <h1 className="text-3xl font-bold">{userData.name}</h1>
+                <h1 className="text-3xl font-bold text-slate-800">
+                  {userData.name}
+                </h1>
                 {userData.verified && (
                   <Badge
                     variant="outline"
@@ -416,31 +345,33 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
-                <p className="text-white/80 flex items-center gap-1.5">
+                <p className="text-slate-600 flex items-center gap-1.5 ">
                   <Mail className="h-4 w-4" />
                   {userData.email}
                 </p>
                 {userData.role && (
-                  <p className="text-white/80 flex items-center gap-1.5">
+                  <p className="text-slate-600 flex items-center gap-1.5">
                     <User className="h-4 w-4" />
                     {userData.role}
                   </p>
                 )}
-                <p className="text-white/80 flex items-center gap-1.5">
+                <p className="text-slate-600 flex items-center gap-1.5">
                   <Calendar className="h-4 w-4" />
                   Member since {formatDate(userData.createdAt)}
                 </p>
               </div>
             </div>
 
-            <Button
-              variant="outline"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Log Out
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Log Out
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -453,7 +384,7 @@ export default function ProfilePage() {
           <TabsContent value="profile">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Bio Card */}
-              <Card className="lg:col-span-2 border-slate-300">
+              <Card className="lg:col-span-2">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <div>
                     <CardTitle>About Me</CardTitle>
@@ -550,7 +481,6 @@ export default function ProfilePage() {
                             onChange={handleChange}
                             disabled={isLoading}
                             placeholder="Your full name"
-                            className="bg-background"
                           />
                         </div>
 
@@ -570,7 +500,6 @@ export default function ProfilePage() {
                             onChange={handleChange}
                             disabled={isLoading}
                             placeholder="Your email address"
-                            className="bg-background"
                           />
                         </div>
 
@@ -589,7 +518,7 @@ export default function ProfilePage() {
                             disabled={isLoading}
                             placeholder="Tell us about yourself"
                             rows={4}
-                            className="bg-background resize-none border-slate-300"
+                            className="resize-none"
                           />
                         </div>
 
@@ -609,7 +538,24 @@ export default function ProfilePage() {
                               onChange={handleChange}
                               disabled={isLoading}
                               placeholder="City, Country"
-                              className="bg-background"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="website"
+                              className="flex items-center gap-2"
+                            >
+                              <Globe className="h-4 w-4 text-muted-foreground" />
+                              Website
+                            </Label>
+                            <Input
+                              id="website"
+                              name="website"
+                              value={formData.website}
+                              onChange={handleChange}
+                              disabled={isLoading}
+                              placeholder="https://yourwebsite.com"
                             />
                           </div>
 
@@ -628,7 +574,6 @@ export default function ProfilePage() {
                               onChange={handleChange}
                               disabled={isLoading}
                               placeholder="Your phone number"
-                              className="bg-background"
                             />
                           </div>
                         </div>
@@ -640,7 +585,6 @@ export default function ProfilePage() {
                           onClick={handleCancel}
                           variant="outline"
                           disabled={isLoading}
-                          className="border-slate-300"
                         >
                           <X className="h-4 w-4 mr-2" />
                           Cancel
@@ -670,23 +614,6 @@ export default function ProfilePage() {
 
                 <CardContent>
                   <div className="space-y-6">
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">
-                        Profile Completion
-                      </h3>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-xs">
-                          <span>Progress</span>
-                          <span className="font-medium">
-                            {profileCompletion}%
-                          </span>
-                        </div>
-                        <Progress value={profileCompletion} className="h-2" />
-                      </div>
-                    </div>
-
-                    <Separator />
-
                     <div>
                       <h3 className="text-sm font-medium mb-3">
                         Recent Activity
@@ -782,13 +709,11 @@ export default function ProfilePage() {
                           <p className="text-sm text-muted-foreground mb-4">
                             Permanently delete your account and all of your data
                           </p>
-                          <Button className="bg-red-600 text-white">
-                            Delete Account
-                          </Button>
+                          <Button variant="destructive">Delete Account</Button>
                         </div>
                       </div>
                     </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-white">
+                    <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>
                           Are you absolutely sure?
@@ -844,7 +769,7 @@ export default function ProfilePage() {
                       </p>
                     </div>
 
-                    <div className="p-3 rounded-lg border border-slate-300 bg-card">
+                    <div className="p-3 rounded-lg border bg-card">
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-gray-500"></div>

@@ -142,6 +142,12 @@ const TaskDetail = () => {
           // Don't navigate away - the App component will handle the redirect to authentication
           setError("Authentication required");
           toast.error("Please log in to view this task");
+        } else if (
+          error.response?.data?.message ===
+          "You are not authorized to perform this action!"
+        ) {
+          setError("Unauthorized");
+          toast.error("You don't have permission to view this task");
         } else {
           setError("Task not found");
           toast.error("Failed to load task details");
@@ -299,6 +305,25 @@ const TaskDetail = () => {
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             Please log in to view this task.
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error === "Unauthorized") {
+    return (
+      <div className="flex items-center justify-center h-[80vh]">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">
+            Access Denied
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            You don't have permission to view this task.
+          </p>
+          <Button onClick={() => navigate("/dashboard")}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Dashboard
+          </Button>
         </div>
       </div>
     );

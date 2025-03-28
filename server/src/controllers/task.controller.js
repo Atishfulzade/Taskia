@@ -239,6 +239,8 @@ const getTasksForUser = async (req, res) => {
 
 // Get a specific task
 const getTaskById = async (req, res) => {
+  const userId = req.user.id;
+  console.log("getTaskById called with userId:", userId);
   try {
     const { id: identifier } = req.params;
 
@@ -248,14 +250,30 @@ const getTaskById = async (req, res) => {
     let task;
     if (isObjectId) {
       // Search by _id if it's a valid ObjectId
-      task = await Task.findById(identifier);
+      task = await Task.findById(identifier).populate("projectId");
     } else {
       // Search by customId if it's not an ObjectId
-      task = await Task.findOne({ customId: identifier });
+      task = await Task.findOne({ customId: identifier }).populate("projectId");
     }
 
     if (!task) {
       return handleResponse(res, 404, msg.task.taskNotFound);
+    }
+
+    // Check if the user is authorized to access this task
+    const project = task.projectId;
+
+    // User is authorized if:
+    // 1. They created the project (userId matches project.userId)
+    // 2. They are a member of the project
+    // 3. They are assigned to the task specifically
+    const isAuthorized =
+      project.userId.toString() === userId ||
+      project.member.some((memberId) => memberId.toString() === userId) ||
+      (task.assignedTo && task.assignedTo.toString() === userId);
+
+    if (!isAuthorized) {
+      return handleResponse(res, 403, msg.general.notAuthorized);
     }
 
     return handleResponse(res, 200, msg.task.taskFetchedSuccessfully, task);
