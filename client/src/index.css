@@ -86,3 +86,43 @@
   --background: oklch(0.129 0.042 264.695);
   --foreground: oklch(0.984 0.003 247.858);
 }
+
+/* Google Drive Picker Styles */
+/* Google Drive Picker Styles */
+.drive-picker-open {
+  overflow: hidden !important;
+}
+
+/* Make sure the Google Drive picker dialog appears above everything */
+.picker-dialog,
+.picker-dialog-bg,
+.picker-dialog iframe {
+  z-index: 9999 !important;
+}
+
+/* Fix for COOP issues - ensure picker is properly positioned */
+.picker-dialog {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  max-width: 90vw !important;
+  max-height: 90vh !important;
+}
+
+/* Create a backdrop that blocks interaction with the page */
+.drive-picker-open::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9998;
+}
+
+/* Ensure modals don't interfere with the picker */
+.drive-picker-open [role="dialog"]:not(.picker-dialog) {
+  display: none !important;
+}

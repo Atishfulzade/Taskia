@@ -254,9 +254,17 @@ const Navbar = () => {
           onClick={() => setShowProfile(!showProfile)}
           className="flex select-none cursor-pointer px-2 py-1 gap-2 items-center bg-violet-500 dark:bg-violet-600 rounded-full hover:bg-violet-600 dark:hover:bg-violet-700 transition-colors"
         >
-          <div className="h-8 w-8 flex bg-violet-700 dark:bg-violet-800 cursor-pointer border items-center justify-center border-violet-500 dark:border-violet-600 text-white text-sm rounded-full">
-            {userInfo?.name?.trim()[0] || "?"}
-          </div>
+          {userInfo.profilePic ? (
+            <img
+              src={userInfo.profilePic}
+              alt="Profile"
+              className="h-8 w-8 rounded-full border border-violet-700"
+            />
+          ) : (
+            <div className="h-8 w-8 flex bg-violet-700 dark:bg-violet-800 cursor-pointer border items-center justify-center border-violet-500 dark:border-violet-600 text-white text-sm rounded-full">
+              {userInfo?.name?.trim()[0] || "?"}
+            </div>
+          )}
           <span className="hidden md:block text-white dark:text-gray-300 text-sm">
             {userInfo?.name || "User"}
           </span>

@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
-import { DialogDescription } from "@/components/ui/Dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DialogDescription } from "@/components/ui/dialog";
 import {
   Paperclip,
   X,
@@ -31,8 +31,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/Dialog";
-import { Button } from "@/components/ui/Button";
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -72,6 +72,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import FileAttachmentPopup from "./FileAttachmentPopup";
 
 // Task schema with Zod validation
 const taskSchema = z.object({
@@ -211,28 +212,28 @@ const AddTaskPopup = React.memo(
     onAddPriority,
   }) => {
     const [loading, setLoading] = useState(false);
+    const [fileLoading, setFileLoading] = useState(false);
     const [isFormDisabled, setIsFormDisabled] = useState(isEdit);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
-    const fileInputRef = useRef(null);
+
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
     // Redux state selectors
     const userId = useSelector((state) => state.user.user._id);
-    const userName = useSelector((state) => state.user.user.name);
     const projectId = useSelector((state) => state.project.currentProject?._id);
-    const project = useSelector((state) => state.project.currentProject);
     const statuses = useSelector((state) => state.status.statuses);
     const useCustomId = useSelector((state) => state.settings.useCustomId);
 
-    const { uploadFiles, fileLoading } = useFileUpload();
+    const { uploadFiles } = useFileUpload();
     const {
       members,
       loading: membersLoading,
-      error: membersError, // Changed from 'error' to 'membersError' for consistency
+      error: membersError,
       refetch,
     } = useProjectMembers(projectId);
+
     const getDefaultValues = useCallback(() => {
       if (isEdit && taskData) {
         return {
@@ -308,17 +309,26 @@ const AddTaskPopup = React.memo(
       }
     }, [projectId, status, userId, form, initialPriority]);
 
-    const handleFileChange = async (event) => {
-      const files = event.target.files;
-      if (!files || files.length === 0) return;
-
+    const handleFileUpload = async (files, fromDrive = false) => {
       try {
-        const uploadedFiles = await uploadFiles(files);
-        const currentFiles = form.getValues("attachedFile") || [];
-        form.setValue("attachedFile", [...currentFiles, ...uploadedFiles]);
+        if (fromDrive) {
+          // Files from Google Drive are already processed
+          const currentFiles = form.getValues("attachedFile") || [];
+          form.setValue("attachedFile", [...currentFiles, ...files]);
+          setHasUnsavedChanges(true);
+        } else {
+          // Files from local upload need to be processed
+          setFileLoading(true);
+          const uploadedFiles = await uploadFiles(files);
+          const currentFiles = form.getValues("attachedFile") || [];
+          form.setValue("attachedFile", [...currentFiles, ...uploadedFiles]);
+          setHasUnsavedChanges(true);
+        }
       } catch (error) {
         toast.error("Failed to upload files");
         console.error("File upload error:", error);
+      } finally {
+        setFileLoading(false);
       }
     };
 
@@ -328,6 +338,7 @@ const AddTaskPopup = React.memo(
         ...currentSubtasks,
         { title: "", description: "" },
       ]);
+      setHasUnsavedChanges(true);
     }, [form]);
 
     const removeSubtask = useCallback(
@@ -337,20 +348,18 @@ const AddTaskPopup = React.memo(
           "subTask",
           currentSubtasks.filter((_, i) => i !== index)
         );
+        setHasUnsavedChanges(true);
       },
       [form]
     );
 
-    const removeFile = useCallback(
-      (index) => {
-        const currentFiles = form.getValues("attachedFile");
-        form.setValue(
-          "attachedFile",
-          currentFiles.filter((_, i) => i !== index)
-        );
-      },
-      [form]
-    );
+    const removeFile = (index) => {
+      const currentFiles = form.getValues("attachedFile") || [];
+      const updatedFiles = [...currentFiles];
+      updatedFiles.splice(index, 1);
+      form.setValue("attachedFile", updatedFiles);
+      setHasUnsavedChanges(true);
+    };
 
     const handleDialogClose = useCallback(() => {
       if (hasUnsavedChanges) {
@@ -432,7 +441,7 @@ const AddTaskPopup = React.memo(
 
     return (
       <>
-        <Dialog open={open} onOpenChange={handleDialogClose}>
+        <Dialog open={open} onOpenChange={handleDialogClose} modal={false}>
           <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-hidden p-0 rounded-xl border-none shadow-xl">
             <DialogHeader className="px-6 pt-6 pb-2 bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/40 dark:to-indigo-950/40 rounded-t-xl">
               <div className="flex items-center justify-between">
@@ -716,7 +725,7 @@ const AddTaskPopup = React.memo(
                               type="date"
                               {...field}
                               disabled={isFormDisabled}
-                              className="bg-white dark:bg-slate-900 border-violet-100 dark:border-violet-800/30 focus-visible:ring-violet-500/50"
+                              className="bg-white dark:bg-slate-900 border-violet-100 dark:border-violet-800/30 focus-visible:ring-violet-500/50 z-0"
                             />
                           </FormControl>
                           <FormMessage />
@@ -737,7 +746,7 @@ const AddTaskPopup = React.memo(
                             </FormLabel>
                             <Select
                               onValueChange={field.onChange}
-                              value={field.value || "Select Status"}
+                              value={field.value || ""}
                               disabled={isFormDisabled}
                             >
                               <FormControl>
@@ -774,43 +783,28 @@ const AddTaskPopup = React.memo(
                       </AccordionTrigger>
                       <AccordionContent className="pt-4 pb-2 px-1">
                         <div className="space-y-3">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={fileLoading || isFormDisabled}
-                            className="w-full bg-white dark:bg-slate-900 border-violet-200 dark:border-violet-800/30 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20"
-                          >
-                            {fileLoading ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin text-violet-600" />
-                            ) : (
-                              <Paperclip className="h-4 w-4 mr-2 text-violet-600" />
-                            )}
-                            {fileLoading ? "Uploading..." : "Attach Files"}
-                          </Button>
-                          <input
-                            type="file"
-                            ref={fileInputRef}
-                            className="hidden"
-                            onChange={handleFileChange}
-                            multiple
-                            disabled={isFormDisabled}
+                          <FileAttachmentPopup
+                            onUpload={handleFileUpload}
+                            isDisabled={isFormDisabled}
+                            fileLoading={fileLoading}
                           />
 
-                          {form.watch("attachedFile").length > 0 && (
-                            <div className="space-y-2 mt-2">
-                              {form.watch("attachedFile").map((file, index) => (
-                                <FileAttachmentItem
-                                  key={index}
-                                  file={file}
-                                  index={index}
-                                  onRemove={removeFile}
-                                  isDisabled={isFormDisabled}
-                                />
-                              ))}
-                            </div>
-                          )}
+                          {form.watch("attachedFile") &&
+                            form.watch("attachedFile").length > 0 && (
+                              <div className="space-y-2 mt-2">
+                                {form
+                                  .watch("attachedFile")
+                                  .map((file, index) => (
+                                    <FileAttachmentItem
+                                      key={index}
+                                      file={file}
+                                      index={index}
+                                      onRemove={removeFile}
+                                      isDisabled={isFormDisabled}
+                                    />
+                                  ))}
+                              </div>
+                            )}
                         </div>
                       </AccordionContent>
                     </AccordionItem>

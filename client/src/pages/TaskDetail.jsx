@@ -81,6 +81,7 @@ const TaskDetail = () => {
   const [assignee, setAssignee] = useState(null);
   const [assigner, setAssigner] = useState(null);
   const [error, setError] = useState(null);
+  const [showAttachedFilePopup, setShowAttachedFilePopup] = useState(false);
 
   // Memoized function to find assignee and assigner
   const updateAssigneeAndAssigner = useCallback(() => {
@@ -349,7 +350,7 @@ const TaskDetail = () => {
   }
 
   return (
-    <div className="container max-w-5xl mx-auto py-8 px-4">
+    <div className="container max-w-5xl mx-auto py-8 px-4 h-[95vh] overflow-y-scroll">
       <div className="mb-6 flex items-center justify-between">
         <Button
           variant="ghost"

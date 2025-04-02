@@ -533,7 +533,7 @@ const ProjectDetailsPage = () => {
   }
 
   return (
-    <div className="container max-w-5xl mx-auto py-8 px-4">
+    <div className="container max-w-5xl mx-auto h-[95vh] overflow-y-scroll py-8 px-4">
       <ProjectHeader
         project={currentProject}
         isEditing={isEditing}
@@ -543,7 +543,7 @@ const ProjectDetailsPage = () => {
         onBack={() => navigate("/dashboard")}
       />
 
-      <Card className="border-violet-200 dark:border-violet-800/30 shadow-md overflow-hidden">
+      <Card className="border-violet-200  dark:border-violet-800/30 shadow-md overflow-hidden">
         <CardHeader className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/40 dark:to-indigo-950/40 pb-4">
           <div className="flex justify-between items-start">
             <div>

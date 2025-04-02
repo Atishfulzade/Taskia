@@ -13,12 +13,15 @@ const {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   getUserName,
+  googleAuth,
 } = require("../controllers/user.controller.js");
 const validateUser = require("../middlewares/validateUser.middleware.js");
 
 // Register a new user
 router.post("/register", registerUser);
 router.post("/login", loginUser);
+router.post("/oauth", googleAuth);
+
 router.post("/logout", verifyUser, logOutUser);
 router.post("/search", verifyUser, getAllUser);
 router.post("/validate", verifyUser, validateUser);

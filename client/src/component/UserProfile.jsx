@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { logout } from "../store/userSlice";
 import requestServer from "../utils/requestServer";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner"; // Import sonner's toast
+import { toast } from "sonner";
 
 // Icons
 import { LogOut, User, Settings, X } from "lucide-react";
@@ -19,11 +19,13 @@ import { setAssignTasks } from "@/store/assignTaskSlice";
 import { setStatuses } from "@/store/statusSlice";
 import { setTasks } from "@/store/taskSlice";
 import { resetSettings } from "@/store/settingSlice";
+import { googleLogout } from "@react-oauth/google";
 
 const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [isClosing, setIsClosing] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Handle escape key to close profile
   useEffect(() => {
@@ -48,11 +50,27 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
 
   // Handle user logout
   const logoutUser = async () => {
+    if (isLoggingOut) return; // Prevent multiple clicks
+
+    setIsLoggingOut(true);
     try {
+      // Logout from Google (this doesn't return a promise)
+      try {
+        googleLogout();
+      } catch (googleError) {
+        console.warn("Google logout error (non-critical):", googleError);
+        // Continue with local logout even if Google logout fails
+      }
+
+      // Logout from backend
       const res = await requestServer("user/logout");
-      toast.success(res.message); // Use sonner's toast
+      toast.success(res.message || "Successfully logged out");
+
+      // Clear local storage
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+
+      // Reset all Redux state
       dispatch(setProjects([]));
       dispatch(setSharedProjects([]));
       dispatch(setAssignTasks([]));
@@ -61,11 +79,23 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
       dispatch(setCurrentProject(null));
       dispatch(resetSettings());
       dispatch(logout());
+
+      // Close profile menu
       handleClose();
+
+      // Navigate to home page
       navigate("/");
     } catch (error) {
       console.error("Error logging out:", error);
-      toast.error("Failed to log out. Please try again."); // Use sonner's toast
+      toast.error("Failed to log out. Please try again.");
+
+      // Even if backend logout fails, clear client state
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      dispatch(logout());
+      navigate("/");
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -116,7 +146,7 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
           {/* Avatar */}
           <Avatar className="h-12 w-12 ring-2 ring-white dark:ring-slate-700">
             <AvatarImage
-              src={userInfo?.avatar}
+              src={userInfo?.profilePic || userInfo?.avatar}
               alt={userInfo?.name || "User"}
             />
             <AvatarFallback className="bg-violet-600 text-white">
@@ -179,14 +209,25 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
       <div className="p-2 mt-1">
         <Button
           onClick={logoutUser}
+          disabled={isLoggingOut}
           variant="outline"
           className="w-full flex items-center justify-center gap-2 py-2
                    border-red-200 dark:border-red-800/30 hover:bg-red-50 
                    dark:hover:bg-red-900/20 text-red-600 dark:text-red-400
-                   hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                   hover:text-red-700 dark:hover:text-red-300 transition-colors
+                   disabled:opacity-70 disabled:cursor-not-allowed"
         >
-          <LogOut size={16} strokeWidth={2} />
-          <span>Log Out</span>
+          {isLoggingOut ? (
+            <>
+              <span className="animate-spin h-4 w-4 border-2 border-red-500 border-t-transparent rounded-full mr-2"></span>
+              <span>Logging out...</span>
+            </>
+          ) : (
+            <>
+              <LogOut size={16} strokeWidth={2} />
+              <span>Log Out</span>
+            </>
+          )}
         </Button>
       </div>
     </motion.div>

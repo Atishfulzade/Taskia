@@ -17,7 +17,9 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     notifications: [notificationSchema], // Embedding notification schema
-
+    googleId: { type: String, unique: true, sparse: true },
+    isVerified: { type: Boolean, default: false },
+    profilePic: String,
     location: { type: String },
     contact: { type: String },
   },

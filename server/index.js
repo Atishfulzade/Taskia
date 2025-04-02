@@ -60,7 +60,11 @@ connect().catch((err) => {
   console.error("❌ Database connection error:", err);
   process.exit(1);
 });
-
+app.use((req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  res.setHeader("Cross-Origin-Embedder-Policy", "require-corp"); // Optional for security
+  next();
+});
 // Logging Middleware
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);

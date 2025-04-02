@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { CiMail, CiUser } from "react-icons/ci";
 import { FcGoogle } from "react-icons/fc";
@@ -16,6 +14,7 @@ import requestServer from "../utils/requestServer";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo-white.png";
 import { toast } from "sonner";
+import { GoogleLogin } from "@react-oauth/google";
 
 const Authentication = () => {
   const [isRegistration, setIsRegistration] = useState(false);
@@ -67,8 +66,60 @@ const Authentication = () => {
       return true;
     } catch (error) {
       console.error("Error handling user settings:", error);
-      toast.error("Could not load user settings");
       return false;
+    }
+  };
+
+  // Handle OAuth Success
+  const handleOAuthSuccess = async (response, provider) => {
+    setLoading(true);
+    try {
+      // Send token to backend for verification and login/registration
+      const endpoint = "user/oauth";
+
+      // For Google OAuth we send the credential token directly
+      const payload = {
+        token: provider === "google" ? response.credential : response,
+        provider,
+      };
+
+      const res = await requestServer(endpoint, payload);
+      toast.success(res.message || `${provider} authentication successful`);
+
+      // Store auth data
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      dispatch(login(res.data.user));
+
+      // Handle user settings
+      await handleUserSettings(res.data.user._id);
+
+      // Fetch projects and assigned tasks
+      const [projects, assignTask] = await Promise.all([
+        requestServer("project/all"),
+        requestServer("task/assign"),
+      ]);
+
+      if (projects.data) {
+        dispatch(setProjects(projects.data));
+        if (projects.data.length > 0) {
+          dispatch(setCurrentProject(projects.data[0]));
+        }
+      }
+
+      if (assignTask?.data) {
+        dispatch(setAssignTasks(assignTask.data));
+      }
+
+      // Redirect to the original path or dashboard
+      navigate(redirectPath);
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || `${provider} authentication failed`
+      );
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -271,7 +322,6 @@ const Authentication = () => {
                 )}
               </div>
             )}
-
             <div>
               <div className="relative">
                 <CiMail
@@ -296,7 +346,6 @@ const Authentication = () => {
                 </p>
               )}
             </div>
-
             <div>
               <div className="relative">
                 <input
@@ -340,7 +389,6 @@ const Authentication = () => {
                 </p>
               )}
             </div>
-
             {!isRegistration && (
               <div className="flex justify-end">
                 <button
@@ -351,7 +399,6 @@ const Authentication = () => {
                 </button>
               </div>
             )}
-
             <button
               type="submit"
               disabled={loading}
@@ -389,7 +436,6 @@ const Authentication = () => {
                 <>{isRegistration ? "Create account" : "Sign in"}</>
               )}
             </button>
-
             <div className="relative flex items-center justify-center my-6">
               <div className="border-t border-gray-300 w-full"></div>
               <div className="absolute bg-white px-3 text-sm text-gray-500">
@@ -397,21 +443,38 @@ const Authentication = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <button
+            {/* Social Login Buttons */}
+            <div className="flex justify-center">
+              {/* Google Login Button */}
+              <GoogleLogin
+                onSuccess={(credentialResponse) => {
+                  handleOAuthSuccess(credentialResponse, "google");
+                }}
+                onError={() => {
+                  toast.error("Google login failed");
+                }}
+                useOneTap
+                theme="filled_blue"
+                shape="circle"
+                text="signin_with"
+                locale="en"
+                width="full"
+                context="signin"
+              />
+
+              {/* GitHub Login Button */}
+              {/* <button
                 type="button"
-                className="flex items-center justify-center gap-2 py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <FcGoogle size={20} />
-                <span className="text-sm font-medium">Google</span>
-              </button>
-              <button
-                type="button"
-                className="flex items-center justify-center gap-2 py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                onClick={() => {
+                  // Implement GitHub OAuth here
+                  // This is just a placeholder - you'll need to add actual GitHub OAuth
+                  toast.info("GitHub integration coming soon");
+                }}
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
               >
                 <FaGithub size={20} />
-                <span className="text-sm font-medium">GitHub</span>
-              </button>
+                <span>GitHub</span>
+              </button> */}
             </div>
 
             <div className="text-center mt-6">

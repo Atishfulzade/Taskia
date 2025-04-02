@@ -54,7 +54,6 @@ const TaskItem = React.memo(
     const { attributes, listeners, setNodeRef, transform } = !isDragging
       ? useDraggable({ id: _id })
       : { attributes: {}, listeners: {}, setNodeRef: null, transform: null };
-
     const [showSubTask, setShowSubTask] = useState(false);
     const [assignedUser, setAssignedUser] = useState("");
     const [isLoading, setIsLoading] = useState(false);

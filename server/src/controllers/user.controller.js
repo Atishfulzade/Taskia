@@ -3,8 +3,114 @@ const { handleError, handleResponse } = require("../utils/common-functions.js");
 const msg = require("../utils/message-constant.json");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
 const bcrypt = require("bcryptjs");
-const { default: mongoose } = require("mongoose");
+const mongoose = require("mongoose");
+// Create a Google OAuth client
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// Helper function to generate JWT
+const generateJWT = (user) => {
+  return jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, {
+    expiresIn: "1h",
+  });
+};
+
+// Handle Google OAuth authentication
+const googleAuth = async (req, res) => {
+  try {
+    const { token, provider } = req.body;
+
+    // Verify if it's a Google token
+    if (provider !== "google") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid provider",
+      });
+    }
+
+    // Verify Google token
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+
+    // Extract user information from payload
+    const { email, name, sub: googleId, picture: profilePic } = payload;
+
+    // Check if user exists with this Google ID
+    let user = await User.findOne({ googleId });
+
+    if (!user) {
+      // Check if user exists with the same email (merge accounts)
+      user = await User.findOne({ email });
+
+      if (user) {
+        // Merge accounts - add Google ID to existing user
+        user.googleId = googleId;
+        if (!user.profilePic && profilePic) {
+          user.profilePic = profilePic;
+        }
+        await user.save();
+      } else {
+        // Create new user
+        // Generate a random password for OAuth users since the schema requires it
+        const randomPassword = Math.random().toString(36).slice(-10);
+        const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+        user = await User.create({
+          googleId,
+          name,
+          email,
+          profilePic,
+          password: hashedPassword, // Add password to satisfy schema validation
+          isVerified: true,
+        });
+      }
+    }
+
+    // Generate JWT token
+    const jwtToken = generateJWT(user);
+
+    return res.status(200).json({
+      success: true,
+      message: "Google authentication successful",
+      data: {
+        token: jwtToken,
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          profilePic: user.profilePic,
+          createdAt: user.createdAt,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Google auth error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Google authentication failed",
+      error: error.message,
+    });
+  }
+};
+
+// Enhanced logout function to handle Google OAuth sessions
+const logOutUser = (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return handleError(res, msg.authentication.logoutFailure, err);
+    }
+
+    res.clearCookie("connect.sid", { path: "/" });
+
+    // Return success response
+    return handleResponse(res, 200, msg.authentication.logoutSuccess);
+  });
+};
 
 // Register a new user
 const registerUser = async (req, res) => {
@@ -101,20 +207,6 @@ const loginUser = async (req, res) => {
     // Handle error and return error response
     handleError(res, msg.authentication.loginFailure, error);
   }
-};
-
-// Logout user
-const logOutUser = (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return handleError(res, msg.authentication.logoutFailure, err);
-    }
-
-    res.clearCookie("connect.sid", { path: "/" });
-
-    // Return success response
-    return handleResponse(res, 200, msg.authentication.logoutSuccess);
-  });
 };
 
 // Get user by ID
@@ -355,4 +447,5 @@ module.exports = {
   getUserById,
   deleteNotification,
   getUserName,
+  googleAuth,
 };
