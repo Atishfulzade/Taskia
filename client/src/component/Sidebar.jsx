@@ -33,10 +33,10 @@ import {
   AlertDialogHeader,
 } from "../components/ui/alert-dialog";
 import SidebarHeader from "./SidebarHeader";
-import SidebarContent from "./SidebarContent";
 import SidebarFooter from "./SidebarFooter";
 import ContextMenu from "./ContextMenu";
 import { useNavigate } from "react-router-dom";
+import SidebarContent from "./SidebarContent";
 
 const Sidebar = ({ onCollapse }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
