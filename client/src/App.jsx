@@ -1,5 +1,3 @@
-"use client";
-
 import {
   Route,
   Routes,
@@ -14,11 +12,11 @@ import socket from "./utils/socket";
 import { initializeSocketHandlers } from "./utils/socketHandlers";
 import { setCurrentProject, setProjects } from "./store/projectSlice.js";
 import requestServer from "./utils/requestServer.js";
-import Loader from "./component/Loader.jsx";
 import { login, logout } from "./store/userSlice.js";
 import { addAssignTask } from "./store/assignTaskSlice.js";
 import NotFound from "./component/NotFound.jsx";
 import Setting from "./component/Setting";
+import AnimatedLogoLoader from "./component/AnimatedLogoLoader";
 
 // Lazy-loaded components
 const TaskDetail = lazy(() => import("./pages/TaskDetail.jsx"));
@@ -109,7 +107,7 @@ function App() {
   }, [token]);
 
   if (isValidating) {
-    return <Loader message="Validating session..." />;
+    return <AnimatedLogoLoader />;
   }
 
   // Get the current path for redirect after login
@@ -125,7 +123,7 @@ function App() {
   return (
     <>
       <Toaster position="top-right" richColors />
-      <Suspense fallback={<Loader message="Loading application..." />}>
+      <Suspense fallback={<AnimatedLogoLoader />}>
         <Routes>
           <Route path="/" element={<Welcome />} />
           <Route path="/authenticate" element={<Authentication />} />
@@ -136,7 +134,7 @@ function App() {
               isAuthenticated ? (
                 <Layout />
               ) : isValidating ? (
-                <Loader message="Validating session..." />
+                <AnimatedLogoLoader message="Validating session..." />
               ) : (
                 <Navigate to={redirectUrl} replace />
               )

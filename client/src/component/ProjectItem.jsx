@@ -26,7 +26,9 @@ const ProjectItem = ({
         <Folder className="h-4 w-4 text-gray-500 dark:text-gray-400" />
         <span
           className="text-sm font-medium truncate"
-          onClick={() => navigate(`/project/${project.customId}`)}
+          onClick={() =>
+            navigate(`/project/${project.customId || project._id}`)
+          }
         >
           {project?.title}
         </span>

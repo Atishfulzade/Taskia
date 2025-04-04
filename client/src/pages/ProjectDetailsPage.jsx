@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect, useCallback } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -11,7 +13,6 @@ import useProjectMembers from "@/hooks/useProjectMembers";
 // UI Components
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
-import { Textarea } from "../components/ui/Textarea";
 import {
   Card,
   CardContent,
@@ -40,6 +41,8 @@ import {
 } from "../components/ui/alert-dialog";
 import { UserSearch } from "../component/UserSearch";
 import { Skeleton } from "../components/ui/Skeleton";
+import ShareDialog from "../component/SharePopup";
+import { Textarea } from "../components/ui/Textarea";
 
 // Icons
 import {
@@ -53,11 +56,11 @@ import {
   ArrowLeft,
   Clock,
   Loader2,
-  Copy,
   FileText,
   Building,
   Share,
   RefreshCw,
+  Copy,
 } from "lucide-react";
 
 // Sub-components
@@ -65,9 +68,10 @@ const ProjectHeader = ({
   project,
   isEditing,
   onEditToggle,
-  onCopyId,
-  onCopyLink,
+  onShare,
   onBack,
+  saveLoading,
+  onSave,
 }) => (
   <div className="mb-6 flex items-center justify-between">
     <Button
@@ -82,46 +86,37 @@ const ProjectHeader = ({
 
     <div className="flex items-center gap-2">
       {project._id && (
-        <div className="flex items-center gap-1">
-          <Badge
-            variant="outline"
-            className="bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300 border-violet-200 dark:border-violet-800/30 cursor-pointer"
-            onClick={onCopyId}
-            aria-label="Copy project ID"
-          >
-            ID: {project.customId?.substring(0, 8)}...
-          </Badge>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onCopyId}
-            className="h-6 w-6 rounded-full hover:bg-violet-100 dark:hover:bg-violet-900/30 text-violet-600 dark:text-violet-400"
-            aria-label="Copy ID"
-          >
-            <Copy className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onCopyLink}
-            className="h-6 w-6 rounded-full hover:bg-violet-100 dark:hover:bg-violet-900/30 text-violet-600 dark:text-violet-400"
-            aria-label="Share project"
-          >
-            <Share className="h-3 w-3" />
-          </Button>
-        </div>
+        <Badge
+          variant="outline"
+          className="bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300 border-violet-200 dark:border-violet-800/30"
+          aria-label="Project ID"
+        >
+          ID: {project.customId?.substring(0, 8)}...
+        </Badge>
       )}
       {!isEditing ? (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onEditToggle}
-          className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:border-violet-800/30 dark:text-violet-300 dark:hover:bg-violet-900/20"
-          aria-label="Edit project"
-        >
-          <Edit2 className="mr-2 h-4 w-4" />
-          Edit
-        </Button>
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onShare}
+            className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:border-violet-800/30 dark:text-violet-300 dark:hover:bg-violet-900/20"
+            aria-label="Share project"
+          >
+            <Share className="mr-2 h-4 w-4" />
+            Share
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onEditToggle}
+            className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:border-violet-800/30 dark:text-violet-300 dark:hover:bg-violet-900/20"
+            aria-label="Edit project"
+          >
+            <Edit2 className="mr-2 h-4 w-4" />
+            Edit
+          </Button>
+        </>
       ) : (
         <div className="flex items-center gap-2">
           <Button
@@ -134,6 +129,27 @@ const ProjectHeader = ({
             <X className="mr-2 h-4 w-4" />
             Cancel
           </Button>
+          {onSave && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={onSave}
+              disabled={saveLoading}
+              className="bg-violet-600 hover:bg-violet-700 text-white"
+            >
+              {saveLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save
+                </>
+              )}
+            </Button>
+          )}
         </div>
       )}
     </div>
@@ -238,10 +254,15 @@ const ProjectDetailsPage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState(null);
+
+  const handleShareProject = () => {
+    setIsShareDialogOpen(true);
+  };
 
   // Data hooks
   const currentProject = localProject || reduxProject;
@@ -299,7 +320,7 @@ const ProjectDetailsPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [projectId, userId, dispatch, navigate]);
+  }, [projectId, userId]);
 
   useEffect(() => {
     if (reduxProject?.customId === projectId) {
@@ -538,12 +559,20 @@ const ProjectDetailsPage = () => {
         project={currentProject}
         isEditing={isEditing}
         onEditToggle={() => setIsEditing(!isEditing)}
-        onCopyId={copyProjectId}
-        onCopyLink={copyProjectLink}
+        onShare={handleShareProject}
         onBack={() => navigate("/dashboard")}
+        saveLoading={saveLoading}
+        onSave={formik.handleSubmit}
       />
 
-      <Card className="border-violet-200  dark:border-violet-800/30 shadow-md overflow-hidden">
+      <ShareDialog
+        open={isShareDialogOpen}
+        onOpenChange={setIsShareDialogOpen}
+        resource={currentProject}
+        resourceType="project"
+      />
+
+      <Card className="border-violet-200 dark:border-violet-800/30 shadow-md overflow-hidden">
         <CardHeader className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/40 dark:to-indigo-950/40 pb-4">
           <div className="flex justify-between items-start">
             <div>
@@ -598,29 +627,6 @@ const ProjectDetailsPage = () => {
                 </span>
               </CardDescription>
             </div>
-
-            {isEditing && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={formik.handleSubmit}
-                disabled={saveLoading || !formik.dirty}
-                className="bg-violet-600 hover:bg-violet-700 text-white"
-                aria-label="Save changes"
-              >
-                {saveLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save
-                  </>
-                )}
-              </Button>
-            )}
           </div>
         </CardHeader>
 

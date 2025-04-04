@@ -27,8 +27,21 @@ const taskSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    shareLinks: [
+      {
+        link: String,
+        permission: { type: String, enum: ["view", "edit"] }, // Make sure this exists
+        expiresAt: Date,
+        isActive: { type: Boolean, default: true },
+      },
+    ],
     assignedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-
+    collaborators: [
+      {
+        email: String,
+        permission: { type: String, enum: ["view", "edit"] },
+      },
+    ],
     subTask: [
       {
         title: String,

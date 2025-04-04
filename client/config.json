@@ -1,0 +1,34 @@
+{
+    "app": {
+      "name": "Taskia",
+      "description": "Task management app with real-time collaboration and notifications",
+      "author": "Atish Fulzade",
+      "license": "MIT",
+      "homepage": "https://taskia.com",
+      "repository": "https://github.com/your-username/taskia",
+      "logo":"/logo-white.png",
+      "version": "1.0.0",
+      "theme": "light"
+    },
+    "api": {
+      "baseURL": "http://localhost:3000",
+      "baseRoute": "/api/v1/",
+      "endpoints": {
+        "login": "/user/login",
+        "register": "/user/register",
+        "validate": "/user/validate",
+        "projects": "/project/all",
+        "assignTask": "/task/assign"
+      }
+    },
+    "routes": [
+      { "path": "/", "component": "Welcome", "protected": false },
+      { "path": "/authenticate", "component": "Authentication", "protected": false },
+      { "path": "/dashboard", "component": "Dashboard", "protected": true },
+      { "path": "/profile", "component": "Profile", "protected": true },
+      { "path": "/settings", "component": "Setting", "protected": true },
+      { "path": "/task/:customId", "component": "TaskDetail", "protected": true },
+      { "path": "/project/:projectId", "component": "ProjectDetailsPage", "protected": true }
+    ]
+  }
+  

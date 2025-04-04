@@ -1,7 +1,5 @@
-"use client";
-
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Calendar,
@@ -15,7 +13,7 @@ import {
   User,
   CheckSquare,
   ArrowLeft,
-  Copy,
+  Share2,
   CheckCircle2,
   Loader2,
 } from "lucide-react";
@@ -32,7 +30,6 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Textarea } from "@/components/ui/Textarea";
 import { Input } from "@/components/ui/Input";
-
 import {
   Select,
   SelectContent,
@@ -54,17 +51,21 @@ import requestServer from "@/utils/requestServer";
 import { deleteTask, updateTask } from "@/store/taskSlice";
 import useProjectMembers from "@/hooks/useProjectMembers";
 import { setCurrentProject } from "@/store/projectSlice";
+import ShareDialog from "../component/SharePopup";
+import AnimatedLogoLoader from "@/component/AnimatedLogoLoader";
 
 const TaskDetail = () => {
   const { customId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
   const dispatch = useDispatch();
 
   // Get current project from Redux state
   const currentProject = useSelector((state) => state.project.currentProject);
   const statuses = useSelector((state) => state.status.statuses);
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
+
+  // Share dialog state
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   // Use project members hook with correct parameters
   const { members, loading: membersLoading } = useProjectMembers(
@@ -81,7 +82,6 @@ const TaskDetail = () => {
   const [assignee, setAssignee] = useState(null);
   const [assigner, setAssigner] = useState(null);
   const [error, setError] = useState(null);
-  const [showAttachedFilePopup, setShowAttachedFilePopup] = useState(false);
 
   // Memoized function to find assignee and assigner
   const updateAssigneeAndAssigner = useCallback(() => {
@@ -101,7 +101,6 @@ const TaskDetail = () => {
   useEffect(() => {
     const fetchTask = async () => {
       if (!isAuthenticated) {
-        // If not authenticated, don't try to fetch
         setLoading(false);
         return;
       }
@@ -119,13 +118,11 @@ const TaskDetail = () => {
         setTask(res.data);
         setEditedTask(res.data);
 
-        // If we have a project ID from the task but it doesn't match current project
         if (
           res.data.projectId &&
           (!currentProject || currentProject._id !== res.data.projectId)
         ) {
           try {
-            // Fetch the project data for this task
             const projectRes = await requestServer(
               `project/get/${res.data.projectId}`
             );
@@ -140,7 +137,6 @@ const TaskDetail = () => {
         console.error("Error fetching task:", error);
 
         if (error.response?.status === 401) {
-          // Don't navigate away - the App component will handle the redirect to authentication
           setError("Authentication required");
           toast.error("Please log in to view this task");
         } else if (
@@ -171,7 +167,6 @@ const TaskDetail = () => {
   // Handle edit mode toggle
   const toggleEditMode = useCallback(() => {
     if (isEditing) {
-      // Discard changes
       setEditedTask(task);
     }
     setIsEditing(!isEditing);
@@ -228,28 +223,6 @@ const TaskDetail = () => {
     }
   }, [dispatch, navigate, task]);
 
-  // Copy custom ID
-  const copyCustomId = useCallback(() => {
-    if (task?.customId) {
-      navigator.clipboard.writeText(task.customId);
-      toast.success("Custom ID copied to clipboard");
-    }
-  }, [task]);
-
-  // Copy the full task URL
-  const copyTaskUrl = useCallback(() => {
-    if (task?.customId) {
-      const taskUrl = `${window.location.origin}/task/${task.customId}`;
-      navigator.clipboard.writeText(taskUrl);
-
-      // Show success toast with more details
-      toast.success("Task link copied to clipboard", {
-        description: "Share this link with your team members",
-        icon: <Copy className="h-4 w-4 text-green-500" />,
-      });
-    }
-  }, [task]);
-
   // Get priority badge color
   const getPriorityColor = useCallback((priority) => {
     switch (priority) {
@@ -285,13 +258,8 @@ const TaskDetail = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[80vh]">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
-          <p className="text-violet-800 dark:text-violet-300 font-medium">
-            Loading task details...
-          </p>
-        </div>
+      <div className="flex justify-center items-center h-full w-full">
+        <AnimatedLogoLoader />
       </div>
     );
   }
@@ -351,6 +319,14 @@ const TaskDetail = () => {
 
   return (
     <div className="container max-w-5xl mx-auto py-8 px-4 h-[95vh] overflow-y-scroll">
+      {/* Share Dialog */}
+      <ShareDialog
+        open={showShareDialog}
+        onOpenChange={setShowShareDialog}
+        resource={task}
+        resourceType="task"
+      />
+
       <div className="mb-6 flex items-center justify-between">
         <Button
           variant="ghost"
@@ -362,6 +338,14 @@ const TaskDetail = () => {
         </Button>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowShareDialog(true)}
+            className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:border-violet-800/30 dark:text-violet-300 dark:hover:bg-violet-900/20"
+          >
+            <Share2 className="mr-2 h-4 w-4" />
+            Share Task
+          </Button>
           <Button
             variant="destructive"
             onClick={() => setIsDeleteDialogOpen(true)}
@@ -386,43 +370,14 @@ const TaskDetail = () => {
                   {task.priority} Priority
                 </Badge>
                 {task.customId && (
-                  <div className="flex items-center gap-1 relative group">
-                    <Badge
-                      variant="outline"
-                      className="bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300 border-violet-200 dark:border-violet-800/30 cursor-pointer group-hover:bg-violet-200 dark:group-hover:bg-violet-800/40 transition-colors"
-                      onClick={copyCustomId}
-                    >
-                      ID: {task.customId}
-                    </Badge>
-                    <div className="flex items-center">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={copyCustomId}
-                        className="h-6 w-6 rounded-full hover:bg-violet-100 dark:hover:bg-violet-900/30 text-violet-600 dark:text-violet-400 relative group"
-                        title="Copy ID"
-                      >
-                        <Copy className="h-3 w-3" />
-                        <span className="sr-only">Copy ID</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={copyTaskUrl}
-                        className="h-6 w-6 rounded-full hover:bg-violet-100 dark:hover:bg-violet-900/30 text-violet-600 dark:text-violet-400 relative group"
-                        title="Copy task link"
-                      >
-                        <div className="absolute -top-8 right-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black text-white text-xs px-2 py-1 rounded pointer-events-none whitespace-nowrap">
-                          Copy link
-                        </div>
-                        <FileText className="h-3 w-3" />
-                        <span className="sr-only">Copy task link</span>
-                      </Button>
-                    </div>
-                  </div>
+                  <Badge
+                    variant="outline"
+                    className="bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300 border-violet-200 dark:border-violet-800/30"
+                  >
+                    ID: {task.customId}
+                  </Badge>
                 )}
               </div>
-
               {isEditing ? (
                 <Input
                   name="title"
@@ -447,29 +402,16 @@ const TaskDetail = () => {
               </CardDescription>
             </div>
 
-            {!isEditing ? (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={copyTaskUrl}
-                  className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:border-violet-800/30 dark:text-violet-300 dark:hover:bg-violet-900/20 mr-2"
-                >
-                  <div className="flex items-center">
-                    <Copy className="mr-2 h-4 w-4" />
-                    Share
-                  </div>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleEditMode}
-                  className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:border-violet-800/30 dark:text-violet-300 dark:hover:bg-violet-900/20"
-                >
-                  <Edit2 className="mr-2 h-4 w-4" />
-                  Edit
-                </Button>
-              </>
+            {!isEditing || accessLevel === "edit" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleEditMode}
+                className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:border-violet-800/30 dark:text-violet-300 dark:hover:bg-violet-900/20"
+              >
+                <Edit2 className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
             ) : (
               <div className="flex items-center gap-2">
                 <Button
@@ -733,16 +675,20 @@ const TaskDetail = () => {
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent className="bg-white">
+        <AlertDialogContent className="bg-white dark:bg-gray-800 border-red-200 dark:border-red-800/30">
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle className="text-red-600 dark:text-red-400">
+              Delete Task
+            </AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the
               task and all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="border-gray-200 dark:border-gray-700">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={deleteTaskHandler}
               disabled={deleteLoading}
@@ -754,7 +700,7 @@ const TaskDetail = () => {
                   Deleting...
                 </>
               ) : (
-                "Delete"
+                "Delete Task"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
