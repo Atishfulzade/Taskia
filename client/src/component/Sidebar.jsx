@@ -33,9 +33,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
 } from "../components/ui/alert-dialog";
-import socket from "@/utils/socket";
 import SidebarHeader from "./SidebarHeader";
-import SidebarContent from "./SIdebarContent";
+import SidebarContent from "./SidebarContent";
 import SidebarFooter from "./SidebarFooter";
 import ContextMenu from "./ContextMenu";
 import { useNavigate } from "react-router-dom";
