@@ -17,7 +17,6 @@ import {
   updateProject,
 } from "../store/projectSlice";
 import {
-  addSharedProject,
   setSharedProjects,
   removeSharedProject,
 } from "../store/sharedProjectSlice";
