@@ -245,7 +245,8 @@ const taskController = {
       const isAuthorized =
         projectId.userId.toString() === userId ||
         projectId.member.some((memberId) => memberId.toString() === userId) ||
-        (task.assignedTo && task.assignedTo.toString() === userId);
+        (task.assignedTo && task.assignedTo.toString() === userId) ||
+        task.collaborators.some((collab) => collab.email === req.user.email);
 
       if (!isAuthorized)
         return handleResponse(res, 403, msg.general.notAuthorized);
@@ -256,55 +257,125 @@ const taskController = {
     }
   },
 
-  async updateTaskStatus(req, res) {
+  // New method to handle shared link access
+  async sharedLinkTaskAccess(req, res) {
     try {
-      const { taskId } = req.params;
-      const { status } = req.body;
+      // Task is already loaded by the middleware
+      const task = req.task;
+      const { permission } = req.query;
 
-      if (!isValidObjectId(taskId)) {
-        return handleResponse(res, 400, msg.task.invalidTaskId);
-      }
-      if (!status) return handleResponse(res, 400, msg.task.allFieldsRequired);
-
-      const task = await Task.findById(taskId);
-      if (!task) return handleResponse(res, 404, msg.task.taskNotFound);
-
-      // Check if user is assigned to the task
-      if (task.assignedTo && task.assignedTo.toString() !== req.user.id) {
-        return handleResponse(res, 403, msg.general.notAuthorized);
-      }
-
-      task.status = status;
-      await task.save();
-
-      return handleResponse(res, 200, msg.task.taskUpdatedSuccessfully, task);
+      return handleResponse(res, 200, "Task accessed via shared link", task);
     } catch (error) {
-      handleError(res, msg.task.errorUpdatingTask, error);
+      handleError(res, "Error accessing shared task", error);
     }
   },
 
-  sharedLinkTaskAccess(req, res) {
-    const { permission } = req.query;
-    return handleResponse(res, 200, "Task accessed via shared link", {
-      task: req.task,
-      accessLevel: permission,
-    });
-  },
-
+  // Add a share link to a task
   async addShareLink(req, res) {
     try {
       const { id } = req.params;
       const { link, permission, expiresAt } = req.body;
 
-      const task = await Task.findByIdAndUpdate(
-        id,
-        { $push: { shareLinks: { link, permission, expiresAt } } },
-        { new: true }
-      );
+      if (!isValidObjectId(id)) {
+        return handleResponse(res, 400, msg.task.invalidTaskId);
+      }
+
+      const task = await Task.findById(id);
+      if (!task) return handleResponse(res, 404, msg.task.taskNotFound);
+
+      // Add the share link to the task
+      task.shareLinks.push({
+        link,
+        permission,
+        expiresAt: expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Default 30 days
+        isActive: true,
+      });
+
+      await task.save();
 
       return handleResponse(res, 200, "Share link added successfully", task);
     } catch (error) {
       handleError(res, "Error adding share link", error);
+    }
+  },
+
+  // Add collaborator to a task
+  async addCollaborator(req, res) {
+    try {
+      const { id } = req.params;
+      const { email, permission } = req.body;
+
+      if (!isValidObjectId(id)) {
+        return handleResponse(res, 400, msg.task.invalidTaskId);
+      }
+
+      if (!email || !permission) {
+        return handleResponse(res, 400, "Email and permission are required");
+      }
+
+      const task = await Task.findById(id);
+      if (!task) return handleResponse(res, 404, msg.task.taskNotFound);
+
+      // Check if collaborator already exists
+      const existingCollaborator = task.collaborators.find(
+        (c) => c.email === email
+      );
+      if (existingCollaborator) {
+        existingCollaborator.permission = permission;
+      } else {
+        task.collaborators.push({ email, permission });
+      }
+
+      await task.save();
+
+      return handleResponse(res, 200, "Collaborator added successfully", task);
+    } catch (error) {
+      handleError(res, "Error adding collaborator", error);
+    }
+  },
+
+  // Get task by shared link
+  async getTaskBySharedLink(req, res) {
+    try {
+      const { taskId } = req.params;
+      const { permission } = req.query;
+
+      const task = await Task.findOne({
+        customId: taskId,
+        "shareLinks.link": `${process.env.CLIENT_URL}/task/${taskId}`,
+        "shareLinks.isActive": true,
+        "shareLinks.expiresAt": { $gt: new Date() },
+      }).populate("status");
+
+      if (!task) {
+        return handleResponse(
+          res,
+          404,
+          "Shared task not found or link expired"
+        );
+      }
+
+      // Check if the link has sufficient permissions
+      const shareLink = task.shareLinks.find(
+        (link) => link.link === `${process.env.CLIENT_URL}/task/${taskId}`
+      );
+
+      if (
+        shareLink &&
+        shareLink.permission === "view" &&
+        permission === "edit"
+      ) {
+        return handleResponse(res, 403, "Insufficient permissions");
+      }
+
+      return handleResponse(
+        res,
+        200,
+        "Shared task accessed successfully",
+        task
+      );
+    } catch (error) {
+      handleError(res, "Error accessing shared task", error);
     }
   },
 };

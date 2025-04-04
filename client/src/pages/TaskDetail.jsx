@@ -1,5 +1,7 @@
+"use client";
+
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Calendar,
@@ -16,6 +18,8 @@ import {
   Share2,
   CheckCircle2,
   Loader2,
+  Eye,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -57,6 +61,7 @@ import AnimatedLogoLoader from "@/component/AnimatedLogoLoader";
 const TaskDetail = () => {
   const { customId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
 
   // Get current project from Redux state
@@ -64,8 +69,9 @@ const TaskDetail = () => {
   const statuses = useSelector((state) => state.status.statuses);
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
 
-  // Share dialog state
+  // Share dialog state and access level
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [accessLevel, setAccessLevel] = useState("view"); // Default to view for safety
 
   // Use project members hook with correct parameters
   const { members, loading: membersLoading } = useProjectMembers(
@@ -97,34 +103,55 @@ const TaskDetail = () => {
     }
   }, [task, members]);
 
-  // Fetch task details
+  // Fetch task details - modified to handle shared links
   useEffect(() => {
     const fetchTask = async () => {
-      if (!isAuthenticated) {
-        setLoading(false);
-        return;
-      }
-
       try {
         setLoading(true);
         setError(null);
 
-        const res = await requestServer(`task/t/${customId}`);
+        // Get permission from URL hash (#view or #edit)
+        const hash = location.hash.substring(1);
+        const permission = hash === "view" || hash === "edit" ? hash : "view";
+        setAccessLevel(permission);
 
-        if (!res.data) {
-          throw new Error("Task not found");
+        let response;
+
+        if (isAuthenticated) {
+          // Authenticated user - try to get task directly
+          try {
+            response = await requestServer(`task/t/${customId}`);
+            setAccessLevel("edit"); // Authenticated users with direct access get edit by default
+          } catch (authError) {
+            // If direct access fails, try shared link
+            if (authError.response?.status === 403) {
+              response = await requestServer(
+                `task/shared/${customId}?permission=${permission}`
+              );
+            } else {
+              throw authError;
+            }
+          }
+        } else {
+          // Unauthenticated user - must use shared link
+          response = await requestServer(
+            `task/shared/${customId}?permission=${permission}`
+          );
         }
 
-        setTask(res.data);
-        setEditedTask(res.data);
+        if (!response.data) throw new Error("Task not found");
 
+        setTask(response.data);
+        setEditedTask(response.data);
+
+        // If task has a project, fetch project details
         if (
-          res.data.projectId &&
-          (!currentProject || currentProject._id !== res.data.projectId)
+          response.data.projectId &&
+          (!currentProject || currentProject._id !== response.data.projectId)
         ) {
           try {
             const projectRes = await requestServer(
-              `project/get/${res.data.projectId}`
+              `project/get/${response.data.projectId}`
             );
             if (projectRes.data) {
               dispatch(setCurrentProject(projectRes.data));
@@ -140,8 +167,9 @@ const TaskDetail = () => {
           setError("Authentication required");
           toast.error("Please log in to view this task");
         } else if (
+          error.response?.status === 403 ||
           error.response?.data?.message ===
-          "You are not authorized to perform this action!"
+            "You are not authorized to perform this action!"
         ) {
           setError("Unauthorized");
           toast.error("You don't have permission to view this task");
@@ -157,7 +185,7 @@ const TaskDetail = () => {
     if (customId) {
       fetchTask();
     }
-  }, [customId, currentProject, dispatch, isAuthenticated]);
+  }, [customId, currentProject, dispatch, isAuthenticated, location.hash]);
 
   // Update assignee and assigner when task or members change
   useEffect(() => {
@@ -166,11 +194,16 @@ const TaskDetail = () => {
 
   // Handle edit mode toggle
   const toggleEditMode = useCallback(() => {
+    if (accessLevel !== "edit") {
+      toast.error("You only have view access to this task");
+      return;
+    }
+
     if (isEditing) {
       setEditedTask(task);
     }
     setIsEditing(!isEditing);
-  }, [isEditing, task]);
+  }, [isEditing, task, accessLevel]);
 
   // Handle input changes
   const handleInputChange = useCallback((e) => {
@@ -191,6 +224,11 @@ const TaskDetail = () => {
 
   // Save changes
   const saveChanges = useCallback(async () => {
+    if (accessLevel !== "edit") {
+      toast.error("You don't have permission to edit this task");
+      return;
+    }
+
     try {
       setSaveLoading(true);
       const res = await requestServer(`task/update/${task._id}`, editedTask);
@@ -204,10 +242,15 @@ const TaskDetail = () => {
     } finally {
       setSaveLoading(false);
     }
-  }, [editedTask, task, dispatch]);
+  }, [editedTask, task, dispatch, accessLevel]);
 
   // Delete task
   const deleteTaskHandler = useCallback(async () => {
+    if (accessLevel !== "edit") {
+      toast.error("You don't have permission to delete this task");
+      return;
+    }
+
     try {
       setDeleteLoading(true);
       await requestServer(`task/delete/${task._id}`);
@@ -221,7 +264,7 @@ const TaskDetail = () => {
       setDeleteLoading(false);
       setIsDeleteDialogOpen(false);
     }
-  }, [dispatch, navigate, task]);
+  }, [dispatch, navigate, task, accessLevel]);
 
   // Get priority badge color
   const getPriorityColor = useCallback((priority) => {
@@ -302,7 +345,7 @@ const TaskDetail = () => {
     return (
       <div className="flex items-center justify-center h-[80vh]">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">
+          <h2 className="text-2xl font-bold text-gray-800 darkk:text-gray-200 mb-2">
             Task not found
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
@@ -319,13 +362,32 @@ const TaskDetail = () => {
 
   return (
     <div className="container max-w-5xl mx-auto py-8 px-4 h-[95vh] overflow-y-scroll">
-      {/* Share Dialog */}
-      <ShareDialog
-        open={showShareDialog}
-        onOpenChange={setShowShareDialog}
-        resource={task}
-        resourceType="task"
-      />
+      {/* Share Dialog - only show for users with edit access */}
+      {accessLevel === "edit" && (
+        <ShareDialog
+          open={showShareDialog}
+          onOpenChange={setShowShareDialog}
+          resource={task}
+          resourceType="task"
+        />
+      )}
+
+      {/* Access level indicator */}
+      <div className="mb-4 flex items-center justify-end">
+        <Badge variant="outline" className="flex items-center gap-1">
+          {accessLevel === "edit" ? (
+            <>
+              <Edit2 className="h-3 w-3" />
+              <span>Edit Access</span>
+            </>
+          ) : (
+            <>
+              <Eye className="h-3 w-3" />
+              <span>View Only</span>
+            </>
+          )}
+        </Badge>
+      </div>
 
       <div className="mb-6 flex items-center justify-between">
         <Button
@@ -334,28 +396,48 @@ const TaskDetail = () => {
           className="text-violet-700 hover:text-violet-800 hover:bg-violet-100 dark:text-violet-300 dark:hover:text-violet-200 dark:hover:bg-violet-900/20"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Tasks
+          {isAuthenticated ? "Back to Tasks" : "Back to Home"}
         </Button>
 
-        <div className="flex items-center gap-2">
+        {accessLevel === "edit" && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowShareDialog(true)}
+              className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:border-violet-800/30 dark:text-violet-300 dark:hover:bg-violet-900/20"
+            >
+              <Share2 className="mr-2 h-4 w-4" />
+              Share Task
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => setIsDeleteDialogOpen(true)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Add warning for view-only access when trying to edit */}
+      {isEditing && accessLevel !== "edit" && (
+        <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800/30">
+          <p className="text-yellow-800 dark:text-yellow-200">
+            You only have view access to this task. Contact the owner for edit
+            permissions.
+          </p>
           <Button
             variant="outline"
-            onClick={() => setShowShareDialog(true)}
-            className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:border-violet-800/30 dark:text-violet-300 dark:hover:bg-violet-900/20"
+            size="sm"
+            onClick={toggleEditMode}
+            className="mt-2 border-yellow-200 text-yellow-700 hover:bg-yellow-50 hover:text-yellow-800 dark:border-yellow-800/30 dark:text-yellow-300 dark:hover:bg-yellow-900/20"
           >
-            <Share2 className="mr-2 h-4 w-4" />
-            Share Task
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={() => setIsDeleteDialogOpen(true)}
-            className="bg-red-600 hover:bg-red-700"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
+            Cancel Edit
           </Button>
         </div>
-      </div>
+      )}
 
       <Card className="border-violet-200 dark:border-violet-800/30 shadow-md overflow-hidden">
         <CardHeader className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/40 dark:to-indigo-950/40 pb-4">
@@ -402,47 +484,53 @@ const TaskDetail = () => {
               </CardDescription>
             </div>
 
-            {!isEditing || accessLevel === "edit" ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleEditMode}
-                className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:border-violet-800/30 dark:text-violet-300 dark:hover:bg-violet-900/20"
-              >
-                <Edit2 className="mr-2 h-4 w-4" />
-                Edit
-              </Button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleEditMode}
-                  className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800/30 dark:text-red-300 dark:hover:bg-red-900/20"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={saveChanges}
-                  disabled={saveLoading}
-                  className="bg-violet-600 hover:bg-violet-700 text-white"
-                >
-                  {saveLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                      Save
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {isEditing ? (
+                accessLevel === "edit" ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleEditMode}
+                      className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800/30 dark:text-red-300 dark:hover:bg-red-900/20"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={saveChanges}
+                      disabled={saveLoading}
+                      className="bg-violet-600 hover:bg-violet-700 text-white"
+                    >
+                      {saveLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                          Save
+                        </>
+                      )}
+                    </Button>
+                  </>
+                ) : null
+              ) : (
+                accessLevel === "edit" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleEditMode}
+                    className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:border-violet-800/30 dark:text-violet-300 dark:hover:bg-violet-900/20"
+                  >
+                    <Edit2 className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                )
+              )}
+            </div>
           </div>
         </CardHeader>
 
@@ -665,6 +753,36 @@ const TaskDetail = () => {
                   getStatusBadge()
                 )}
               </div>
+
+              {/* Collaborators - Show if there are any */}
+              {task.collaborators && task.collaborators.length > 0 && (
+                <div className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-100 dark:border-violet-800/30">
+                  <h3 className="text-sm font-medium text-violet-800 dark:text-violet-300 flex items-center gap-2 mb-3">
+                    <Users className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                    Collaborators
+                  </h3>
+                  <div className="space-y-2">
+                    {task.collaborators.map((collab, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-2 bg-white dark:bg-slate-800 rounded-md"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="h-6 w-6 rounded-full bg-violet-100 dark:bg-violet-800 flex items-center justify-center text-violet-700 dark:text-violet-300 text-xs font-medium">
+                            {collab.email.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-sm truncate max-w-[150px]">
+                            {collab.email}
+                          </span>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {collab.permission}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>

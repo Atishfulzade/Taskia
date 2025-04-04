@@ -6,7 +6,7 @@ import emailSender from "./emailSender.js";
 // Run every day at 9 AM
 cron.schedule("0 9 * * *", async () => {
   const approachingDeadlines = await Task.find({
-    deadline: {
+    dueDate: {
       $gte: new Date(), // Deadline is in the future
       $lte: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // Within 3 days
     },
