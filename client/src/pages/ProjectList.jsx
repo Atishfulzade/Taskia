@@ -1,9 +1,7 @@
-"use client";
-
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { updateTask, setTasks } from "../store/taskSlice";
-import requestServer from "../utils/requestServer";
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { updateTask, setTasks } from '../store/taskSlice';
+import requestServer from '../utils/requestServer';
 import {
   DndContext,
   closestCenter,
@@ -12,23 +10,23 @@ import {
   useSensor,
   useSensors,
   DragOverlay,
-} from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { motion, AnimatePresence } from "framer-motion";
+} from '@dnd-kit/core';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // UI Components
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Badge } from "@/components/ui/Badge";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { Alert, AlertDescription } from "@/components/ui/Alert";
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Badge } from '@/components/ui/Badge';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { Alert, AlertDescription } from '@/components/ui/Alert';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/Select";
+} from '@/components/ui/Select';
 
 // Icons
 import {
@@ -38,13 +36,13 @@ import {
   ArrowDownUp,
   FolderOpen,
   Layers,
-} from "lucide-react";
+} from 'lucide-react';
 
 // Components
-import PrioritySection from "../component/PrioritySection";
-import Task from "../component/Task";
-import AddTaskPopup from "../component/AddTaskPopup";
-import { toast } from "sonner";
+import PrioritySection from '../component/PrioritySection';
+import Task from '../component/Task';
+import AddTaskPopup from '../component/AddTaskPopup';
+import { toast } from 'sonner';
 
 const ProjectList = () => {
   // Redux hooks
@@ -59,8 +57,8 @@ const ProjectList = () => {
   // Local state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("default");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('default');
   const [activeId, setActiveId] = useState(null);
   const [activeTask, setActiveTask] = useState(null);
   const [openDropdowns, setOpenDropdowns] = useState({
@@ -71,9 +69,9 @@ const ProjectList = () => {
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const [selectedPriority, setSelectedPriority] = useState(null);
   const [availablePriorities, setAvailablePriorities] = useState([
-    "High",
-    "Medium",
-    "No",
+    'High',
+    'Medium',
+    'No',
   ]);
 
   // Drag-and-Drop Sensors
@@ -98,8 +96,8 @@ const ProjectList = () => {
       const response = await requestServer(`task/all/${projectId}`);
       dispatch(setTasks(response.data || []));
     } catch (error) {
-      console.error("Error fetching tasks:", error);
-      setError("Failed to load tasks. Please try again.");
+      console.error('Error fetching tasks:', error);
+      setError('Failed to load tasks. Please try again.');
       dispatch(setTasks([]));
     } finally {
       setLoading(false);
@@ -118,7 +116,7 @@ const ProjectList = () => {
         dispatch(updateTask(updatedTask)); // Optimistically update Redux store
         await requestServer(`task/update/${updatedTask._id}`, updatedTask);
       } catch (error) {
-        console.error("Error updating task:", error);
+        console.error('Error updating task:', error);
         // If the update fails, refresh tasks to get the correct state
         fetchTasks();
       }
@@ -211,20 +209,20 @@ const ProjectList = () => {
 
     // Apply sorting
     switch (sortBy) {
-      case "dueDate":
+      case 'dueDate':
         filtered.sort((a, b) => {
           if (!a.dueDate) return 1;
           if (!b.dueDate) return -1;
           return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
         });
         break;
-      case "created":
+      case 'created':
         filtered.sort(
           (a, b) =>
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
         break;
-      case "alphabetical":
+      case 'alphabetical':
         filtered.sort((a, b) => a.title.localeCompare(b.title));
         break;
       default:
@@ -264,10 +262,10 @@ const ProjectList = () => {
         await requestServer(`task/delete/${taskId}`);
         // Remove task from Redux store
         dispatch(setTasks(storedTasks.filter((task) => task._id !== taskId)));
-        toast.success("Task deleted successfully");
+        toast.success('Task deleted successfully');
       } catch (error) {
-        console.error("Error deleting task:", error);
-        toast.error("Failed to delete task");
+        console.error('Error deleting task:', error);
+        toast.error('Failed to delete task');
       }
     },
     [dispatch, storedTasks]
@@ -279,7 +277,7 @@ const ProjectList = () => {
       <div className="bg-white dark:bg-slate-800  border-b border-slate-200 dark:border-slate-700 px-6 py-4 sticky top-0 shadow-sm">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-            {projectName || "Project Tasks"}{" "}
+            {projectName || 'Project Tasks'}{' '}
             <Badge variant="secondary" className="ml-2 text-xs">
               {totalTasks} tasks
             </Badge>
@@ -291,13 +289,13 @@ const ProjectList = () => {
                 variant="outline"
                 className={`
                   ${
-                    priority === "High"
-                      ? "bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
-                      : priority === "Medium"
-                      ? "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
-                      : priority === "No"
-                      ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
-                      : "bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800"
+                    priority === 'High'
+                      ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800'
+                      : priority === 'Medium'
+                      ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800'
+                      : priority === 'No'
+                      ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'
+                      : 'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800'
                   }
                 `}
               >
@@ -367,7 +365,7 @@ const ProjectList = () => {
             {/* Add Task Button */}
             <Button
               size="sm"
-              onClick={() => handleAddTask("No")}
+              onClick={() => handleAddTask('No')}
               className="h-9 text-sm text-white bg-violet-600 hover:bg-violet-700 dark:bg-violet-700 dark:hover:bg-violet-800"
             >
               <Plus className="h-4 w-4 mr-1.5" />
@@ -425,11 +423,11 @@ const ProjectList = () => {
                     </h3>
                     <p className="text-slate-500 dark:text-slate-400 mb-6">
                       {searchQuery
-                        ? "No tasks match your search criteria. Try a different search term or clear the search."
-                        : "Get started by creating your first task for this project."}
+                        ? 'No tasks match your search criteria. Try a different search term or clear the search.'
+                        : 'Get started by creating your first task for this project.'}
                     </p>
                     <Button
-                      onClick={() => handleAddTask("No")}
+                      onClick={() => handleAddTask('No')}
                       className="bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-700 dark:hover:bg-violet-800"
                     >
                       <Plus className="h-4 w-4 mr-1.5" />

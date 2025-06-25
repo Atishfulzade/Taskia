@@ -5,11 +5,10 @@ import {
   Folder,
   Plus,
   Users,
-} from "lucide-react";
-import ProjectItem from "./ProjectItem";
+} from 'lucide-react';
+import ProjectItem from './ProjectItem';
 
 const SidebarContent = ({
-  isCollapsed,
   expandedSections,
   toggleSection,
   recentProjects,
@@ -29,7 +28,7 @@ const SidebarContent = ({
           <div className="mb-4">
             <div
               className="flex items-center justify-between py-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded px-1"
-              onClick={() => toggleSection("recent")}
+              onClick={() => toggleSection('recent')}
             >
               <div className="flex items-center gap-1">
                 <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" />
@@ -41,8 +40,8 @@ const SidebarContent = ({
                 className="h-5 w-5 flex items-center justify-center text-gray-500 dark:text-gray-400"
                 aria-label={
                   expandedSections.recent
-                    ? "Collapse recent projects"
-                    : "Expand recent projects"
+                    ? 'Collapse recent projects'
+                    : 'Expand recent projects'
                 }
               >
                 {expandedSections.recent ? (
@@ -74,7 +73,7 @@ const SidebarContent = ({
         <div className="mb-4">
           <div
             className="flex items-center justify-between py-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded px-1"
-            onClick={() => toggleSection("myProjects")}
+            onClick={() => toggleSection('myProjects')}
           >
             <div className="flex items-center gap-1">
               <Folder className="h-4 w-4 text-gray-500 dark:text-gray-400" />
@@ -89,8 +88,8 @@ const SidebarContent = ({
               className="h-5 w-5 flex items-center justify-center text-gray-500 dark:text-gray-400"
               aria-label={
                 expandedSections.myProjects
-                  ? "Collapse my projects"
-                  : "Expand my projects"
+                  ? 'Collapse my projects'
+                  : 'Expand my projects'
               }
             >
               {expandedSections.myProjects ? (
@@ -139,7 +138,7 @@ const SidebarContent = ({
         <div className="mb-4">
           <div
             className="flex items-center justify-between py-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded px-1"
-            onClick={() => toggleSection("shared")}
+            onClick={() => toggleSection('shared')}
           >
             <div className="flex items-center gap-1">
               <Users className="h-4 w-4 text-gray-500 dark:text-gray-400" />
@@ -154,8 +153,8 @@ const SidebarContent = ({
               className="h-5 w-5 flex items-center justify-center text-gray-500 dark:text-gray-400"
               aria-label={
                 expandedSections.shared
-                  ? "Collapse shared projects"
-                  : "Expand shared projects"
+                  ? 'Collapse shared projects'
+                  : 'Expand shared projects'
               }
             >
               {expandedSections.shared ? (

@@ -1,34 +1,32 @@
-"use client";
-
-import { useState, useEffect, useCallback } from "react";
-import { useFormik } from "formik";
-import * as Yup from "yup";
-import { useDispatch, useSelector } from "react-redux";
-import { setCurrentProject, setProjects } from "../store/projectSlice";
-import requestServer from "../utils/requestServer";
-import { useNavigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
-import useProjectMembers from "@/hooks/useProjectMembers";
+import { useState, useEffect, useCallback } from 'react';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
+import { useDispatch, useSelector } from 'react-redux';
+import { setCurrentProject, setProjects } from '../store/projectSlice';
+import requestServer from '../utils/requestServer';
+import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
+import useProjectMembers from '@/hooks/useProjectMembers';
 
 // UI Components
-import { Button } from "../components/ui/Button";
-import { Input } from "../components/ui/Input";
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../components/ui/Card";
-import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/Avatar";
-import { Badge } from "../components/ui/Badge";
+} from '../components/ui/Card';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/Avatar';
+import { Badge } from '../components/ui/Badge';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "../components/ui/Dialog";
+} from '../components/ui/Dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,11 +36,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "../components/ui/alert-dialog";
-import { UserSearch } from "../component/UserSearch";
-import { Skeleton } from "../components/ui/Skeleton";
-import ShareDialog from "../component/SharePopup";
-import { Textarea } from "../components/ui/Textarea";
+} from '../components/ui/alert-dialog';
+import { UserSearch } from '../component/UserSearch';
+import { Skeleton } from '../components/ui/Skeleton';
+import ShareDialog from '../component/SharePopup';
+import { Textarea } from '../components/ui/Textarea';
 
 // Icons
 import {
@@ -61,7 +59,7 @@ import {
   Share,
   RefreshCw,
   Copy,
-} from "lucide-react";
+} from 'lucide-react';
 
 // Sub-components
 const ProjectHeader = ({
@@ -276,10 +274,10 @@ const ProjectDetailsPage = () => {
   // Format dates
   const createdDate = currentProject?.createdAt
     ? new Date(currentProject.createdAt).toLocaleDateString()
-    : "";
+    : '';
   const updatedDate = currentProject?.updatedAt
     ? new Date(currentProject.updatedAt).toLocaleDateString()
-    : "";
+    : '';
 
   // Fetch project data
   const fetchProject = useCallback(async () => {
@@ -293,30 +291,30 @@ const ProjectDetailsPage = () => {
       const res = await requestServer(`/project/get/${projectId}`, { userId });
 
       if (!res.data) {
-        throw new Error("No project data returned");
+        throw new Error('No project data returned');
       }
 
       setLocalProject(res.data);
       dispatch(setCurrentProject(res.data));
     } catch (error) {
-      console.error("Error fetching project details:", error);
-      let errorMessage = "Failed to load project details";
+      console.error('Error fetching project details:', error);
+      let errorMessage = 'Failed to load project details';
 
       if (error.response) {
         if (error.response.status === 404) {
-          errorMessage = "Project not found";
+          errorMessage = 'Project not found';
         } else if (error.response.status === 401) {
-          errorMessage = "Please login to access this project";
-          localStorage.removeItem("token");
-          navigate("/authenticate");
+          errorMessage = 'Please login to access this project';
+          localStorage.removeItem('token');
+          navigate('/authenticate');
           return;
         }
-      } else if (error.message === "No project data returned") {
-        errorMessage = "Invalid project data received";
+      } else if (error.message === 'No project data returned') {
+        errorMessage = 'Invalid project data received';
       }
 
       toast.error(errorMessage);
-      navigate("/dashboard");
+      navigate('/dashboard');
     } finally {
       setIsLoading(false);
     }
@@ -335,19 +333,19 @@ const ProjectDetailsPage = () => {
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      title: currentProject?.title || "",
-      description: currentProject?.description || "",
+      title: currentProject?.title || '',
+      description: currentProject?.description || '',
       member: currentProject?.member || [],
     },
     validationSchema: Yup.object({
       title: Yup.string()
-        .required("Title is required")
-        .max(50, "Title must be 50 characters or less"),
+        .required('Title is required')
+        .max(50, 'Title must be 50 characters or less'),
       description: Yup.string().max(
         500,
-        "Description must be 500 characters or less"
+        'Description must be 500 characters or less'
       ),
-      member: Yup.array().min(1, "At least one member is required"),
+      member: Yup.array().min(1, 'At least one member is required'),
     }),
     onSubmit: async (values) => {
       try {
@@ -364,21 +362,21 @@ const ProjectDetailsPage = () => {
         dispatch(setCurrentProject(res.data));
         dispatch(setProjects(res.data.allProjects));
 
-        toast.success("Project updated successfully", {
+        toast.success('Project updated successfully', {
           action: {
-            label: "View Changes",
+            label: 'View Changes',
             onClick: () => window.location.reload(),
           },
         });
         setIsEditing(false);
       } catch (error) {
-        console.error("Error updating project:", error);
-        let errorMessage = "Failed to update project";
+        console.error('Error updating project:', error);
+        let errorMessage = 'Failed to update project';
 
-        if (error.response?.data?.message === "Token not found") {
-          errorMessage = "Invalid token! Please login again.";
-          localStorage.removeItem("token");
-          navigate("/authenticate");
+        if (error.response?.data?.message === 'Token not found') {
+          errorMessage = 'Invalid token! Please login again.';
+          localStorage.removeItem('token');
+          navigate('/authenticate');
         } else if (error.response?.data?.message) {
           errorMessage = error.response.data.message;
         }
@@ -397,15 +395,15 @@ const ProjectDetailsPage = () => {
       const res = await requestServer(
         `/project/delete/${currentProject._id}`,
         { userId },
-        "DELETE"
+        'DELETE'
       );
 
       dispatch(setProjects(res.data.allProjects));
-      toast.success("Project deleted successfully");
-      navigate("/dashboard");
+      toast.success('Project deleted successfully');
+      navigate('/dashboard');
     } catch (error) {
-      console.error("Error deleting project:", error);
-      toast.error(error.response?.data?.message || "Failed to delete project");
+      console.error('Error deleting project:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete project');
     } finally {
       setDeleteLoading(false);
       setIsDeleteDialogOpen(false);
@@ -427,16 +425,16 @@ const ProjectDetailsPage = () => {
           member: updatedMembers.map((m) => m._id),
           userId,
         },
-        "PUT"
+        'PUT'
       );
 
       setLocalProject(res.data.updatedProject);
       dispatch(setCurrentProject(res.data.updatedProject));
       dispatch(setProjects(res.data.allProjects));
 
-      toast.success("Member removed successfully", {
+      toast.success('Member removed successfully', {
         action: {
-          label: "Undo",
+          label: 'Undo',
           onClick: async () => {
             try {
               const memberToRestore = members.find((m) => m._id === memberId);
@@ -454,36 +452,36 @@ const ProjectDetailsPage = () => {
                   member: restoredMembers.map((m) => m._id),
                   userId,
                 },
-                "PUT"
+                'PUT'
               );
 
               setLocalProject(undoRes.data.updatedProject);
               dispatch(setCurrentProject(undoRes.data.updatedProject));
               dispatch(setProjects(undoRes.data.allProjects));
-              toast.success("Member restored successfully");
+              toast.success('Member restored successfully');
             } catch (error) {
-              console.error("Error restoring member:", error);
-              toast.error("Failed to restore member");
+              console.error('Error restoring member:', error);
+              toast.error('Failed to restore member');
             }
           },
         },
       });
     } catch (error) {
-      console.error("Error removing member:", error);
-      toast.error(error.response?.data?.message || "Failed to remove member");
+      console.error('Error removing member:', error);
+      toast.error(error.response?.data?.message || 'Failed to remove member');
     } finally {
       setRemovingMemberId(null);
     }
   };
 
   const handleUserSelect = (selectedUserIds) => {
-    formik.setFieldValue("member", selectedUserIds);
+    formik.setFieldValue('member', selectedUserIds);
   };
 
   const copyProjectId = () => {
     if (currentProject?._id) {
       navigator.clipboard.writeText(currentProject._id);
-      toast.success("Project ID copied to clipboard");
+      toast.success('Project ID copied to clipboard');
     }
   };
 
@@ -492,7 +490,7 @@ const ProjectDetailsPage = () => {
       const baseUrl = window.location.origin;
       const shareableLink = `${baseUrl}/project/${currentProject.customId}`;
       navigator.clipboard.writeText(shareableLink);
-      toast.success("Project link copied to clipboard");
+      toast.success('Project link copied to clipboard');
     }
   };
 
@@ -545,7 +543,7 @@ const ProjectDetailsPage = () => {
         <p className="text-gray-600 dark:text-gray-400 mb-4">
           The project you're looking for doesn't exist or has been deleted.
         </p>
-        <Button onClick={() => navigate("/dashboard")}>
+        <Button onClick={() => navigate('/dashboard')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Projects
         </Button>
@@ -560,7 +558,7 @@ const ProjectDetailsPage = () => {
         isEditing={isEditing}
         onEditToggle={() => setIsEditing(!isEditing)}
         onShare={handleShareProject}
-        onBack={() => navigate("/dashboard")}
+        onBack={() => navigate('/dashboard')}
         saveLoading={saveLoading}
         onSave={formik.handleSubmit}
       />
@@ -773,9 +771,9 @@ const ProjectDetailsPage = () => {
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {currentProject.member?.length === 0
-                        ? "No members yet"
+                        ? 'No members yet'
                         : currentProject.member?.length === 1
-                        ? "1 person working on this project"
+                        ? '1 person working on this project'
                         : `${currentProject.member?.length} people working on this project`}
                     </p>
                   </div>
@@ -910,7 +908,7 @@ const ProjectDetailsPage = () => {
                   Deleting...
                 </>
               ) : (
-                "Delete Project"
+                'Delete Project'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
