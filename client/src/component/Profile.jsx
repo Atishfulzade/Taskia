@@ -25,7 +25,7 @@ import {
 import { useTheme } from 'next-themes';
 
 import { Button } from '@/components/ui/Button';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/Avatar';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import {
