@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'sonner';
-import { Plus, Settings, Star, Clock, Users, X } from 'lucide-react';
+import { Plus, Settings, Star, Clock, Users } from 'lucide-react';
 import {
   setCurrentProject,
   setDeleteProject,
@@ -27,7 +27,7 @@ import SidebarHeader from './SidebarHeader';
 import SidebarFooter from './SidebarFooter';
 import ContextMenu from './ContextMenu';
 import { useNavigate } from 'react-router-dom';
-import SidebarContent from './SidebarContent.jsx';
+import SidebarContent from './SidebarContent';
 
 const Sidebar = ({ onCollapse }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
