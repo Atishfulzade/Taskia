@@ -5,7 +5,7 @@ import AddStatusPopup from "../component/AddStatusPopup";
 import requestServer from "../utils/requestServer";
 import { useDispatch } from "react-redux";
 import { deleteStatus } from "../store/statusSlice";
-import { toast } from "sonner"; // Import sonner's toast
+import { toast } from "sonner"; 
 
 const TaskMoreDropdown = ({ setShowMore, status }) => {
   const popupRef = useRef(null);

@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useMemo } from "react";
 import {
   SortableContext,
@@ -51,6 +49,7 @@ const priorityConfig = {
   },
 };
 
+// PrioritySection.jsx
 const PrioritySection = ({
   priority,
   tasks,

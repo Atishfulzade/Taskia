@@ -96,7 +96,7 @@ const Column = React.memo(
 
     return (
       <div
-        className={`flex flex-col h-[calc(100vh-180px)] w-[280px] rounded-lg shadow-sm transition-all duration-200`}
+        className={`flex flex-col h-[calc(100vh-280px)] w-[280px] rounded-lg shadow-sm transition-all duration-200`}
         style={{
           backgroundColor: status?.color?.secondaryColor || "#f8fafc",
           borderLeft: `3px solid ${status?.color?.primaryColor || "#e2e8f0"}`,
