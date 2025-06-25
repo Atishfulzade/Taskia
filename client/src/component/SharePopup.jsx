@@ -7,9 +7,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from "@/components/ui/Dialog";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import {
   Copy,
   Lock,
@@ -31,16 +31,16 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+} from "@/components/ui/Select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/Badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import useProjectMembers from "@/hooks/useProjectMembers";
 import requestServer from "@/utils/requestServer";
 import generateEmailTemplate from "@/utils/emailTemplate";
