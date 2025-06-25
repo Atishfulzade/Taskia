@@ -1,6 +1,6 @@
-import React from "react";
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
+import React from 'react';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import {
   LogOut,
   User,
@@ -21,24 +21,24 @@ import {
   BadgeCheck,
   Sun,
   Moon,
-} from "lucide-react";
-import { useTheme } from "next-themes";
+} from 'lucide-react';
+import { useTheme } from 'next-themes';
 
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from '@/components/ui/Button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+} from '@/components/ui/card';
+import { Label } from '@/components/ui/Label';
+import { Separator } from '@/components/ui/Separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
+import { Badge } from '@/components/ui/Badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,35 +49,34 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Progress } from "@/components/ui/progress";
+} from '@/components/ui/alert-dialog';
 
-const requestServer = async (endpoint, method = "GET", data) => {
+const requestServer = async (endpoint, method = 'GET', data) => {
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
-  if (endpoint === "user/profile/update") {
-    return { success: true, message: "Profile updated successfully" };
+  if (endpoint === 'user/profile/update') {
+    return { success: true, message: 'Profile updated successfully' };
   }
 
   return { success: true, data: { ...data } };
 };
 
 const formatDate = (dateString) => {
-  if (!dateString) return "N/A";
+  if (!dateString) return 'N/A';
   const date = new Date(dateString);
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   }).format(date);
 };
 
 const getInitials = (name) => {
-  if (!name) return "?";
+  if (!name) return '?';
   return name
-    .split(" ")
+    .split(' ')
     .map((n) => n[0]?.toUpperCase())
-    .join("")
+    .join('')
     .slice(0, 2);
 };
 
@@ -90,48 +89,48 @@ export default function ProfilePage() {
 
   const [userData, setUserData] = useState(null);
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    bio: "",
-    location: "",
-    website: "",
-    phone: "",
+    name: '',
+    email: '',
+    bio: '',
+    location: '',
+    website: '',
+    phone: '',
   });
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const storedUser = localStorage.getItem("user");
+        const storedUser = localStorage.getItem('user');
         let user = storedUser ? JSON.parse(storedUser) : null;
 
         if (!user) {
           user = {
-            id: "1",
-            name: "Alex Morgan",
-            email: "alex.morgan@example.com",
-            avatar: "",
-            bio: "Full-stack developer passionate about creating intuitive user experiences and scalable applications.",
-            location: "San Francisco, CA",
-            website: "https://alexmorgan.dev",
-            phone: "+1 (555) 123-4567",
-            createdAt: "2023-01-15T00:00:00.000Z",
-            role: "Senior Developer",
+            id: '1',
+            name: 'Alex Morgan',
+            email: 'alex.morgan@example.com',
+            avatar: '',
+            bio: 'Full-stack developer passionate about creating intuitive user experiences and scalable applications.',
+            location: 'San Francisco, CA',
+            website: 'https://alexmorgan.dev',
+            phone: '+1 (555) 123-4567',
+            createdAt: '2023-01-15T00:00:00.000Z',
+            role: 'Senior Developer',
             verified: true,
           };
         }
 
         setUserData(user);
         setFormData({
-          name: user.name || "",
-          email: user.email || "",
-          bio: user.bio || "",
-          location: user.location || "",
-          website: user.website || "",
-          phone: user.phone || "",
+          name: user.name || '',
+          email: user.email || '',
+          bio: user.bio || '',
+          location: user.location || '',
+          website: user.website || '',
+          phone: user.phone || '',
         });
       } catch (error) {
-        console.error("Error fetching user data:", error);
-        toast.error("Failed to load profile data");
+        console.error('Error fetching user data:', error);
+        toast.error('Failed to load profile data');
       }
     };
 
@@ -151,7 +150,7 @@ export default function ProfilePage() {
     setIsLoading(true);
 
     try {
-      const res = await requestServer("user/profile/update", "PUT", formData);
+      const res = await requestServer('user/profile/update', 'PUT', formData);
 
       if (res.success) {
         const updatedUser = {
@@ -159,19 +158,19 @@ export default function ProfilePage() {
           ...formData,
         };
         setUserData(updatedUser);
-        localStorage.setItem("user", JSON.stringify(updatedUser));
+        localStorage.setItem('user', JSON.stringify(updatedUser));
 
-        toast.success("Profile updated successfully", {
-          description: "Your profile information has been saved.",
+        toast.success('Profile updated successfully', {
+          description: 'Your profile information has been saved.',
           icon: <CheckCircle2 className="h-4 w-4 text-green-500" />,
         });
         setIsEditing(false);
       } else {
-        toast.error(res.message || "Failed to update profile");
+        toast.error(res.message || 'Failed to update profile');
       }
     } catch (error) {
-      console.error("Error updating profile:", error);
-      toast.error("Failed to update profile. Please try again.");
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -182,12 +181,12 @@ export default function ProfilePage() {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image size should be less than 5MB");
+      toast.error('Image size should be less than 5MB');
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
       return;
     }
 
@@ -199,7 +198,7 @@ export default function ProfilePage() {
       reader.onload = async (event) => {
         const avatarUrl = event.target?.result;
 
-        await requestServer("user/profile/avatar", "PUT", {
+        await requestServer('user/profile/avatar', 'PUT', {
           avatar: avatarUrl,
         });
 
@@ -212,15 +211,15 @@ export default function ProfilePage() {
             : null
         );
 
-        const storedUser = localStorage.getItem("user");
+        const storedUser = localStorage.getItem('user');
         if (storedUser) {
           const user = JSON.parse(storedUser);
           user.avatar = avatarUrl;
-          localStorage.setItem("user", JSON.stringify(user));
+          localStorage.setItem('user', JSON.stringify(user));
         }
 
-        toast.success("Profile picture updated successfully", {
-          description: "Your new profile picture has been saved.",
+        toast.success('Profile picture updated successfully', {
+          description: 'Your new profile picture has been saved.',
           icon: <CheckCircle2 className="h-4 w-4 text-green-500" />,
         });
         setIsUploading(false);
@@ -228,34 +227,34 @@ export default function ProfilePage() {
 
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error("Error uploading avatar:", error);
-      toast.error("Failed to update profile picture");
+      console.error('Error uploading avatar:', error);
+      toast.error('Failed to update profile picture');
       setIsUploading(false);
     }
   };
 
   const handleLogout = async () => {
     try {
-      const res = await requestServer("user/logout");
-      toast.success(res.message || "Logged out successfully");
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      window.location.href = "/";
+      const res = await requestServer('user/logout');
+      toast.success(res.message || 'Logged out successfully');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/';
     } catch (error) {
-      console.error("Error logging out:", error);
-      toast.error("Failed to log out. Please try again.");
+      console.error('Error logging out:', error);
+      toast.error('Failed to log out. Please try again.');
     }
   };
 
   const handleCancel = () => {
     if (userData) {
       setFormData({
-        name: userData.name || "",
-        email: userData.email || "",
-        bio: userData.bio || "",
-        location: userData.location || "",
-        website: userData.website || "",
-        phone: userData.phone || "",
+        name: userData.name || '',
+        email: userData.email || '',
+        bio: userData.bio || '',
+        location: userData.location || '',
+        website: userData.website || '',
+        phone: userData.phone || '',
       });
     }
     setIsEditing(false);
@@ -264,14 +263,14 @@ export default function ProfilePage() {
   const handleDeleteAccount = async () => {
     setIsLoading(true);
     try {
-      await requestServer("user/delete", "DELETE");
-      toast.success("Account deleted successfully");
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      window.location.href = "/";
+      await requestServer('user/delete', 'DELETE');
+      toast.success('Account deleted successfully');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/';
     } catch (error) {
-      console.error("Error deleting account:", error);
-      toast.error("Failed to delete account. Please try again.");
+      console.error('Error deleting account:', error);
+      toast.error('Failed to delete account. Please try again.');
     } finally {
       setIsLoading(false);
       setDeleteDialogOpen(false);
@@ -412,7 +411,7 @@ export default function ProfilePage() {
                           Bio
                         </h3>
                         <p className="text-sm">
-                          {userData.bio || "No bio provided"}
+                          {userData.bio || 'No bio provided'}
                         </p>
                       </div>
 
@@ -442,7 +441,7 @@ export default function ProfilePage() {
                                 rel="noopener noreferrer"
                                 className="text-sm text-primary hover:underline"
                               >
-                                {userData.website.replace(/^https?:\/\//, "")}
+                                {userData.website.replace(/^https?:\/\//, '')}
                               </a>
                             </div>
                           </div>
