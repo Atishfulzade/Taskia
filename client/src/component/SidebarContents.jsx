@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import ProjectItem from './ProjectItem';
 
-const SidebarContent = ({
+const SidebarContents = ({
   expandedSections,
   toggleSection,
   recentProjects,
@@ -191,4 +191,4 @@ const SidebarContent = ({
   );
 };
 
-export default SidebarContent;
+export default SidebarContents;

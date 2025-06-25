@@ -27,7 +27,7 @@ import SidebarHeader from './SidebarHeader';
 import SidebarFooter from './SidebarFooter';
 import ContextMenu from './ContextMenu';
 import { useNavigate } from 'react-router-dom';
-import SidebarContent from './SidebarContent';
+import SidebarContent from './SidebarContents';
 
 const Sidebar = ({ onCollapse }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
