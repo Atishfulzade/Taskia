@@ -26,7 +26,7 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
   const navigate = useNavigate();
   const [isClosing, setIsClosing] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-
+console.log('Profile Pic URL:', userInfo?.profilePic);
   // Handle escape key to close profile
   useEffect(() => {
     const handleEscape = (e) => {
@@ -121,7 +121,7 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
         y: isClosing ? -10 : 0,
         scale: isClosing ? 0.98 : 1,
       }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
       className="fixed top-16 right-6 w-72 bg-white dark:bg-slate-900 rounded-xl shadow-lg 
                  border border-slate-200 dark:border-slate-800 overflow-hidden 
               "
@@ -146,8 +146,8 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
           {/* Avatar */}
           <Avatar className="h-12 w-12 ring-2 ring-white dark:ring-slate-700">
             <AvatarImage
-              src={userInfo?.profilePic || userInfo?.avatar}
-              alt={userInfo?.name || "User"}
+              src={userInfo?.profilePic}
+              alt={userInfo?.name || 'User'}
             />
             <AvatarFallback className="bg-violet-600 text-white">
               {getInitials(userInfo?.name)}
@@ -157,12 +157,12 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
           <div className=" ">
             <div className="flex items-center gap-2 ">
               <h3 className="font-medium text-slate-900 dark:text-white">
-                {userInfo?.name || "Guest User"}
+                {userInfo?.name || 'Guest User'}
               </h3>
             </div>
 
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {userInfo?.email || "No email"}
+              {userInfo?.email || 'No email'}
             </p>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
               Member since {formatDate(userInfo.createdAt)}
@@ -177,7 +177,7 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
         <Button
           variant="ghost"
           onClick={() => {
-            navigate("/profile");
+            navigate('/profile');
             handleClose();
           }}
           className="w-full justify-start px-3 py-2 my-0.5 text-slate-700 dark:text-slate-300 
@@ -191,7 +191,7 @@ const UserProfile = forwardRef(({ setShowProfile, userInfo }, ref) => {
         <Button
           variant="ghost"
           onClick={() => {
-            navigate("/settings");
+            navigate('/settings');
             handleClose();
           }}
           className="w-full justify-start px-3 py-2 my-0.5 text-slate-700 dark:text-slate-300 
